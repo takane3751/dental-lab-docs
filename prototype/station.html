@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>CADデスク — 工程端末</title>
+<style>
+:root{
+  --bg:#0f1613; --panel:#18231f; --panel-2:#1f2d28; --line:#2c3d36;
+  --text:#eaf2ef; --muted:#8fa79e; --faint:#6b8078;
+  --primary:#2dd4bf; --ok:#4ade80; --warn:#fbbf24; --danger:#f87171; --od:#ef4444;
+  --ins:#60a5fa; --pri:#fbbf24;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);overflow:hidden;
+  -webkit-font-smoothing:antialiased;user-select:none}
+
+.devbar{background:#000;color:#6b7280;font-size:11px;padding:3px 12px;display:flex;gap:10px;align-items:center}
+.devbar b{color:#9ca3af}.devbar .sp{flex:1}.devbar a{color:#60a5fa;text-decoration:none}
+.devbar select{width:auto;padding:1px 4px;font-size:11px;background:#1f2937;border:1px solid #374151;color:#e5e7eb;border-radius:3px}
+
+.wrap{height:calc(100% - 22px);display:flex;flex-direction:column}
+
+header{display:flex;align-items:center;gap:20px;padding:12px 24px;background:var(--panel);border-bottom:2px solid var(--line)}
+header .area{font-size:28px;font-weight:800;letter-spacing:.02em}
+header .sub{font-size:13px;color:var(--muted)}
+header .sp{flex:1}
+header .clock{font-size:25px;font-weight:700;font-variant-numeric:tabular-nums}
+header .date{font-size:12.5px;color:var(--muted);text-align:right}
+.conn{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);
+  border:1px solid var(--line);border-radius:99px;padding:5px 13px}
+.conn .dot{width:9px;height:9px;border-radius:99px;background:var(--ok)}
+.conn.off{color:var(--danger);border-color:var(--danger)}
+.conn.off .dot{background:var(--danger)}
+
+.body{flex:1;display:grid;grid-template-columns:1fr 340px;gap:0;overflow:hidden}
+.main{padding:14px 20px;overflow-y:auto}
+.side{background:var(--panel);border-left:2px solid var(--line);padding:16px 18px;overflow-y:auto}
+/* ★縦置き（会議 4-2 で推奨）だとサイドパネルが本体の幅を食う。
+   1200px 未満では下に回して、ゾーンの帯に横幅を渡す。
+   このとき本体の内部スクロールを外し、ページ全体を1つのスクロールにする
+   （main に overflow が残っていると帯が途中で切れる）。 */
+@media(max-width:1200px){
+  body{overflow:auto}
+  .wrap{height:auto;min-height:calc(100% - 22px)}
+  .body{grid-template-columns:1fr;grid-template-rows:auto auto;overflow:visible}
+  .main{overflow:visible}
+  .side{border-left:none;border-top:2px solid var(--line);overflow:visible}
+  .sidegrid{display:grid;gap:0 24px;grid-template-columns:1fr 1fr;align-items:start}
+  .sidegrid .sg2{grid-row:span 2}
+}
+
+/* ゾーン＝センサー1個の範囲。
+   ★物理の配置（待機 → 作業中 → 送り出し）を縦に積み、
+     「作業中」だけを横に並べる。作業台が複数あるのはここだけなので。
+   以前は全ゾーンを横並びにしていたが、3ゾーン以上でカラムが 375px まで落ち、
+   明細の中央列が 100px 程度に潰れて患者名まで折り返していた。 */
+.zones{display:flex;flex-direction:column;gap:12px}
+/* 🧑‍🔧 v0.8：ゾーンの帯（作業中・待機・完了）と、前の工程の帯を同じ間隔で積む */
+/* ★下限は 500px。実測でこう決めた。
+   340px → 縦置き(1080幅)で3列に割れ、1列 344px。患者名も「何を作るか」も切れる
+   440px → 1366幅で2列 487px。長い患者名（佐藤 さゆり 様＋タグ2つ）が切れる
+   500px → どの幅でも列が 505px 以上になり、患者名も作るものも切れない
+   列を減らして幅を確保するほうが、現場のモニターでは読める。 */
+.zrow{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));align-items:start}
+.zone{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  display:flex;flex-direction:column}
+.zone.wait{border-color:#3b4c44}
+.zone.active{border-color:var(--primary);box-shadow:0 0 0 1px rgba(45,212,191,.25)}
+/* 🧑‍🔧 v0.8 完了棚。作業が終わって次の工程を待っているもの */
+.zone.done{border-color:#3f7a5c}
+.zone.done .zh{background:rgba(74,222,128,.09)}
+/* 🧑‍🔧 v0.8 前の工程にあるもの。★このエリアには「無い」ものなので破線で囲み、1行に詰める。
+   ゾーンの帯と同じ大きさで出すと現物の在り処を見誤るため、意図して小さくしている。 */
+.prevstrip{border:1px dashed #4a5a52;border-radius:12px;padding:9px 12px;background:rgba(0,0,0,.16)}
+.prevstrip .ph{font-size:12.5px;font-weight:700;color:var(--muted);display:flex;
+  align-items:baseline;gap:10px;margin-bottom:7px}
+.prevstrip .ph .note{margin-left:auto;font-weight:400}
+.prevstrip .prow{display:flex;align-items:flex-start;gap:10px;padding:4px 0}
+.prevstrip .prow+.prow{border-top:1px solid var(--line)}
+.prevstrip .lb{flex:0 0 96px;font-size:11.5px;color:var(--faint);padding-top:3px}
+.prevstrip .lb b{display:inline-block;margin-left:5px;font-size:14px;color:var(--muted)}
+.prevstrip .prow.ready .lb{color:var(--ok)}
+.prevstrip .prow.ready .lb b{color:var(--ok)}
+.prevstrip .chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.prevstrip .none{font-size:11.5px;color:var(--faint);padding-top:3px}
+.pchip{display:inline-flex;align-items:baseline;gap:7px;border:1px solid var(--line);
+  border-radius:8px;padding:4px 9px;font-size:12px;background:var(--panel)}
+.pchip.r{border-color:rgba(74,222,128,.45)}
+.pchip b{font-variant-numeric:tabular-nums;font-size:12.5px}
+.pchip .nm{font-weight:700}
+.pchip .wk{color:var(--muted)}
+.pchip .at{color:var(--faint);font-size:11px}
+@media(max-width:700px){
+  .prevstrip .prow{flex-direction:column;gap:4px}
+  .prevstrip .lb{flex:none}
+  .pchip .at{display:none}
+}
+.zt.p{background:rgba(143,167,158,.14);color:var(--faint)}
+.zt.d{background:rgba(74,222,128,.16);color:var(--ok)}
+.zt.p{background:rgba(143,167,158,.14);color:var(--faint)}
+.zh{display:flex;align-items:center;gap:9px;padding:10px 14px;background:var(--panel-2);
+  border-bottom:1px solid var(--line)}
+.zone.active .zh{background:rgba(45,212,191,.12)}
+.zh .zn{font-size:16px;font-weight:800}
+.zh .zt{font-size:11px;font-weight:800;border-radius:5px;padding:2px 8px;letter-spacing:.04em}
+.zt.w{background:rgba(143,167,158,.18);color:var(--muted)}
+.zt.a{background:rgba(45,212,191,.2);color:var(--primary)}
+.zt.o{background:rgba(74,222,128,.16);color:var(--ok)}
+.zh .cnt{margin-left:auto;background:var(--bg);border-radius:99px;padding:2px 11px;
+  font-size:14px;font-weight:800;color:var(--muted)}
+/* 帯の中の明細も可変グリッド。横幅があれば1行に複数、狭ければ1件ずつ。
+   ★下限は .zrow と同じ 500px。ここを下げると2段目が途中で切れる。 */
+.zb{padding:10px 12px;min-height:64px;display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(500px,1fr));align-items:start}
+.zb.one{grid-template-columns:1fr}
+.zf{padding:8px 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--faint);
+  display:flex;gap:10px;align-items:center}
+
+/* ★明細を3段のグリッドにした。
+   以前は単一の横flexで、中央列が「残りの幅」しか貰えず潰れていた。
+   1段目＝患者名・区分・経過時間／2段目＝★何を作るか／3段目＝医院とケース番号。
+   ★経過時間は1段目だけに置く。2・3段目を全幅に使わせて、
+     「何を作るか」が切れないようにするため。 */
+.item{display:grid;gap:1px 11px;background:var(--bg);border:1px solid var(--line);
+  border-left:7px solid var(--faint);border-radius:9px;padding:9px 12px;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-areas:"who main time" "who work work" "who sub sub"}
+.item.od{border-left-color:var(--od);background:#2a1a1a}
+.item.d0{border-left-color:var(--danger)}
+.item.d1{border-left-color:var(--warn)}
+.item.d3{border-left-color:#a3a337}
+.item.dn{border-left-color:var(--ok)}
+/* 🧑‍🔧 v0.8 誤配置。★確認では消えない（ご回答 #31） */
+.item.mis{border-color:var(--od);box-shadow:0 0 0 1px rgba(239,68,68,.4);background:#2a1a1a}
+.item .rt.done .big{color:var(--ok)}
+/* 仕上げの細分。★手順表として出すだけで、1手順ごとの読取はしない */
+.item .fin{background:rgba(45,212,191,.12);color:var(--primary);border-radius:6px;padding:1px 7px;
+  font-size:11.5px;font-weight:700;flex:none;white-space:nowrap}
+/* 発送日。★ラボの中では納期ではなく発送日で動く（ご回答 #45） */
+.item .shipd{flex:none;font-weight:700;color:var(--muted)}
+.item .shipd.od,.item .shipd.d0{color:var(--danger)}
+.item .shipd.d1{color:var(--warn)}
+/* 管理者操作のときだけ出るボタン */
+.item .edit{flex:none;background:var(--panel-2);border:1px solid var(--warn);color:var(--warn);
+  border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.item .edit:hover{background:rgba(251,191,36,.14)}
+.item .who{grid-area:who;width:34px;height:34px;border-radius:99px;background:var(--panel-2);
+  border:2px solid var(--line);display:grid;place-items:center;font-size:13.5px;font-weight:800;
+  align-self:center}
+/* 1段目：患者名とタグ。
+   ★患者名をバッジのために削らない。タグ3つ（自費・特急・依頼2件）が付くと
+     名前の幅が足りなくなるので、そのときは wrap でタグを下に落とす。
+     名前が単独で入りきらないときだけ省略する。 */
+.item .main{grid-area:main;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.item .pt{font-size:19px;font-weight:800;line-height:1.3;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.item .tags{display:flex;gap:0;flex:none}
+/* 2段目：★何を作るか。ここは切らせない。トレイ番号を先頭に置く（現物を探す手掛かり） */
+.item .work{grid-area:work;min-width:0;display:flex;align-items:center;gap:8px;margin-top:2px}
+.item .wk{font-size:13.5px;color:var(--text);font-weight:600;line-height:1.4;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 3段目：医院とケース番号。ここは切れてよい */
+.item .sub{grid-area:sub;min-width:0;display:flex;align-items:center;gap:8px;
+  font-size:11.5px;color:var(--faint);line-height:1.4}
+.item .cl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.item .no{font-variant-numeric:tabular-nums;flex:none;margin-left:auto}
+.item .rt{grid-area:time;text-align:right;min-width:84px;align-self:start}
+.item .rt .big{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.item .rt .sm{font-size:10.5px;color:var(--faint);line-height:1.35}
+.item .rt.run .big{color:var(--primary)}
+.item .rt.wait .big{color:var(--warn)}
+.item .rt.over .big{color:var(--danger)}
+.item .tray{background:var(--panel-2);border-radius:6px;padding:2px 7px;flex:none;
+  font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+/* 待機棚は件数が多くなりがちなので一段小さくする。作業中を目立たせるため */
+.zone.wait .item .pt,.zone.done .item .pt{font-size:16.5px}
+.zone.wait .item .rt .big,.zone.done .item .rt .big{font-size:18px}
+.zone.wait .item,.zone.done .item{padding:8px 11px}
+.zone.wait .item .who,.zone.done .item .who{width:30px;height:30px;font-size:12.5px}
+.zone.wait .item .sub,.zone.done .item .sub{font-size:11px}
+/* 作業中は現に手が付いているものなので大きく出す */
+.zone.active .item .pt{font-size:21px}
+.zone.active .item .rt .big{font-size:25px}
+.zone.active .item .wk{font-size:14.5px}
+/* 幅が本当に足りないとき（縦置きの1列など）は3段目を落とす。
+   「何を作るか」は最後まで残す */
+@media(max-width:560px){
+  .item .sub .no{display:none}
+  .item .rt .sm{display:none}
+}
+.tag{display:inline-flex;border-radius:5px;padding:1px 7px;font-size:11.5px;font-weight:700;margin-right:5px}
+.tag.ins{background:rgba(96,165,250,.18);color:var(--ins)}
+.tag.pri{background:rgba(251,191,36,.18);color:var(--pri)}
+.tag.rush{background:rgba(248,113,113,.2);color:var(--danger)}
+.tag.multi{background:rgba(45,212,191,.18);color:var(--primary)}
+
+.next{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.next:last-child{border-bottom:none}
+.next .n1{font-size:15px;font-weight:700}
+.next .n2{font-size:12px;color:var(--muted)}
+.next .st{margin-left:auto;font-size:11.5px;color:var(--faint);text-align:right;line-height:1.5}
+
+.tip{background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.35);border-radius:10px;
+  padding:11px 14px;font-size:13.5px;color:#a7f3e6;margin-bottom:13px;line-height:1.6}
+.tip.warn{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.4);color:#fde68a}
+
+/* 🧑‍🔧 v0.8 誤配置アラート。
+   ★「確認」では消えない。現物が正しい場所に戻るまで出したままにする。
+
+   > 「警告のみでいいですが、常にアラートが消えないように。
+   >   正常なルートに戻してから初めて消える」（2026-08-25 ご回答 #31）
+
+   確認を押すと点滅は止まる（作業の邪魔をしないため）が、帯は残る。 */
+#alertHost{position:fixed;left:0;right:0;bottom:0;z-index:50}
+.alertbar{background:var(--od);color:#fff;padding:18px 24px;
+  display:flex;align-items:center;gap:18px;box-shadow:0 -8px 30px rgba(0,0,0,.5);
+  animation:pulse 1.4s ease-in-out infinite;border-top:1px solid rgba(0,0,0,.3)}
+.alertbar.acked{animation:none;background:#7f1d1d;padding:13px 24px}
+.alertbar.acked .t1{font-size:17px}
+.alertbar.acked .t2{font-size:13px}
+@keyframes pulse{0%,100%{background:#ef4444}50%{background:#dc2626}}
+.alertbar .ic{font-size:32px}
+.alertbar .t1{font-size:21px;font-weight:800}
+.alertbar .t2{font-size:14.5px;opacity:.95;margin-top:2px}
+.alertbar button{background:#fff;color:#b91c1c;border:none;border-radius:9px;
+  padding:13px 22px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;flex:none}
+.alertbar button:first-of-type{margin-left:auto}
+/* 🧑‍🔧 v0.8 管理者操作 */
+.adm{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);border-radius:99px;
+  padding:7px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.adm:hover{border-color:var(--warn);color:var(--warn)}
+.adm.on{background:rgba(251,191,36,.16);border-color:var(--warn);color:var(--warn)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.66);display:grid;place-items:center;z-index:80}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:15px;
+  padding:20px 22px;width:min(480px,92vw)}
+.modal h2{font-size:18px;margin:0 0 12px}
+.modal .mn{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 10px}
+.modal .in{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:11px 13px;font-size:16px;font-family:inherit;margin-bottom:10px}
+.modal .mf{display:flex;gap:9px;justify-content:flex-end;margin-top:6px}
+.modal .mf button{border-radius:9px;padding:11px 20px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit}
+.modal .mf .gh{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.modal .mf .pr{background:var(--primary);border:none;color:#04302b}
+/* 側の見出し。★「どこにあるか」で分けて出す */
+.nhd{font-size:11.5px;font-weight:800;color:var(--faint);letter-spacing:.03em;
+  padding:9px 0 4px;border-bottom:1px solid var(--line)}
+.nhd.ready{color:var(--ok)}
+
+.readfx{position:fixed;top:76px;right:24px;background:var(--ok);color:#052e16;padding:13px 20px;
+  border-radius:11px;font-size:15px;font-weight:800;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  max-width:420px;line-height:1.5}
+.readfx .t{font-size:12px;font-weight:700;opacity:.75;margin-top:3px}
+
+.side h3{font-size:14px;margin:0 0 9px;color:var(--muted);font-weight:700}
+.stat{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.stat .v{font-size:21px;font-weight:800}
+.stat .l{font-size:12.5px;color:var(--muted)}
+.stat .u{font-size:12px;color:var(--faint);margin-left:auto}
+.note{font-size:11.5px;color:var(--faint);line-height:1.65}
+
+/* デモ操作パネル（A-9）
+   実際のエリア端末にはこのパネルは無い。RFIDリーダーが自動で検知するので操作ボタンは存在しない。 */
+.simbar{margin-top:20px;border:2px dashed var(--warn);border-radius:11px;overflow:hidden;
+  background:repeating-linear-gradient(45deg,rgba(251,191,36,.05) 0 10px,transparent 10px 20px)}
+.simbar .simhd{background:rgba(251,191,36,.16);border-bottom:1px dashed var(--warn);
+  padding:9px 12px;display:flex;align-items:center;gap:7px}
+.simbar .simhd .tag{background:var(--warn);color:#3b2f05;font-size:10.5px;font-weight:800;
+  border-radius:5px;padding:2px 6px;letter-spacing:.04em;white-space:nowrap;margin:0}
+.simbar .simhd .tx{font-size:12.5px;font-weight:700;color:var(--warn)}
+.simbar .simbd{padding:11px 12px}
+.simbar .simnote{font-size:11.5px;color:var(--muted);line-height:1.65;margin:0 0 10px}
+.simbar button{width:100%;background:var(--panel-2);border:1px dashed var(--warn);color:var(--warn);
+  border-radius:8px;padding:9px 10px;font-size:12.5px;cursor:pointer;margin-bottom:6px;text-align:left}
+.simbar button::before{content:"▶ ";font-size:10px;opacity:.8}
+.simbar button:hover{background:rgba(251,191,36,.12)}
+.simbar button:last-child{margin-bottom:0}
+.simbar select{width:100%;background:var(--panel-2);border:1px dashed var(--warn);color:var(--warn);
+  border-radius:8px;padding:8px;font-size:12.5px;margin-bottom:6px}
+.empty{color:var(--faint);font-size:13.5px;padding:16px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="devbar">
+  <b>DEMO</b><span>工程エリア端末</span>
+  <select id="areaSel"></select>
+  <span class="sp"></span>
+  <a href="clinic.html">医院側</a><a href="lab.html">技工所側</a><a href="admin.html">運営側</a>
+</div>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="area" id="areaName">CADデスク</div>
+      <div class="sub" id="areaSub">ST-03 ／ RD-02</div>
+    </div>
+    <span class="sp"></span>
+    <span id="adminPill"></span>
+    <div class="conn" id="conn"><span class="dot"></span><span id="connTx">接続中</span></div>
+    <div>
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date" id="date"></div>
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="main">
+      <div id="tip"></div>
+      <div class="zones" id="zones"></div>
+    </div>
+    <div class="side">
+     <div class="sidegrid">
+      <div>
+      <h3>まもなく来るもの</h3>
+      <p class="note" style="margin:-4px 0 8px">
+        ★ <b>前の工程の完了棚</b>にあるものは、取りに行けばすぐ着手できます。
+        <b>作業中・待機中</b>のものはまだ来ません。</p>
+      <div id="next"></div>
+      </div>
+      <div>
+      <h3>本日</h3>
+      <div class="stat"><span class="v" id="stDone">0</span><span class="l">完了した工程</span></div>
+      <div class="stat"><span class="v" id="stRead">0</span><span class="l">読取回数</span></div>
+      <div class="stat"><span class="v" id="stMis">0</span><span class="l">誤配置</span></div>
+      <div class="stat"><span class="v" id="stWork">—</span><span class="l">平均の実作業</span>
+        <span class="u" id="stWorkN"></span></div>
+      <div class="stat"><span class="v" id="stQueue">—</span><span class="l">平均の待ち</span></div>
+      <p class="note" style="margin-top:10px">
+        待機棚に置かれてから作業中の台に入るまでが<b>待ち</b>、
+        作業中の台に置かれてから<b>完了棚に移すまで</b>が<b>実作業</b>として記録されます。
+        操作は要りません。<br>
+        ★ 完了棚に移さず台に置いたままだと、<b>次の工程を待っている時間が実作業に混ざります</b>。</p>
+      </div>
+      <div class="sg2">
+
+      <div class="simbar">
+        <div class="simhd">
+          <span class="tag">デモ専用</span>
+          <span class="tx">実際の画面にはありません</span>
+        </div>
+        <div class="simbd">
+          <p class="simnote">実機ではトレイを棚や台に置くとRFIDリーダーが自動で読み取るため、
+            この端末に操作ボタンは一切ありません。<br>
+            動きを確認していただくために、読取を代わりに起こすボタンを置いています。<br>
+            ★ 現物は<b>技工所全体で1つのモデル</b>で持っています。
+            エリアを切り替えても作り直さないので、<b>前の工程の棚の中身がそのまま見えます</b>。</p>
+          <select id="simZone"></select>
+          <button onclick="simIn()">前の工程の完了棚から受け入れる（待機棚へ）</button>
+          <button onclick="simStart()">待機棚 → 作業中の台に置く</button>
+          <button onclick="simDone()">作業中の台 → 完了棚に移す（実作業を確定）</button>
+          <button onclick="simHandoff()">完了棚 → 次のエリアへ渡す</button>
+          <button onclick="simMis()">別工程のトレイを置く（誤配置）</button>
+          <button onclick="simLongForget()">置き忘れを起こす（除外される記録）</button>
+          <button onclick="toggleConn()">通信を切断／復旧</button>
+        </div>
+      </div>
+      </div>
+     </div>
+    </div>
+  </div>
+</div>
+
+<div id="alertHost"></div>
+
+<script>
+/* ============================================================
+   🧑‍🔧 v0.8
+
+   ★13工程・23ゾーンに合わせた（lab.html と同一）。
+   ★全エリアに「完了棚」を置いた。
+     作業中の台から離れた時点ではなく、完了棚に移した時点で実作業時間が確定する。
+     こうしないと「次の工程が詰まって待っているだけの時間」が実作業に混ざる。
+
+     > 「作業中ゾーンに置いてから離れるまでとなると、作業が終わってその場に
+     >   しばらく置いてることも可能性としてはあるので、完了ゾーンを作ってもいいのかも
+     >   しれないです。完了ゾーンに移った時点でタイムスタンプ」（2026-08-25 ご回答 #36）
+
+   ★★このファイルの一番大事な変更：**前の工程の完了棚を見せる**。
+
+     > 「次工程の人には、待ちが目の前にあるのか、前の工程にあるのかを
+     >   判別できる必要がある」（オーナー指示 2026-08-25）
+
+     そのため、案件データを**エリアごとではなく技工所全体で持つ**ようにした。
+     v0.7 はエリアを切り替えるたびに作り直していたので、他のエリアの状況が分からなかった。
+
+   ★誤配置アラートは「確認」では消えない（ご回答 #31）。
+     現物が正しい場所に戻るまで出したままにする。
+   ★管理者は発送予定日を変更できる（ご回答 #35・BR-26 の部分的な緩和）。
+   ============================================================ */
+const STEPNAMES={INTAKE:'受付・確認',CLARIFY:'仕様調整',WAXUP:'ワックスアップ',SCAN:'スキャン',
+  DESIGN:'デザイン',DESIGN_REVIEW:'デザイン確認',EXPORT:'データエクスポート',
+  NESTING:'ネスティング・スライス',MILLING:'加工',ADJUST:'加工物調整',
+  FINISHING:'仕上げ',QC:'最終検品',SHIPPING:'梱包・発送'};
+const ORDER=['INTAKE','CLARIFY','WAXUP','SCAN','DESIGN','DESIGN_REVIEW','EXPORT',
+  'NESTING','MILLING','ADJUST','FINISHING','QC','SHIPPING'];
+
+/* 仕上げの細分（lab.html の SUB_STEPS と同じもの）。
+   ★端末には手順の名前と数を出すだけ。細分ごとの読取は起こさない（ご回答 #34）。
+     1手順ごとにタグを読ませると現場が止まる。 */
+const FIN_STEPS={
+  'メタル（インレー・クラウン）':13,'前装冠':15,'CAD（インレー・冠）':7,'フルジルコニア':11,
+  'e.max（インレー・クラウン）':14,'ジルコニアレイヤリング':13,'e.maxレイヤリング':16,
+  'インプラント スクリューリテイン':7,'インプラント セメントリテイン':6,'義歯':6};
+
+/* lab.html の AREAS / ZONES と同じ構成（23ゾーン）。
+   ★リーダーの割り当ても lab.html に合わせている（8ch×3台に 23ゾーンを収める） */
+const AREAS=[
+  {id:'a1',name:'受注テーブル',dev:'ST-01',rd:'RD-01',zones:[
+    {id:'z01',name:'待機棚',type:'WAIT',step:null,ant:1},
+    {id:'z02',name:'作業中（受付処理）',type:'ACTIVE',step:'INTAKE',ant:2},
+    {id:'z03',name:'作業中（仕様調整）',type:'ACTIVE',step:'CLARIFY',ant:3},
+    {id:'z04',name:'完了棚',type:'DONE',step:null,ant:4}]},
+  {id:'a2',name:'ワックステーブル',dev:'ST-02',rd:'RD-01',zones:[
+    {id:'z05',name:'待機棚',type:'WAIT',step:null,ant:5},
+    {id:'z06',name:'作業中（ワックスアップ）',type:'ACTIVE',step:'WAXUP',ant:6},
+    {id:'z07',name:'完了棚',type:'DONE',step:null,ant:7}]},
+  {id:'a3',name:'CADデスク',dev:'ST-03',rd:'RD-02',zones:[
+    {id:'z08',name:'待機棚',type:'WAIT',step:null,ant:8},
+    {id:'z09',name:'作業中（スキャン）',type:'ACTIVE',step:'SCAN',ant:9},
+    {id:'z10',name:'作業中（デザイン）',type:'ACTIVE',step:'DESIGN',ant:10},
+    {id:'z11',name:'作業中（確認・出力）',type:'ACTIVE',step:'DESIGN_REVIEW',ant:11},
+    {id:'z12',name:'完了棚',type:'DONE',step:null,ant:12}]},
+  {id:'a4',name:'ミリング室',dev:'ST-04',rd:'RD-03',zones:[
+    {id:'z13',name:'待機棚',type:'WAIT',step:null,ant:13},
+    {id:'z14',name:'作業中（加工）',type:'ACTIVE',step:'MILLING',ant:14},
+    {id:'z15',name:'作業中（加工物調整）',type:'ACTIVE',step:'ADJUST',ant:15},
+    {id:'z16',name:'完了棚',type:'DONE',step:null,ant:16}]},
+  {id:'a5',name:'仕上げテーブル',dev:'ST-05',rd:'RD-02',zones:[
+    {id:'z17',name:'待機棚',type:'WAIT',step:null,ant:17},
+    {id:'z18',name:'作業中（仕上げ）',type:'ACTIVE',step:'FINISHING',ant:18},
+    {id:'z19',name:'完了棚',type:'DONE',step:null,ant:19}]},
+  {id:'a6',name:'検品・発送テーブル',dev:'ST-06',rd:'RD-03',zones:[
+    {id:'z20',name:'待機棚',type:'WAIT',step:null,ant:20},
+    {id:'z21',name:'作業中（最終検品）',type:'ACTIVE',step:'QC',ant:21},
+    {id:'z22',name:'作業中（梱包）',type:'ACTIVE',step:'SHIPPING',ant:22},
+    {id:'z23',name:'発送待ち棚',type:'DONE',step:null,ant:23}]}
+];
+/* ゾーンの索引。★エリアをまたいで引けるようにする（前の工程の完了棚を見せるため） */
+const ZIDX={};
+AREAS.forEach(a=>a.zones.forEach(z=>{z.area=a.id;ZIDX[z.id]=z}));
+
+/* 技工所側の設定（lab.html の CFG と対応）。
+   ★実装ではテナントの設定から降ってくる。技工所ごとに変えられる。 */
+const CFG={
+  zoneDone:true,          /* 完了棚を使う */
+  alertUntilFixed:true,   /* 誤配置アラートは正常に戻るまで消えない（ご回答 #31） */
+  stationAdminEdit:true,  /* 管理者は発送予定日を変更できる（ご回答 #35） */
+  adminCode:'1234',       /* デモ用。実装では技工所の管理者アカウントで認証する */
+  suspectMax:180          /* これを超える実作業は置き忘れとみなす */
+};
+const SUSPECT_MAX=CFG.suspectMax;
+
+const SUR=['山田','佐藤','鈴木','高橋','田中','伊藤','渡辺','中村','小林','加藤','吉田','山本','松本','井上'];
+const GIV=['花子','健一','一郎','由美','大輔','京子','三郎','恵','亮','さゆり','翔太','明美','千尋','悠真'];
+const CLI=['A歯科医院','B歯科クリニック','みどり台デンタル','C歯科'];
+/* 技工物・材料・区分・仕上げの細分パターン */
+const PROD=[
+  ['クラウン','ジルコニア(高透過)','PRIVATE','フルジルコニア'],
+  ['クラウン','CAD/CAM冠','INSURANCE','CAD（インレー・冠）'],
+  ['インレー','金パラ12%','INSURANCE','メタル（インレー・クラウン）'],
+  ['ブリッジ','ジルコニア(高強度)','PRIVATE','フルジルコニア'],
+  ['クラウン','ゴールド18K','PRIVATE','メタル（インレー・クラウン）'],
+  ['インレー','CAD/CAM冠','INSURANCE','CAD（インレー・冠）'],
+  ['ラミネートベニア','e.max','PRIVATE','e.max（インレー・クラウン）'],
+  ['前装冠','金パラ12%','INSURANCE','前装冠'],
+  ['クラウン','ジルコニアレイヤリング','PRIVATE','ジルコニアレイヤリング'],
+  ['インプラント上部構造','セメントリテイン','PRIVATE','インプラント セメントリテイン'],
+  ['局部床義歯','コバルトクロム','INSURANCE','義歯']];
+const WHO=['佐','田','山'];
+
+let _s=815;
+const rnd=()=>{_s=(_s*1103515245+12345)&0x7fffffff;return _s/0x7fffffff};
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const WD=['日','月','火','水','木','金','土'];
+
+let AREA=AREAS[2];
+let ITEMS=[];      /* ★技工所全体の現物。エリアを切り替えても作り直さない */
+let OFFLINE=false;
+let ST={},LOG={};  /* エリアごとの本日の集計 */
+let FX=null,MODAL=null,ADMIN=false,ALERTACK={};
+
+const zoneOf=id=>ZIDX[id]||null;
+const areaOfId=id=>AREAS.find(a=>a.id===id)||null;
+const zonesOf=(a)=>(a||AREA).zones;
+const activeZones=(a)=>zonesOf(a).filter(z=>z.type==='ACTIVE');
+const waitZone=(a)=>zonesOf(a).find(z=>z.type==='WAIT');
+const doneZone=(a)=>zonesOf(a).find(z=>z.type==='DONE');
+const inZone=id=>ITEMS.filter(i=>i.zone===id);
+const stepsOfArea=(a)=>activeZones(a).map(z=>z.step);
+const areaHostingStep=step=>AREAS.find(a=>stepsOfArea(a).includes(step))||null;
+const nextStep=step=>{const i=ORDER.indexOf(step);return i>=0&&i<ORDER.length-1?ORDER[i+1]:null};
+/* ★RFIDで観測できるのは「作業中ゾーンがある工程」だけである。
+
+   データエクスポート・ネスティング・スライスは同じCADデスクで続けて行うため、
+   専用の作業中ゾーンを置いていない（置くとタグを読ませる回数が増えるだけで意味がない）。
+   現物はそこで止まらず素通りするので、次に現物が置かれる工程まで飛ばして考える。
+   ★ゾーンのない工程を「行方不明」にしないために、この関数を通す。 */
+const nextObserved=step=>{let s=nextStep(step);
+  while(s&&!areaHostingStep(s))s=nextStep(s);return s};
+/* 素通りする工程の名前。画面に出して「消えたわけではない」と分かるようにする */
+function skipped(step){
+  const out=[];let s=nextStep(step);
+  while(s&&!areaHostingStep(s)){out.push(stName(s));s=nextStep(s)}
+  return out;
+}
+/* このエリアで最後に現物が置かれる工程。完了棚の中身はこの工程を終えたもの */
+const lastStepOf=a=>{const ss=stepsOfArea(a);
+  return ss.slice().sort((x,y)=>ORDER.indexOf(x)-ORDER.indexOf(y)).pop()||null};
+const stName=s=>STEPNAMES[s]||s||'—';
+const stOf=()=>(ST[AREA.id]||(ST[AREA.id]={done:0,read:0,mis:0}));
+const logOf=()=>(LOG[AREA.id]||(LOG[AREA.id]=[]));
+
+/* ★前の工程の完了棚にあるもの。
+   「もう作業は終わっていて、あとは運ばれてくるだけ」のもの。 */
+function atPrevDone(){
+  const mine=stepsOfArea(AREA);
+  return ITEMS.filter(i=>{
+    const z=zoneOf(i.zone);
+    if(!z||z.type!=='DONE'||z.area===AREA.id)return false;
+    return mine.includes(nextObserved(i.step));
+  });
+}
+/* ★前の工程でまだ作業中／待機中のもの。こちらは「まだ来ない」 */
+function atPrevBusy(){
+  const mine=stepsOfArea(AREA);
+  return ITEMS.filter(i=>{
+    const z=zoneOf(i.zone);
+    if(!z||z.area===AREA.id)return false;
+    if(z.type==='ACTIVE')return mine.includes(nextObserved(i.step));
+    if(z.type==='WAIT')  return mine.includes(i.step)?false:mine.includes(nextObserved(i.step));
+    return false;
+  });
+}
+/* ★誤配置。作業中の台にあるのに、その台の工程と一致しないもの。
+   アラートはこの一覧から作るので、「確認」を押しても消えない（ご回答 #31）。 */
+function misplaced(){
+  return ITEMS.filter(i=>{
+    const z=zoneOf(i.zone);
+    return z&&z.type==='ACTIVE'&&i.step!==z.step;
+  });
+}
+
+function mkCase(offset,step){
+  const p=pick(PROD);
+  const d=new Date(Date.now()+offset*86400000);
+  /* 1トレイに複数依頼が載ることがある（BR-51）。同じ患者の保険と自費は依頼が2件に分かれるが、
+     模型は1つなので物理的に分けられない。 */
+  const multi=rnd()<0.18;
+  return {id:'it'+(++_iid),no:'NKTN-2026-000'+ri(200,320),
+    pno:'P-'+String(ri(10000,99999)),                       /* 🧑‍🔧 患者コード（ご回答 #75） */
+    patient:pick(SUR)+' '+pick(GIV),clinic:pick(CLI),
+    type:p[0],mat:p[1],cov:p[2],fin:p[3],
+    teeth:({1:'右上',2:'左上',3:'左下',4:'右下'}[ri(1,4)])+ri(1,7),
+    units:rnd()<.25?ri(2,4):1,
+    due:d,ship:new Date(d.getTime()-86400000),               /* 🧑‍🔧 発送日（ご回答 #45） */
+    tray:'T-'+String(ri(1,200)).padStart(3,'0'),
+    who:pick(WHO),rush:rnd()<.12,cases:multi?2:1,
+    step:step||'INTAKE'};
+}
+let _iid=0;
+
+function build(){
+  ITEMS=[];ST={};LOG={};ALERTACK={};_iid=0;
+  const now=Date.now();
+  AREAS.forEach(a=>{
+    const steps=stepsOfArea(a);
+    ST[a.id]={done:ri(3,9),read:ri(20,60),mis:ri(0,1)};
+    /* 待機棚 */
+    const w=waitZone(a);
+    if(w)for(let i=0;i<ri(1,3);i++){
+      const c=mkCase(ri(-1,5),pick(steps));
+      c.zone=w.id;c.queuedAt=now-ri(6,240)*60000;ITEMS.push(c);
+    }
+    /* 作業中の台 */
+    activeZones(a).forEach(z=>{
+      if(rnd()<0.7){
+        const c=mkCase(ri(-1,5),z.step);
+        c.zone=z.id;c.queuedAt=now-ri(30,300)*60000;c.startedAt=now-ri(3,90)*60000;
+        ITEMS.push(c);
+      }
+    });
+    /* ★完了棚。ここにあるものが「次の工程の人にとっての待ち」になる */
+    const dz=doneZone(a);
+    /* ★完了棚には「このエリアで最後の工程を終えたもの」を置く。
+       そうすると次のエリアの端末に「前の工程の完了棚」として必ず出る。
+       途中の工程で止まったものを置くと、どの端末からも見えないものができてしまう */
+    if(dz&&CFG.zoneDone)for(let i=0;i<ri(1,2);i++){
+      const c=mkCase(ri(0,5),lastStepOf(a)||pick(steps));
+      c.zone=dz.id;c.doneAt=now-ri(2,150)*60000;
+      c.workMin=ri(8,70);c.queueMin=ri(10,180);
+      ITEMS.push(c);
+    }
+    /* 本日すでに終わった分の記録 */
+    LOG[a.id]=[];
+    for(let i=0;i<ri(8,14);i++){
+      const z=pick(activeZones(a));
+      if(!z)break;
+      const sus=rnd()<0.1;
+      LOG[a.id].push({step:z.step,queue:ri(10,260),work:sus?ri(200,420):ri(8,95),suspect:sus});
+    }
+  });
+}
+
+const daysTo=d=>Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()))/86400000);
+function tone(d){const x=daysTo(d);return x<0?'od':x===0?'d0':x===1?'d1':x<=3?'d3':'dn'}
+function dueTxt(d){const x=daysTo(d);return x<0?`超過 ${-x}日`:x===0?'本日':x===1?'明日':`残り ${x}日`}
+function fmtJ(d){return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`}
+function hm(ms){const d=new Date(ms);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function dur(ms){const m=Math.max(0,Math.round(ms/60000));
+  return m>=60?`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`:`${m}分`}
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+
+function tip(){
+  /* ★誤配置が残っているときは、それを最優先で出す */
+  const mis=misplaced();
+  if(mis.length)return '';   /* アラートバーで出すのでここには出さない */
+  const here=ITEMS.filter(i=>{const z=zoneOf(i.zone);return z&&z.area===AREA.id});
+  const byMat={};
+  here.forEach(c=>{byMat[c.mat]=(byMat[c.mat]||0)+1});
+  const top=Object.entries(byMat).sort((a,b)=>b[1]-a[1])[0];
+  if(top&&top[1]>=2){
+    const later=atPrevDone().concat(atPrevBusy()).filter(c=>c.mat===top[0]).length;
+    if(later)return `<div class="tip">このエリアの <b>${esc(top[0])}</b> が ${top[1]}件 あります。
+      前の工程にも ${later}件 あるため、まとめて処理すると効率的です。</div>`;
+  }
+  /* 置き忘れの警告。作業中の台に長く置かれたままのもの */
+  const stale=ITEMS.filter(i=>{const z=zoneOf(i.zone);
+    return z&&z.area===AREA.id&&i.startedAt&&(Date.now()-i.startedAt)/60000>SUSPECT_MAX});
+  if(stale.length)return `<div class="tip warn">
+    作業中の台に <b>${stale.length}件</b> が ${SUSPECT_MAX}分 以上置かれています。
+    作業が終わっているものは<b>完了棚</b>へ動かしてください。
+    完了棚に移した時点で実作業時間が確定します。この記録は集計から除外されます。</div>`;
+  /* 完了棚が溜まっているときの案内 */
+  const dz=doneZone(AREA), dn=dz?inZone(dz.id).length:0;
+  if(dn>=2){
+    const ls=lastStepOf(AREA),ns=ls?nextObserved(ls):null,na=ns?areaHostingStep(ns):null;
+    return `<div class="tip">完了棚に <b>${dn}件</b> あります。
+      ${na?`<b>${esc(na.name)}</b>（${esc(stName(ns))}）へ渡してください。`
+        :'発送してください。'}</div>`;
+  }
+  return '';
+}
+
+/* 明細1件。z を渡すと、そのゾーンの種類に応じて時間の出し方が変わる。
+   ★前の工程にあるものはここでは描かない（prevStripHtml の chip で出す）。
+     ゾーンの帯と同じ大きさで出すと現物の在り処を見誤るため。 */
+function itemHtml(c,z){
+  const t=tone(c.ship);
+  const mis=z&&z.type==='ACTIVE'&&c.step!==z.step;
+  let rt='';
+  if(z.type==='ACTIVE'&&c.startedAt){
+    const el=Date.now()-c.startedAt;
+    const over=el/60000>SUSPECT_MAX;
+    rt=`<div class="rt ${over?'over':'run'}"><div class="big">${dur(el)}</div>
+      <div class="sm">${hm(c.startedAt)} 開始${over?'<br>置き忘れの可能性':''}</div></div>`;
+  }else if(z.type==='WAIT'&&c.queuedAt){
+    rt=`<div class="rt wait"><div class="big">${dur(Date.now()-c.queuedAt)}</div>
+      <div class="sm">${hm(c.queuedAt)} から待機</div></div>`;
+  }else if(z.type==='DONE'&&c.doneAt){
+    rt=`<div class="rt done"><div class="big">${dur(Date.now()-c.doneAt)}</div>
+      <div class="sm">${hm(c.doneAt)} 完了${c.workMin?`<br>実作業 ${c.workMin}分`:''}</div></div>`;
+  }else{
+    rt=`<div class="rt"><div class="big">${fmtJ(c.ship)}</div><div class="sm">発送</div></div>`;
+  }
+  /* ★2段目「何を作るか」は切らせない行。トレイ番号を先頭に置く（現物を探す手掛かり）。
+     3段目の医院名・発送日は切れてよい。全文は title で読める。 */
+  const work=`${c.type} ${c.teeth}${c.units>1?' ×'+c.units:''} ／ ${c.mat}`;
+  /* 仕上げのエリアでは細分の手順数を出す。★読取は起こさない。手順表として出すだけ */
+  const finN=(z&&z.step==='FINISHING'&&FIN_STEPS[c.fin])||0;
+  return `<div class="item ${t}${mis?' mis':''}">
+    <div class="who">${esc(c.who)}</div>
+    <div class="main">
+      <span class="pt" title="${esc(c.patient)} 様">${esc(c.patient)} 様</span>
+      <span class="tags">
+        <span class="tag ${c.cov==='INSURANCE'?'ins':'pri'}">${c.cov==='INSURANCE'?'保険':'自費'}</span>
+        ${c.rush?'<span class="tag rush">特急</span>':''}
+        ${c.cases>1?`<span class="tag multi">依頼${c.cases}件</span>`:''}
+        ${mis?'<span class="tag rush">この台の対象ではありません</span>':''}</span>
+    </div>
+    <div class="work">
+      <span class="tray" title="トレイ番号">${esc(c.tray)}</span>
+      <span class="wk" title="${esc(work)}">${esc(work)}</span>
+      ${finN?`<span class="fin" title="仕上げの手順。1手順ごとの読取はありません">${esc(c.fin)} ${finN}手順</span>`:''}
+    </div>
+    <div class="sub">
+      <span class="cl" title="${esc(c.clinic)}">${esc(c.clinic)}</span>
+      <span class="shipd ${tone(c.ship)}">発送 ${fmtJ(c.ship)}（${dueTxt(c.ship)}）</span>
+      ${CFG.stationAdminEdit&&ADMIN
+        ? `<button class="edit" onclick="openShipEdit('${c.id}')">発送日を変更</button>` : ''}
+      <span class="no">${esc(c.no)}</span>
+    </div>
+    ${rt}
+  </div>`;
+}
+
+function zoneHtml(z){
+  const items=inZone(z.id);
+  const cls=z.type==='WAIT'?'wait':z.type==='ACTIVE'?'active':'done';
+  const tt=z.type==='WAIT'?'w':z.type==='ACTIVE'?'a':'d';
+  const tl=z.type==='WAIT'?'待機':z.type==='ACTIVE'?'作業中':'完了';
+  /* 作業中は基本1件なので1列固定。待機と完了は件数が多いので可変グリッドに任せる */
+  const one=z.type==='ACTIVE'?' one':'';
+  return `<div class="zone ${cls}">
+    <div class="zh"><span class="zt ${tt}">${tl}</span>
+      <span class="zn">${esc(z.name)}</span>
+      <span class="cnt">${items.length}</span></div>
+    <div class="zb${one}">${items.map(c=>itemHtml(c,z)).join('')
+      ||`<div class="empty">${z.type==='ACTIVE'?'作業中のものはありません'
+        :z.type==='DONE'?'完了したものはありません':'なし'}</div>`}</div>
+    <div class="zf"><span>ANT-${String(z.ant).padStart(2,'0')}</span>
+      <span>${AREA.rd}</span>
+      ${z.step?`<span style="margin-left:auto">${esc(stName(z.step))}</span>`
+        :z.type==='DONE'?(()=>{
+          const ls=lastStepOf(AREA),ns=ls?nextObserved(ls):null,sk=ls?skipped(ls):[];
+          return `<span>ここに移すと実作業時間が確定します</span>
+            <span style="margin-left:auto">次は ${esc(ns?stName(ns):'発送で完了')}
+            ${sk.length?`<span style="opacity:.75">（${esc(sk.join('・'))} は作業中ゾーンがないため素通り）</span>`:''}</span>`})()
+        :''}</div>
+  </div>`;
+}
+
+/* ============================================================
+   ★前の工程の完了棚。ここが今回の主眼。
+
+   > 「次工程の人には、待ちが目の前にあるのか、前の工程にあるのかを
+   >   判別できる必要がある」（オーナー指示 2026-08-25）
+
+   ★置き場所は「待機棚のすぐ下」。比較するのはこの2つだからである。
+     ・待機棚      ＝ 目の前にある待ち（いま取れる）
+     ・前の完了棚  ＝ 前の工程の棚にある（取りに行けば着手できる）
+     ・前の作業中  ＝ まだ来ない
+
+   ★明細カードにはしない。この帯は「ここには無いもの」なので、
+     ゾーンの帯と同じ大きさで出すと現物の在り処を見誤る。
+     現場のモニターは縦が足りないので、1行に詰めて出す。
+   ============================================================ */
+function prevStripHtml(){
+  const at=atPrevDone(), busy=atPrevBusy();
+  if(!at.length&&!busy.length)return '';
+  const chip=(c,cls)=>{
+    const a=areaOfId(zoneOf(c.zone).area);
+    const z=zoneOf(c.zone);
+    const where=z.type==='DONE'?'完了棚':z.type==='ACTIVE'?'作業中':'待機中';
+    return `<span class="pchip ${cls}" title="${esc(c.no)} ／ ${esc(c.clinic)} ／ 発送 ${fmtJ(c.ship)}">
+      <b>${esc(c.tray)}</b>
+      <span class="nm">${esc(c.patient)}様</span>
+      <span class="wk">${esc(c.type)}</span>
+      <span class="at">${esc(a?a.name:'—')}の${where}</span></span>`;
+  };
+  return `<div class="prevstrip">
+    <div class="ph">前の工程にあるもの
+      <span class="note">★ ここには<b>まだありません</b>。上の待機棚とは別のものです</span></div>
+    <div class="prow ready">
+      <span class="lb">すぐ来る<b>${at.length}</b></span>
+      <div class="chips">${at.length?at.map(c=>chip(c,'r')).join('')
+        :'<span class="none">前の工程の完了棚は空です</span>'}</div></div>
+    <div class="prow">
+      <span class="lb">まだ来ない<b>${busy.length}</b></span>
+      <div class="chips">${busy.length?busy.map(c=>chip(c,'b')).join('')
+        :'<span class="none">前の工程に作業中・待機中のものはありません</span>'}</div></div>
+  </div>`;
+}
+function render(){
+  document.getElementById('areaName').textContent=AREA.name;
+  document.getElementById('areaSub').textContent=
+    `${AREA.dev} ／ ${AREA.rd} ／ ${AREA.zones.length}ゾーン`
+    +`（作業中 ${activeZones().length}・完了 ${AREA.zones.filter(z=>z.type==='DONE').length}）`;
+  document.getElementById('tip').innerHTML=tip();
+  document.getElementById('adminPill').innerHTML=CFG.stationAdminEdit
+    ? (ADMIN
+      ? `<button class="adm on" onclick="exitAdmin()">管理者操作中 ✓ 終了する</button>`
+      : `<button class="adm" onclick="openAdmin()">管理者操作</button>`)
+    : '';
+
+  /* ★並び順は 作業中 → 待機 → 完了 → 前の工程の完了棚（レビュー指摘・ご回答 #36）。
+     いま手が付いているものを一番上に置く。作業者が見るのは
+     「この台のものが終わったか」が先で、待機棚は次に取るもの、
+     完了棚は渡すもの、前の工程の棚は「そのあと来るもの」だから。 */
+  const wait=zonesOf().filter(z=>z.type==='WAIT');
+  const act=activeZones();
+  const dones=CFG.zoneDone?zonesOf().filter(z=>z.type==='DONE'):[];
+  const band=zs=>zs.length?`<div class="zrow">${zs.map(zoneHtml).join('')}</div>`:'';
+  document.getElementById('zones').innerHTML=
+    band(act)+band(wait)+(CFG.zoneDone?prevStripHtml():'')+band(dones);
+
+  /* 側の「まもなく来るもの」は、★どこにあるかで分けて出す */
+  const at=atPrevDone(), busy=atPrevBusy();
+  document.getElementById('next').innerHTML=
+    (at.length?`<div class="nhd ready">前の工程の完了棚（${at.length}件）</div>`
+      +at.slice(0,4).map(c=>{const a=areaOfId(zoneOf(c.zone).area);
+      return `<div class="next">
+        <div style="flex:1;min-width:0">
+          <div class="n1">${esc(c.patient)} 様</div>
+          <div class="n2">${esc(c.type)} ／ ${esc(c.mat)}</div>
+        </div>
+        <div class="st">${esc(a?a.name:'—')}<br><b>完了棚</b><br>発送 ${fmtJ(c.ship)}</div>
+      </div>`}).join(''):'')
+    +(busy.length?`<div class="nhd">前の工程で作業中・待機中（${busy.length}件）</div>`
+      +busy.slice(0,4).map(c=>{const z=zoneOf(c.zone),a=areaOfId(z.area);
+      return `<div class="next">
+        <div style="flex:1;min-width:0">
+          <div class="n1">${esc(c.patient)} 様</div>
+          <div class="n2">${esc(c.type)} ／ ${esc(c.mat)}</div>
+        </div>
+        <div class="st">${esc(a?a.name:'—')}<br>${z.type==='ACTIVE'?'作業中':'待機中'}<br>発送 ${fmtJ(c.ship)}</div>
+      </div>`}).join(''):'')
+    ||'<div class="empty">なし</div>';
+
+  const st=stOf(),lg=logOf();
+  document.getElementById('stDone').textContent=st.done;
+  document.getElementById('stRead').textContent=st.read;
+  document.getElementById('stMis').textContent=st.mis;
+  /* ★置き忘れ・持ち去りの記録は平均から除外する。除外していることを画面に出す */
+  const ok=lg.filter(l=>!l.suspect);
+  const avg=a=>a.length?Math.round(a.reduce((n,x)=>n+x,0)/a.length):null;
+  const w=avg(ok.map(l=>l.work)),q=avg(ok.map(l=>l.queue));
+  document.getElementById('stWork').textContent=w?w+'分':'—';
+  document.getElementById('stQueue').textContent=q?(q>=60?`${Math.floor(q/60)}時間${q%60}分`:q+'分'):'—';
+  document.getElementById('stWorkN').textContent=
+    lg.length?`${ok.length}件（${lg.length-ok.length}件は除外）`:'';
+
+  const conn=document.getElementById('conn');
+  conn.className='conn'+(OFFLINE?' off':'');
+  document.getElementById('connTx').textContent=OFFLINE?'オフライン（読取は保持されます）':'接続中';
+
+  const zs=document.getElementById('simZone');
+  if(zs&&zs.dataset.area!==AREA.id){
+    zs.dataset.area=AREA.id;
+    zs.innerHTML=activeZones().map(z=>
+      `<option value="${z.id}">対象の台：${esc(z.name)}</option>`).join('');
+  }
+
+  /* ★誤配置アラートは「確認」では消えない。現物が戻るまで出したままにする（ご回答 #31） */
+  const mis=misplaced();
+  const showAlert=mis.filter(c=>zoneOf(c.zone).area===AREA.id);
+  document.getElementById('alertHost').innerHTML=
+    (showAlert.length?showAlert.map(c=>{
+      const z=zoneOf(c.zone),acked=!!ALERTACK[c.id];
+      return `<div class="alertbar${acked?' acked':''}"><div class="ic">⚠</div>
+        <div><div class="t1">${esc(c.tray)} はこの台の対象ではありません</div>
+        <div class="t2">${esc(c.no)} ${esc(c.patient)}様 ／
+          現在の工程：${esc(stName(c.step))} ／ この台は「${esc(z.name)}」（${esc(stName(z.step))}）です。
+          ${acked?'<b>現物を正しい場所へ戻すまで、この表示は消えません。</b>'
+                 :'トレイを戻してください。'}</div></div>
+        ${acked?`<button onclick="fixMis('${c.id}')">戻した</button>`
+               :`<button onclick="ackAlert('${c.id}')">確認</button>
+                 <button onclick="fixMis('${c.id}')">戻した</button>`}</div>`}).join('')
+      :'')
+    +(FX?`<div class="readfx">${esc(FX.m)}${FX.t?`<div class="t">${esc(FX.t)}</div>`:''}</div>`:'')
+    +(MODAL?modalHtml():'');
+}
+
+function modalHtml(){
+  return `<div class="modal" onclick="if(event.target===this)closeModal()">
+    <div class="box">
+      <h2>${esc(MODAL.title)}</h2>
+      <div class="mb">${MODAL.body}</div>
+      <div class="mf">
+        <button class="gh" onclick="closeModal()">やめる</button>
+        ${MODAL.ok?`<button class="pr" onclick="modalOk()">${esc(MODAL.ok)}</button>`:''}
+      </div>
+    </div></div>`;
+}
+function closeModal(){MODAL=null;render()}
+function modalOk(){const f=MODAL&&MODAL.fn;if(f)f()}
+
+/* ============================================================
+   🧑‍🔧 v0.8 管理者操作（ご回答 #35・BR-26 の部分的な緩和）
+
+   > 「そこのラボの管理者だけいじれるようにしときたい。
+   >   急遽発送予定のものを次の日持参する、もしくは別日に発送するということは、
+   >   日常茶飯事で起こっています」
+
+   ★変えられるのは発送予定日だけ。仕様・承認・検収は端末からは行えない。
+   ★誰が・いつ・何を変えたかを案件の記録に残す（共有端末なので必須）。
+   ============================================================ */
+function openAdmin(){
+  MODAL={title:'管理者コードを入力してください',body:`
+    <p class="mn">この端末は<b>閲覧専用</b>です。管理者コードを入れている間だけ、
+      <b>発送予定日の変更</b>ができます。仕様・承認・検収は変更できません。</p>
+    <input class="in" id="admCode" type="password" inputmode="numeric" maxlength="8"
+      placeholder="＿＿＿＿" autocomplete="off">
+    <p class="mn">デモのコードは <b>${esc(CFG.adminCode)}</b> です。
+      実装では技工所の管理者アカウントで認証します。</p>`,
+    ok:'確認する',fn:()=>{
+      const v=(document.getElementById('admCode')||{}).value||'';
+      if(v!==CFG.adminCode){flash('コードが違います','もう一度お試しください');return}
+      ADMIN=true;MODAL=null;
+      flash('管理者操作を開始しました','発送予定日を変更できます。終わったら「終了する」を押してください');
+    }};
+  render();
+  const el=document.getElementById('admCode');if(el)el.focus();
+}
+function exitAdmin(){ADMIN=false;flash('管理者操作を終了しました','閲覧専用に戻りました')}
+function openShipEdit(id){
+  const c=ITEMS.find(x=>x.id===id);
+  if(!c){flash('この案件は見つかりませんでした');return}
+  if(!ADMIN){flash('管理者操作が必要です');return}
+  const opts=[-1,0,1,2,3,4,5].map(n=>{
+    const d=new Date(c.ship.getTime()+n*86400000);
+    return `<option value="${n}" ${n===0?'selected':''}>${fmtJ(d)}${n===0?'（現在）':(n>0?`　+${n}日`:'　−1日')}</option>`;
+  }).join('');
+  MODAL={title:'発送予定日を変更する',body:`
+    <p class="mn"><b>${esc(c.patient)} 様</b> ／ ${esc(c.type)} ${esc(c.mat)}<br>
+      ${esc(c.tray)} ／ ${esc(c.no)}</p>
+    <p class="mn">いまの発送予定：<b>${fmtJ(c.ship)}</b>　（医院着 ${fmtJ(c.due)}）</p>
+    <select class="in" id="shipNew">${opts}</select>
+    <select class="in" id="shipWhy">
+      <option>持参に変更する</option>
+      <option>別日にまとめて発送する</option>
+      <option>医院のご都合で日を変える</option>
+      <option>前の工程が間に合わない</option>
+    </select>
+    <p class="mn">★ 変更は<b>案件の記録に残ります</b>（誰が・いつ・何を・なぜ）。
+      医院着の日が動く場合は、医院にも通知されます。</p>`,
+    ok:'変更する',fn:()=>{
+      const n=+(document.getElementById('shipNew')||{}).value||0;
+      const why=(document.getElementById('shipWhy')||{}).value||'';
+      const before=fmtJ(c.ship);
+      c.ship=new Date(c.ship.getTime()+n*86400000);
+      if(c.ship>c.due)c.due=new Date(c.ship.getTime()+86400000);
+      c.shipEdited=true;
+      MODAL=null;
+      flash(`${c.tray} の発送予定を ${before} → ${fmtJ(c.ship)} に変更しました`,
+        `${why} ／ 記録に残しました（${AREA.dev}・管理者）`);
+    }};
+  render();
+}
+
+function clock(){
+  const d=new Date();
+  document.getElementById('clock').textContent=
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('date').textContent=
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WD[d.getDay()]})`;
+  /* 経過時間の表示を更新する。★モーダルを開いている間は描き直さない（入力が消えるため） */
+  if(!MODAL&&ITEMS.some(i=>i.startedAt||i.queuedAt||i.doneAt))render();
+}
+
+function flash(m,t){FX={m,t};render();setTimeout(()=>{FX=null;render()},2600)}
+const selZone=()=>{
+  const el=document.getElementById('simZone');
+  return (el&&zoneOf(el.value))||activeZones()[0]||null;
+};
+
+/* ★前の工程の完了棚から受け取って、自分の待機棚に置く。
+   ここで「次工程待ち（前の工程の完了棚にあった時間）」が確定する。 */
+function simIn(){
+  const w=waitZone();
+  if(!w){flash('このエリアに待機棚がありません');return}
+  const from=atPrevDone()[0];
+  const st=stOf();
+  if(from){
+    const held=Date.now()-(from.doneAt||Date.now());
+    const prevArea=areaOfId(zoneOf(from.zone).area);
+    from.zone=w.id;from.step=nextObserved(from.step)||from.step;
+    from.queuedAt=Date.now();delete from.doneAt;
+    st.read++;
+    flash(`${from.tray} を受け入れました → ${w.name}`,
+      `${prevArea?prevArea.name:'前の工程'}の完了棚にあった時間 ${dur(held)} を「次工程待ち」として記録しました`);
+    return;
+  }
+  /* 前の工程の完了棚が空のときは、新しく届いたものとして置く */
+  const c=mkCase(ri(0,5),pick(stepsOfArea(AREA)));
+  c.zone=w.id;c.queuedAt=Date.now();
+  ITEMS.push(c);st.read++;
+  flash(`${c.tray} を受け入れました → ${w.name}`,
+    `${c.cases>1?`依頼${c.cases}件が同じトレイに載っています ／ `:''}待機の計測を開始しました ${hm(c.queuedAt)}`);
+}
+/* 待機棚から作業中の台へ。ここで待ち時間が確定し、実作業の計測が始まる */
+function simStart(){
+  const z=selZone();
+  if(!z){flash('作業中の台がありません');return}
+  const w=waitZone();
+  const cand=w?inZone(w.id):[];
+  if(!cand.length){flash('待機棚に案件がありません','まず「前の工程の完了棚から受け入れる」を押してください');return}
+  const c=cand[0];
+  c.zone=z.id;c.step=z.step;c.startedAt=Date.now();
+  stOf().read++;
+  flash(`${c.tray} の作業を開始しました`,
+    `${z.name} ／ 待ち時間 ${dur(c.startedAt-(c.queuedAt||c.startedAt))} を記録しました`);
+}
+/* ★作業中の台 → 完了棚。ここで実作業時間が確定する（v0.7 は台から消えた時点だった）。
+   完了棚に移さず台に置いたままだと、次工程待ちの時間が実作業に混ざる。 */
+function simDone(){
+  const z=selZone();
+  if(!z){flash('作業中の台がありません');return}
+  const cand=inZone(z.id).filter(c=>c.step===z.step);
+  if(!cand.length){flash('この台に案件がありません','まず「作業中の台に置く」を押してください');return}
+  const c=cand[0];
+  const dz=doneZone(AREA);
+  const work=Math.max(1,Math.round((Date.now()-(c.startedAt||Date.now()))/60000));
+  const queue=c.queuedAt&&c.startedAt?Math.round((c.startedAt-c.queuedAt)/60000):0;
+  const suspect=work>SUSPECT_MAX;
+  logOf().push({step:z.step,queue,work,suspect});
+  const st=stOf();st.read++;st.done++;
+  c.workMin=work;c.queueMin=queue;
+  if(dz&&CFG.zoneDone){
+    c.zone=dz.id;c.doneAt=Date.now();delete c.startedAt;
+    flash(`${c.tray} を完了棚に移しました`,
+      `実作業 ${work}分 を確定${suspect?'（★長すぎるため集計から除外）':''}`
+      +` ／ ここから先は「${nextObserved(z.step)?stName(nextObserved(z.step)):'完了'}」待ちとして数えます`);
+  }else{
+    ITEMS=ITEMS.filter(x=>x!==c);
+    flash(`${c.tray} を送り出しました → ${nextObserved(z.step)?stName(nextObserved(z.step)):'完了'}`,
+      `実作業 ${work}分 ／ 待ち ${queue}分 を記録${suspect?'（★長すぎるため集計から除外）':''}`);
+  }
+}
+/* 完了棚 → 次のエリアの待機棚。現物を運ぶ動き */
+function simHandoff(){
+  const dz=doneZone(AREA);
+  if(!dz){flash('このエリアに完了棚がありません');return}
+  const cand=inZone(dz.id);
+  if(!cand.length){flash('完了棚に案件がありません','まず「完了棚に移す」を押してください');return}
+  const c=cand[0];
+  const ns=nextObserved(c.step);
+  const sk=skipped(c.step);
+  const na=ns?areaHostingStep(ns):null;
+  const nw=na?waitZone(na):null;
+  const held=Date.now()-(c.doneAt||Date.now());
+  if(!nw){
+    ITEMS=ITEMS.filter(x=>x!==c);
+    flash(`${c.tray} を発送しました`,`完了棚にあった時間 ${dur(held)}`);
+    return;
+  }
+  c.zone=nw.id;c.step=ns;c.queuedAt=Date.now();delete c.doneAt;
+  stOf().read++;
+  flash(`${c.tray} を ${na.name} へ渡しました`,
+    `完了棚にあった時間 ${dur(held)} を「次工程待ち」として記録しました`
+    +(sk.length?` ／ ${sk.join('・')} は作業中ゾーンがないため素通りします`:''));
+}
+/* ★誤配置。★アラートは確認では消えない。現物が戻るまで残る（ご回答 #31） */
+function simMis(){
+  const z=selZone();
+  if(!z){flash('作業中の台がありません');return}
+  /* この台の工程とは違う工程の案件を置く。
+     ★戻す先が分かるように、作業中ゾーンのある工程から選ぶ（fixMis がそこへ返す） */
+  const cands=ORDER.filter(s=>s!==z.step&&areaHostingStep(s));
+  const other=cands.length?pick(cands):'INTAKE';
+  const c=mkCase(ri(0,4),other);
+  c.zone=z.id;c.startedAt=Date.now();
+  ITEMS.push(c);
+  const st=stOf();st.read++;st.mis++;
+  render();
+}
+/* 誤配置を正す。現物を正しい場所（本来の工程のエリアの待機棚）に戻す */
+function fixMis(id){
+  const c=ITEMS.find(x=>x.id===id);
+  if(!c){render();return}
+  const a=areaHostingStep(c.step);
+  const w=a?waitZone(a):null;
+  delete ALERTACK[c.id];
+  if(w){
+    c.zone=w.id;c.queuedAt=Date.now();delete c.startedAt;
+    stOf().read++;
+    flash(`${c.tray} を ${a.name} の待機棚に戻しました`,'アラートを解除しました');
+  }else{
+    ITEMS=ITEMS.filter(x=>x!==c);
+    flash(`${c.tray} を持ち出しました`,'アラートを解除しました');
+  }
+}
+/* 置き忘れを起こす。実作業が異常に長い記録になり、集計から除外される */
+function simLongForget(){
+  const z=selZone();
+  if(!z){flash('作業中の台がありません');return}
+  const cand=inZone(z.id).filter(c=>c.step===z.step);
+  if(!cand.length){flash('この台に案件がありません');return}
+  const c=cand[0];
+  c.startedAt=Date.now()-(SUSPECT_MAX+ri(30,180))*60000;
+  flash(`${c.tray} を ${SUSPECT_MAX}分 以上前に置いたことにしました`,
+    '「完了棚に移す」を押すと、この記録は集計から除外されます');
+}
+function ackAlert(id){ALERTACK[id]=true;render();
+  flash('確認しました','★この表示は現物を正しい場所に戻すまで消えません')}
+function toggleConn(){OFFLINE=!OFFLINE;render();
+  flash(OFFLINE?'オフラインになりました':'接続が復旧しました',
+    OFFLINE?'読取は端末に保持され、復旧後に送信されます':'保持していた読取を送信しました')}
+
+const sel=document.getElementById('areaSel');
+sel.innerHTML=AREAS.map(a=>
+  `<option value="${a.id}" ${a.id===AREA.id?'selected':''}>${a.name}（${a.zones.length}ゾーン）</option>`).join('');
+/* ★エリアを切り替えてもデータは作り直さない。
+   全エリアの現物を1つのモデルで持っているので、前の工程の状況がそのまま見える */
+sel.onchange=e=>{AREA=AREAS.find(a=>a.id===e.target.value);ADMIN=false;render()};
+
+build();render();clock();
+setInterval(clock,1000);
+/* 実機では現物が動くたびに読取が起きる。デモでは時々自動で動かす。
+   ★モーダルを開いている間・誤配置が残っている間は動かさない */
+setInterval(()=>{
+  if(OFFLINE||MODAL||misplaced().length)return;
+  const r=Math.random();
+  if(r<.09)simIn(); else if(r<.15)simStart(); else if(r<.20)simDone(); else if(r<.24)simHandoff();
+},9000);
+</script>
+</body>
+</html>

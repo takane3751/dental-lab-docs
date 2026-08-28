@@ -1,0 +1,2413 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>運営管理コンソール（サービス全体）</title>
+<style>
+:root{
+  --bg:#f5f5f8; --surface:#fff; --surface-2:#fafafc; --border:#e0e0e8; --border-2:#eeeef4;
+  --text:#1a1a24; --muted:#666677; --faint:#9494a6;
+  /* 運営側は紫系。技工所側・医院側（緑系）と取り違えないようにする */
+  --primary:#5b21b6; --primary-dark:#4c1d95; --primary-soft:#f0eafc;
+  --accent:#b45309; --accent-soft:#fdf2e3;
+  --danger:#b91c1c; --danger-soft:#fdeceb;
+  --success:#15803d; --success-soft:#e9f6ed;
+  --ins:#1d4ed8; --ins-soft:#e8eefc;
+  --pri:#a16207; --pri-soft:#fbf3e0;
+  --money:#0f766e; --money-soft:#e6f2f0;
+  --radius:10px; --shadow:0 1px 2px rgba(20,10,40,.06),0 4px 14px rgba(20,10,40,.05);
+  --hdrh:92px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--primary);text-decoration:none}
+
+.devbar{background:#111827;color:#9ca3af;font-size:11.5px;padding:4px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.devbar b{color:#e5e7eb}.devbar .sp{flex:1}.devbar a{color:#93c5fd}
+.devbar select{width:auto;padding:1px 5px;font-size:11.5px;background:#374151;border:1px solid #4b5563;color:#fff;border-radius:4px}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+.hd{max-width:1440px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+.logo .mk{width:26px;height:26px;border-radius:7px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:12px}
+.hd .sp{flex:1}
+.opsbadge{background:var(--primary-soft);color:var(--primary-dark);border:1px solid #d9caf5;
+  border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
+.pill{border:1px solid var(--border);background:var(--surface-2);border-radius:99px;padding:4px 10px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
+nav.tabs{max-width:1440px;margin:0 auto;padding:0 18px;display:flex;gap:2px;overflow-x:auto}
+nav.tabs button{background:none;border:none;padding:9px 12px;font-size:13.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav.tabs button.on{color:var(--primary-dark);border-bottom-color:var(--primary);font-weight:600}
+
+main{max-width:1440px;margin:0 auto;padding:18px 18px 70px}
+h1{font-size:20px;margin:0 0 3px}
+h2{font-size:15px;margin:0 0 10px}
+h3{font-size:13.5px;margin:0 0 7px}
+.sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card .hdr{padding:11px 15px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.card .hdr h2,.card .hdr h3{margin:0}
+.card .bd{padding:15px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.g21{grid-template-columns:2fr 1fr}.g12{grid-template-columns:230px 1fr}
+@media(max-width:960px){.g2,.g3,.g4,.g21,.g12{grid-template-columns:1fr}}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}.mt{margin-top:14px}.mb{margin-bottom:14px}
+
+.btn{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:7px 13px;cursor:pointer;font-size:13.5px;transition:.12s}
+.btn:hover{border-color:var(--faint);background:var(--surface-2)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.btn.pri:hover{background:var(--primary-dark)}
+.btn.dgr{background:#fff;border-color:#e5b4b1;color:var(--danger)}
+.btn.wrn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.mny{background:var(--money);border-color:var(--money);color:#fff;font-weight:600}
+.btn.sm{padding:4px 9px;font-size:12.5px}
+.btn.lg{padding:10px 20px;font-size:14.5px}
+.btn.block{width:100%;display:block}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.b{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600;line-height:1.7;white-space:nowrap}
+.b.ins{background:var(--ins-soft);color:var(--ins)}
+.b.pri2{background:var(--pri-soft);color:var(--pri)}
+.b.wait{background:var(--accent-soft);color:var(--accent)}
+.b.prog{background:var(--primary-soft);color:var(--primary-dark)}
+.b.done{background:var(--success-soft);color:var(--success)}
+.b.dgr{background:var(--danger-soft);color:var(--danger)}
+.b.gray{background:#eeeef2;color:var(--muted)}
+.b.mny{background:var(--money-soft);color:var(--money)}
+
+.alert{border-radius:var(--radius);padding:12px 14px;font-size:13px;border:1px solid}
+.alert.warn{background:var(--accent-soft);border-color:#f0d5a8;color:#7c3d06}
+.alert.dgr{background:var(--danger-soft);border-color:#f0c0bd;color:#8c1d18}
+.alert.info{background:var(--primary-soft);border-color:#d9caf5;color:#3f1d80}
+.alert.ok{background:var(--success-soft);border-color:#b7e0c4;color:#12592d}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;padding:8px 11px;border-bottom:1px solid var(--border);background:var(--surface-2);white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tr.clk{cursor:pointer}tr.clk:hover td{background:var(--surface-2)}
+.tw{overflow-x:auto}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+label.f{display:block;margin-bottom:12px}
+label.f .lb{font-size:12.5px;font-weight:600;margin-bottom:4px;display:flex;gap:6px;align-items:center}
+label.f .hint{font-size:11.5px;color:var(--muted);font-weight:400}
+.req{color:var(--danger);font-size:10.5px;font-weight:700}
+input[type=text],input[type=date],input[type=number],select,textarea{
+  width:100%;border:1px solid var(--border);border-radius:8px;padding:7px 10px;background:#fff;font-size:13.5px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+textarea{min-height:64px;resize:vertical}
+input[type=range]{width:100%}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--border);border-radius:8px;padding:5px 11px;cursor:pointer;background:#fff;font-size:12.5px}
+.chip.on{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
+.sw{position:relative;width:40px;height:22px;background:var(--border);border-radius:99px;cursor:pointer;transition:.15s;flex:none;border:none;padding:0}
+.sw.on{background:var(--primary)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:99px;transition:.15s}
+.sw.on::after{left:20px}
+
+.stat{padding:13px 15px}
+.stat .n{font-size:23px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.stat .d{font-size:11px;color:var(--faint);margin-top:2px}
+.empty{text-align:center;padding:30px 16px;color:var(--faint);font-size:13px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 13px;font-size:13px}
+.kv dt{color:var(--muted);font-size:12px}.kv dd{margin:0}
+.note{font-size:11.5px;color:var(--faint)}
+code{background:var(--surface-2);border:1px solid var(--border-2);border-radius:4px;padding:1px 5px;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+.bar{height:7px;background:#eeeef2;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--primary);border-radius:99px}
+.bar i.w{background:var(--accent)}.bar i.d{background:var(--danger)}
+
+.setnav{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.setnav a{padding:9px 13px;background:#fff;font-size:13px;cursor:pointer;color:var(--text)}
+.setnav a:hover{background:var(--surface-2)}
+.setnav a.on{background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
+
+.mask{position:fixed;inset:0;background:rgba(20,10,40,.5);display:grid;place-items:center;z-index:100;padding:16px}
+.modal{background:#fff;border-radius:14px;max-width:640px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);max-height:88vh;overflow:auto}
+.modal.wide{max-width:860px}
+.modal .mh{padding:15px 19px;border-bottom:1px solid var(--border-2);font-weight:700}
+.modal .mb{padding:19px}
+.modal .mf{padding:13px 19px;border-top:1px solid var(--border-2);display:flex;gap:9px;justify-content:flex-end;background:var(--surface-2);border-radius:0 0 14px 14px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a24;color:#fff;padding:10px 19px;border-radius:99px;font-size:13px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+
+/* 料金ルールの行 */
+.rule{display:grid;grid-template-columns:90px 1fr 110px 110px 130px 34px;gap:8px;align-items:center;
+  padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px}
+.rule+.rule{margin-top:6px}
+.rule.hdrow{background:var(--surface-2);font-weight:600;color:var(--muted);font-size:11.5px;border-style:dashed}
+@media(max-width:900px){.rule{grid-template-columns:1fr 1fr}}
+
+/* 請求書プレビュー（PDF出力の見た目を確認するためのもの） */
+.inv{background:#fff;border:1px solid #ccc;padding:26px 30px;max-width:720px;margin:0 auto;
+  font-size:12px;line-height:1.7;color:#000}
+.inv .ih{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.inv .ttl{font-size:21px;font-weight:700;letter-spacing:.22em;border-bottom:2px solid #000;padding-bottom:3px}
+.inv .meta{font-size:11px;text-align:right;line-height:1.9}
+.inv .to{font-size:14px;font-weight:700;border-bottom:1px solid #000;padding-bottom:3px;display:inline-block;min-width:250px}
+.inv .total{border:2px solid #000;padding:7px 12px;font-size:17px;font-weight:700;display:inline-block;margin:12px 0}
+.inv table{font-size:11.5px;margin-top:10px}
+.inv th{background:#f0f0f0;color:#000;border:1px solid #999;padding:5px 7px;font-size:11px}
+.inv td{border:1px solid #ccc;padding:5px 7px}
+.inv .from{margin-top:20px;font-size:11px;border-top:1px solid #ccc;padding-top:10px}
+.inv .seal{float:right;width:52px;height:52px;border:1px solid #c00;border-radius:99px;color:#c00;
+  display:grid;place-items:center;font-size:9px;text-align:center;line-height:1.3}
+.printhint{background:var(--surface-2);border:1px dashed var(--border);border-radius:8px;
+  padding:9px 12px;font-size:11.5px;color:var(--muted);margin-bottom:12px}
+
+/* 重複疑いの強調 */
+.dupe{background:#fff8e1}
+</style>
+</head>
+<body>
+
+<div class="devbar">
+  <b>DEMO</b><span>運営管理コンソール</span>
+  <span>ログイン中</span><select id="userSel"></select>
+  <span class="sp"></span>
+  <a href="index.html">解説</a><a href="clinic.html">医院側</a><a href="lab.html">技工所側</a><a href="station.html">工程端末</a>
+</div>
+
+<header>
+  <div class="hd">
+    <div class="logo"><span class="mk">運営</span>
+      <span>技工物受発注SaaS <span class="opsbadge">運営管理コンソール</span></span></div>
+    <span class="sp"></span>
+    <span class="pill" id="userPill"></span>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+
+<main id="app"></main>
+<div id="overlay"></div>
+
+<script src="shared.js"></script>
+<script>
+/* ============================================================
+   運営（サービス提供者）側のデモデータ
+
+   ★課金の考え方（v0.5 で確定した前提）
+   - 月額固定は取らない
+   - 初期費用は任意。請求書を手動で作成できるようにする
+   - 継続収益は「案件で医院から技工所へ支払われた額」の一部を徴収する
+   - 料率(%)か1件固定額(円)か未定のため、両方＋併用に対応する
+
+   ★契約関係と算定の起点（2026-08-15 オーナー確認）
+   - 運営が契約を結ぶのは【技工所だけ】。医院と契約するのは技工所であって運営ではない。
+     運営は技工所へ「使った分」を請求するだけなので、資金移動業には当たらない整理。
+   - 算定の起点は【医院への請求が確定した時点】。入金確認は待たない。
+   - 医院が技工所へ支払わなかった場合でも、案件が「要請求」のままなら運営は請求を立てる。
+     技工所が折れて案件をキャンセルにした場合は、その案件の利用料は立てない。
+     → 案件に billStatus（BILLED / CANCELED）を持たせ、CANCELED は算定対象から外す。
+   ============================================================ */
+
+const SVC_USERS=[
+  {id:'a1',name:'高根 弘二',email:'takane@g-tech.example.jp',role:'SYS_ADMIN',label:'運営管理者',status:'ACTIVE'},
+  {id:'a2',name:'運営サポート',email:'support@g-tech.example.jp',role:'SYS_SUPPORT',label:'サポート',status:'ACTIVE'}
+];
+
+/* ---------- 料金プラン ----------
+   rules は上から評価し、最初に一致したものを使う。
+   一致しなければプランの既定（mode/percent/flat）にフォールバックする。 */
+let PLANS=[
+  {id:'pl_std',name:'標準（レベニューシェア）',initialFee:150000,
+   mode:'PERCENT',percent:8,minFee:200,maxFee:5000,
+   desc:'案件額の8%。1件あたり200〜5,000円で頭打ち',
+   rules:[
+     {cov:'PRIVATE',  type:null,          amtMin:50000,amtMax:null,mode:'PERCENT',percent:5,memo:'高額な自費は率を下げる'},
+     {cov:'PRIVATE',  type:null,          amtMin:null, amtMax:null,mode:'PERCENT',percent:8,memo:'自費の標準'},
+     {cov:'INSURANCE',type:null,          amtMin:null, amtMax:null,mode:'FLAT',   flat:250,  memo:'保険は単価が低いので固定額'}
+   ]},
+  {id:'pl_flat',name:'1件あたり固定',initialFee:100000,
+   mode:'FLAT',flat:300,minFee:null,maxFee:null,
+   desc:'案件の内容を問わず1件300円',
+   rules:[]},
+  {id:'pl_intro',name:'導入促進（初年度）',initialFee:0,
+   mode:'PERCENT',percent:4,minFee:100,maxFee:2000,
+   desc:'初期費用なし・案件額の4%。初年度限定',
+   rules:[]}
+];
+const planById=id=>PLANS.find(p=>p.id===id)||PLANS[0];
+
+/* ---------- 技工所（テナント） ---------- */
+let LABS=[
+  {id:'t1',name:'なかたに技工所',code:'LAB-0001',status:'ACTIVE',since:'2024-04-01',
+   pref:'大阪府',tel:'06-6xxx-xxxx',contact:'中谷 誠',
+   planId:'pl_std',overrides:[],
+   billingDay:'月末',terms:'翌月末',pay:'BANK',card:null,
+   initialFee:{amount:150000,status:'PAID',invoicedOn:'2024-04-05'},
+   clinics:4,staff:6},
+  {id:'t2',name:'サンライズ・デンタルラボ',code:'LAB-0042',status:'ACTIVE',since:'2025-11-10',
+   pref:'大阪府',tel:'072-xxx-xxxx',contact:'日下部 亮',
+   planId:'pl_std',
+   /* 個別上書き：自費のラミネートだけ率を下げている */
+   overrides:[{cov:'PRIVATE',type:'ラミネートベニア',amtMin:null,amtMax:null,mode:'PERCENT',percent:4,memo:'交渉により'}],
+   billingDay:'20日',terms:'翌月10日',pay:'CARD',card:{brand:'Visa',last4:'6411',exp:'12/28'},
+   initialFee:{amount:150000,status:'PAID',invoicedOn:'2025-11-14'},
+   clinics:2,staff:3},
+  {id:'t3',name:'みどり歯科技工所',code:'LAB-0130',status:'TRIAL',since:'2026-08-01',
+   pref:'兵庫県',tel:'078-xxx-xxxx',contact:'緑川 明',
+   planId:'pl_intro',overrides:[],
+   billingDay:'月末',terms:'翌月末',pay:'BANK',card:null,
+   initialFee:{amount:0,status:'NONE',invoicedOn:null},
+   clinics:1,staff:2},
+  {id:'t4',name:'共和デンタルワークス',code:'LAB-0207',status:'SUSPENDED',since:'2025-02-20',
+   pref:'京都府',tel:'075-xxx-xxxx',contact:'共和 太一',
+   planId:'pl_flat',overrides:[],
+   billingDay:'月末',terms:'翌月末',pay:'BANK',card:null,
+   initialFee:{amount:100000,status:'UNPAID',invoicedOn:'2025-02-25'},
+   clinics:0,staff:1}
+];
+const labById=id=>LABS.find(l=>l.id===id)||{name:'—',code:'—'};
+const LAB_STATUS={ACTIVE:{l:'稼働中',c:'done'},TRIAL:{l:'トライアル',c:'prog'},
+  SUSPENDED:{l:'停止中',c:'gray'},PENDING:{l:'開設準備',c:'wait'}};
+
+/* ---------- 医院（グローバル・医院コードで一意） ---------- */
+let CLINICS=[
+  {id:'c1',code:'CL-2026-00417',name:'さくら歯科クリニック',pref:'大阪府',tel:'0666661111',
+   labs:['t1','t2'],cases:38,since:'2024-04-01'},
+  {id:'c2',code:'CL-2026-00418',name:'A歯科医院',pref:'大阪府',tel:'0666662222',
+   labs:['t1'],cases:47,since:'2025-04-01'},
+  {id:'c3',code:'CL-2026-00419',name:'B歯科クリニック',pref:'大阪府',tel:'0666663333',
+   labs:['t1'],cases:34,since:'2025-09-12'},
+  {id:'c4',code:'CL-2026-00420',name:'みどり台デンタル',pref:'兵庫県',tel:'0788881111',
+   labs:['t1','t3'],cases:29,since:'2025-06-20'},
+  {id:'c5',code:'CL-2026-00421',name:'C歯科',pref:'大阪府',tel:'0666664444',
+   labs:['t2'],cases:6,since:'2026-07-30'},
+  /* ★重複の疑い：電話番号が c2 と一致。運営が統合を判断する対象 */
+  {id:'c6',code:'CL-2026-00433',name:'Ａ歯科医院',pref:'大阪府',tel:'0666662222',
+   labs:['t2'],cases:3,since:'2026-08-02'}
+];
+
+/* ---------- 案件（手数料の算定対象） ----------
+   医院が技工所へ支払った額が確定した案件のみが対象になる。 */
+const TYPES=['クラウン','インレー','ブリッジ','前装冠','局部床義歯','ラミネートベニア'];
+let _s=20260812;
+const rnd=()=>{_s=(_s*1103515245+12345)&0x7fffffff;return _s/0x7fffffff};
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+
+let CASES=[];
+(function(){
+  const active=LABS.filter(l=>l.status!=='SUSPENDED');
+  for(let i=0;i<180;i++){
+    const lab=pick(active);
+    const clinicPool=CLINICS.filter(c=>c.labs.includes(lab.id));
+    if(!clinicPool.length)continue;
+    const cl=pick(clinicPool);
+    const cov=rnd()<0.62?'INSURANCE':'PRIVATE';
+    const type=cov==='INSURANCE'?pick(['クラウン','インレー','ブリッジ','前装冠','局部床義歯'])
+                                :pick(['クラウン','インレー','ブリッジ','ラミネートベニア']);
+    const amount=cov==='INSURANCE'?ri(5,19)*1000:ri(16,90)*1000;
+    /* billStatus … BILLED=医院への請求が確定（利用料の対象）／CANCELED=技工所が請求を取り下げた（対象外）
+       PAID/UNPAID は「医院が払ったか」。★払っていなくても利用料は立つ（キャンセルされない限り） */
+    const canceled=rnd()<0.035;
+    CASES.push({id:'k'+i,no:lab.code.replace('LAB-','')+'-'+(1000+i),
+      tenantId:lab.id,clinicId:cl.id,cov,type,amount,
+      billStatus:canceled?'CANCELED':'BILLED',
+      cancelReason:canceled?pick(['再製作のため技工所判断で請求取下げ','医院との協議により減額・取下げ']):null,
+      clinicPaid:canceled?false:rnd()>0.12,
+      settledOn:'2026-0'+(rnd()<0.5?7:8)+'-'+String(ri(1,28)).padStart(2,'0')});
+  }
+})();
+/* 利用料の算定対象。キャンセルされた案件は含めない */
+const billable=arr=>arr.filter(c=>c.billStatus==='BILLED');
+
+/* ---------- 請求書 ---------- */
+let INVOICES=[
+  {id:'iv1',no:'SV-2026-07-001',tenantId:'t1',kind:'FEE',period:'2026年7月分',
+   issuedOn:'2026-08-01',dueOn:'2026-08-31',status:'PAID',paidOn:'2026-08-20',
+   lines:[{name:'サービス利用料（2026年7月・案件62件）',qty:1,unit:41800}]},
+  {id:'iv2',no:'SV-2026-07-002',tenantId:'t2',kind:'FEE',period:'2026年7月分',
+   issuedOn:'2026-08-01',dueOn:'2026-09-10',status:'ISSUED',paidOn:null,
+   lines:[{name:'サービス利用料（2026年7月・案件21件）',qty:1,unit:18400}]},
+  {id:'iv3',no:'SV-2025-02-001',tenantId:'t4',kind:'INITIAL',period:'—',
+   issuedOn:'2025-02-25',dueOn:'2025-03-31',status:'OVERDUE',paidOn:null,
+   lines:[{name:'初期導入費用',qty:1,unit:100000}]}
+];
+const INV_STATUS={DRAFT:{l:'下書き',c:'gray'},ISSUED:{l:'発行済み',c:'prog'},
+  PAID:{l:'入金済み',c:'done'},OVERDUE:{l:'期日超過',c:'dgr'}};
+const INV_KIND={FEE:'サービス利用料',INITIAL:'初期費用',MANUAL:'手動作成'};
+
+/* ---------- 評価基準 ---------- */
+let SCORING={
+  clinic:{
+    weights:[
+      {k:'spec',   l:'指示の明確さ',        w:25,desc:'必須項目が埋まっているか、記述が具体的か'},
+      {k:'rally',  l:'確認の往復回数',      w:20,desc:'提案から承認までのラリー回数（少ないほど高得点）'},
+      {k:'missing',l:'資材の欠品率',        w:20,desc:'同梱物の不足が発生した割合'},
+      {k:'scan',   l:'スキャン不備率',      w:15,desc:'形成・印象の不備で作製に支障が出た割合'},
+      {k:'accept', l:'検収の速さ',          w:10,desc:'発送から検収までの日数'},
+      {k:'pay',    l:'支払いの遅延',        w:10,desc:'支払期日を超過した回数'}
+    ],
+    minCases:10,
+    bands:{good:80,normal:70}
+  },
+  staff:{
+    enabled:false,          /* ★既定オフ。適法性の確認（CP-11）が未了 */
+    weights:[
+      {k:'spec',   l:'指示の明確さ',   w:40,desc:''},
+      {k:'missing',l:'資材の欠品率',   w:35,desc:''},
+      {k:'rally',  l:'確認の往復回数', w:25,desc:''}
+    ],
+    minCases:10,
+    showToClinic:false,     /* 医院側にも出さない */
+    showToSelf:false,       /* 本人にも数値は出さない（入力支援の文言のみ） */
+    legalOk:false,          /* 弁護士確認 */
+    termsOk:false           /* 規約への利用目的の明記 */
+  }
+};
+
+/* ============================================================
+   状態
+   ============================================================ */
+const S={me:'a1',route:'dashboard',param:null,sub:'plans',toast:null,modal:null,hist:[],
+  sim:null,   /* 料金シミュレータの一時状態 */
+  addLab:null,/* 技工所追加のドラフト */
+  invDraft:null};
+const ME=()=>SVC_USERS.find(u=>u.id===S.me);
+const isOps=()=>ME().role==='SYS_ADMIN';
+
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+function yen(n){return '¥'+Math.round(n||0).toLocaleString()}
+function pct(n){return (Math.round(n*10)/10)+'%'}
+function covB(c){return c==='INSURANCE'?'<span class="b ins">保険</span>':'<span class="b pri2">自費</span>'}
+function go(r,p,sub){const np=p||null;
+  if(S.route!==r||S.param!==np)S.hist.push({r:S.route,p:S.param,s:S.sub});
+  S.route=r;S.param=np;if(sub!==undefined)S.sub=sub;window.scrollTo(0,0);render()}
+function back(){const h=S.hist.pop();
+  if(h){S.route=h.r;S.param=h.p;S.sub=h.s}else{S.route='dashboard';S.param=null}
+  window.scrollTo(0,0);render()}
+function backBtn(){return `<button class="btn sm" onclick="back()">← 戻る</button>`}
+function toast(m){S.toast=m;render();setTimeout(()=>{S.toast=null;render()},2500)}
+const norm=t=>String(t||'').replace(/[^0-9]/g,'');
+
+/* ============================================================
+   手数料の算定（この関数がビジネスモデルの中核）
+
+   料率(%)・1件固定(円)・案件内容別のルール・下限上限、すべてここで解決する。
+   「率にするか固定にするか未定」なので、どちらでも切り替えられる形にしている。
+   ============================================================ */
+function resolveFee(lab,c){
+  const plan=planById(lab.planId);
+  /* 技工所ごとの個別上書きを先に評価する */
+  const rules=[...(lab.overrides||[]),...(plan.rules||[])];
+  const hit=rules.find(r=>
+    (!r.cov||r.cov===c.cov) &&
+    (!r.type||r.type===c.type) &&
+    (r.amtMin==null||c.amount>=r.amtMin) &&
+    (r.amtMax==null||c.amount<=r.amtMax));
+  const m=hit||{mode:plan.mode,percent:plan.percent,flat:plan.flat};
+  let fee=m.mode==='PERCENT'?Math.round(c.amount*(m.percent/100)):(m.flat||0);
+  let clamp=null;
+  if(plan.minFee!=null&&fee<plan.minFee){fee=plan.minFee;clamp='下限';}
+  if(plan.maxFee!=null&&fee>plan.maxFee){fee=plan.maxFee;clamp='上限';}
+  return {fee,mode:m.mode,percent:m.percent,flat:m.flat,
+          source:hit?(lab.overrides||[]).includes(hit)?'個別':'プラン':'既定',
+          memo:hit?hit.memo:null,clamp};
+}
+const allLabCases=id=>CASES.filter(c=>c.tenantId===id);
+/* ★算定対象はキャンセルされていない案件のみ。以降の集計はすべてこちらを使う */
+const labCases=id=>billable(allLabCases(id));
+const canceledCases=id=>allLabCases(id).filter(c=>c.billStatus==='CANCELED');
+function labFeeTotal(id){
+  const lab=labById(id);
+  return labCases(id).reduce((s,c)=>s+resolveFee(lab,c).fee,0);
+}
+function labRevenue(id){return labCases(id).reduce((s,c)=>s+c.amount,0)}
+const totalFee=()=>LABS.reduce((s,l)=>s+labFeeTotal(l.id),0);
+const totalRevenue=()=>LABS.reduce((s,l)=>s+labRevenue(l.id),0);
+const BILLABLE=()=>billable(CASES);
+const unpaidTotal=()=>INVOICES.filter(i=>['ISSUED','OVERDUE'].includes(i.status))
+  .reduce((s,i)=>s+invTotal(i),0);
+function invSubtotal(i){return i.lines.reduce((s,l)=>s+l.qty*l.unit,0)}
+function invTax(i){return Math.round(invSubtotal(i)*0.1)}
+function invTotal(i){return invSubtotal(i)+invTax(i)}
+
+/* ============================================================
+   ダッシュボード
+   ============================================================ */
+function vDashboard(){
+  const act=LABS.filter(l=>l.status==='ACTIVE').length;
+  const tri=LABS.filter(l=>l.status==='TRIAL').length;
+  const od=INVOICES.filter(i=>i.status==='OVERDUE');
+  const dupes=findDupes();
+  const take=totalRevenue()?totalFee()/totalRevenue()*100:0;
+
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px">
+      <h1>運営ダッシュボード</h1>
+      <p class="sub" style="margin:0">サービス全体の状況（${esc(ME().label)}）</p>
+    </div>
+    ${isOps()?`<button class="btn pri lg" onclick="openAddLab()">＋ 技工所を追加</button>`:''}
+  </div>
+
+  ${od.length?`<div class="alert dgr mb row">
+    <div style="flex:1"><b>支払期日を超過した請求が ${od.length}件あります</b>
+      <div class="note">${od.map(i=>esc(labById(i.tenantId).name)+'（'+yen(invTotal(i))+'）').join(' ／ ')}</div></div>
+    <button class="btn dgr" onclick="go('invoices')">請求を見る</button></div>`:''}
+
+  ${dupes.length?`<div class="alert warn mb row">
+    <div style="flex:1"><b>医院の重複登録の疑いが ${dupes.length}件あります</b>
+      <div class="note">電話番号が一致する別レコードです。統合するか別医院かの判断が必要です</div></div>
+    <button class="btn wrn" onclick="go('clinics')">確認する</button></div>`:''}
+
+  <div class="grid g4 mb">
+    <div class="card stat"><div class="n">${act}<span style="font-size:13px;color:var(--muted)"> 社</span></div>
+      <div class="l">稼働中の技工所</div><div class="d">トライアル ${tri}社</div></div>
+    <div class="card stat"><div class="n">${CLINICS.length}<span style="font-size:13px;color:var(--muted)"> 院</span></div>
+      <div class="l">登録医院</div><div class="d">実稼働 ${CLINICS.filter(c=>c.labs.length).length}院</div></div>
+    <div class="card stat"><div class="n">${BILLABLE().length}</div>
+      <div class="l">当月の算定対象案件</div>
+      <div class="d">医院への請求確定分。キャンセル ${CASES.length-BILLABLE().length}件を除く</div></div>
+    <div class="card stat"><div class="n" style="color:var(--money)">${yen(totalFee())}</div>
+      <div class="l">当月のサービス利用料</div>
+      <div class="d">流通額 ${yen(totalRevenue())} の ${pct(take)}</div></div>
+  </div>
+
+  <div class="grid g21">
+    <div class="card"><div class="hdr"><h2>技工所ごとの状況</h2><span class="sp"></span>
+      <button class="btn sm" onclick="go('labs')">技工所一覧</button></div>
+      <div class="tw"><table>
+        <thead><tr><th>技工所</th><th>状態</th><th>料金プラン</th><th class="num">案件</th>
+          <th class="num">流通額</th><th class="num">利用料</th><th class="num">実効料率</th><th></th></tr></thead>
+        <tbody>${LABS.map(l=>{
+          const cs=labCases(l.id),rev=labRevenue(l.id),fee=labFeeTotal(l.id);
+          return `<tr class="clk" onclick="go('lab','${l.id}')">
+            <td><b>${esc(l.name)}</b><div class="note"><code>${esc(l.code)}</code></div></td>
+            <td><span class="b ${LAB_STATUS[l.status].c}">${LAB_STATUS[l.status].l}</span></td>
+            <td>${esc(planById(l.planId).name)}
+              ${l.overrides.length?`<span class="b wait">個別${l.overrides.length}</span>`:''}</td>
+            <td class="num">${cs.length}</td>
+            <td class="num">${yen(rev)}</td>
+            <td class="num" style="font-weight:700;color:var(--money)">${yen(fee)}</td>
+            <td class="num">${rev?pct(fee/rev*100):'—'}</td>
+            <td><button class="btn sm" onclick="event.stopPropagation();go('lab','${l.id}')">詳細</button></td></tr>`;
+        }).join('')}</tbody>
+      </table></div></div>
+
+    <div>
+      <div class="card mb"><div class="hdr"><h3>収益の構成</h3></div><div class="bd">
+        ${(()=>{
+          const ins=BILLABLE().filter(c=>c.cov==='INSURANCE');
+          const pv =BILLABLE().filter(c=>c.cov==='PRIVATE');
+          const f=arr=>arr.reduce((s,c)=>s+resolveFee(labById(c.tenantId),c).fee,0);
+          const fi=f(ins),fp=f(pv),tt=fi+fp||1;
+          return `
+          <div class="row" style="gap:6px"><span class="b ins">保険</span>
+            <span style="flex:1" class="note">${ins.length}件</span><b>${yen(fi)}</b></div>
+          <div class="bar mt" style="margin-bottom:9px"><i style="width:${fi/tt*100}%"></i></div>
+          <div class="row" style="gap:6px"><span class="b pri2">自費</span>
+            <span style="flex:1" class="note">${pv.length}件</span><b>${yen(fp)}</b></div>
+          <div class="bar mt"><i class="w" style="width:${fp/tt*100}%"></i></div>
+          <p class="note mt">自費は件数が少なくても利用料への寄与が大きくなります。
+            料率と固定額のどちらを採るかはここを見て判断します。</p>`;
+        })()}
+      </div></div>
+
+      <div class="card"><div class="hdr"><h3>請求の状況</h3><span class="sp"></span>
+        <button class="btn sm" onclick="go('invoices')">請求管理</button></div><div class="bd">
+        <div class="row"><div style="flex:1">未入金</div><b style="color:var(--danger)">${yen(unpaidTotal())}</b></div>
+        <div class="row mt"><div style="flex:1">今月発行済み</div>
+          <b>${INVOICES.filter(i=>i.issuedOn>='2026-08-01').length}件</b></div>
+        <div class="row mt"><div style="flex:1">カード払いの技工所</div>
+          <b>${LABS.filter(l=>l.pay==='CARD').length}社</b></div>
+        <button class="btn mny block mt" onclick="openNewInvoice()">請求書を作成</button>
+      </div></div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   技工所
+   ============================================================ */
+function vLabs(){
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>技工所</h1>
+      <p class="sub" style="margin:0">${LABS.length}社（稼働中 ${LABS.filter(l=>l.status==='ACTIVE').length}社）</p></div>
+    <button class="btn" onclick="csvLabs()">CSV出力</button>
+    ${isOps()?`<button class="btn pri lg" onclick="openAddLab()">＋ 技工所を追加</button>`:''}
+  </div>
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>技工所</th><th>所在</th><th>状態</th><th>開始日</th><th>料金プラン</th>
+      <th class="num">取引医院</th><th class="num">スタッフ</th><th>初期費用</th><th>支払方法</th><th></th></tr></thead>
+    <tbody>${LABS.map(l=>`<tr class="clk" onclick="go('lab','${l.id}')">
+      <td><b>${esc(l.name)}</b><div class="note"><code>${esc(l.code)}</code> ・ ${esc(l.contact)}</div></td>
+      <td>${esc(l.pref)}</td>
+      <td><span class="b ${LAB_STATUS[l.status].c}">${LAB_STATUS[l.status].l}</span></td>
+      <td class="note">${esc(l.since)}</td>
+      <td>${esc(planById(l.planId).name)}
+        ${l.overrides.length?`<span class="b wait">個別${l.overrides.length}</span>`:''}</td>
+      <td class="num">${l.clinics}</td><td class="num">${l.staff}</td>
+      <td>${l.initialFee.status==='NONE'?'<span class="note">なし</span>'
+        :l.initialFee.status==='PAID'?'<span class="b done">入金済</span>'
+        :'<span class="b dgr">未入金</span>'}</td>
+      <td>${l.pay==='CARD'?`<span class="b mny">カード</span>`:'<span class="note">銀行振込</span>'}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation();go('lab','${l.id}')">詳細</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+
+function vLab(){
+  const l=labById(S.param); if(!l.id)return '<div class="empty">技工所が見つかりません</div>';
+  const plan=planById(l.planId);
+  const cs=labCases(l.id),rev=labRevenue(l.id),fee=labFeeTotal(l.id);
+  const cancels=canceledCases(l.id);
+  const invs=INVOICES.filter(i=>i.tenantId===l.id);
+  const cls=CLINICS.filter(c=>c.labs.includes(l.id));
+  const brand=DL.brand.load('lab:'+l.id,l.name);
+
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('labs')">技工所一覧</button>
+    <span class="sp"></span><span class="b ${LAB_STATUS[l.status].c}">${LAB_STATUS[l.status].l}</span></div>
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px">
+      <h1>${esc(l.name)}</h1>
+      <p class="sub" style="margin:0"><code>${esc(l.code)}</code> ・ ${esc(l.pref)} ・ ${esc(l.tel)}
+        ・ 担当 ${esc(l.contact)} ・ 開始 ${esc(l.since)}</p>
+    </div>
+    ${isOps()?`<button class="btn" onclick="openLabContract('${l.id}')">契約・請求条件</button>
+      <button class="btn" onclick="openBrand('lab:${l.id}','${esc(l.name)}')">表示設定</button>`:''}
+    <button class="btn" onclick="openImpersonate('lab','${l.id}')">代理ログイン</button>
+  </div>
+
+  <div class="grid g4 mb">
+    <div class="card stat"><div class="n">${cs.length}</div><div class="l">当月の確定案件</div></div>
+    <div class="card stat"><div class="n">${yen(rev)}</div><div class="l">当月の流通額</div>
+      <div class="d">医院→技工所の支払額</div></div>
+    <div class="card stat"><div class="n" style="color:var(--money)">${yen(fee)}</div>
+      <div class="l">当月のサービス利用料</div></div>
+    <div class="card stat"><div class="n">${rev?pct(fee/rev*100):'—'}</div><div class="l">実効料率</div>
+      <div class="d">利用料 ÷ 流通額</div></div>
+  </div>
+
+  <div class="grid g21 mb">
+    <div class="card"><div class="hdr"><h2>料金設定</h2><span class="sp"></span>
+      ${isOps()?`<button class="btn sm" onclick="openLabPricing('${l.id}')">料金を編集</button>
+      <button class="btn sm" onclick="openSim('${l.id}')">シミュレーション</button>`:''}</div>
+      <div class="bd">
+        <dl class="kv">
+          <dt>適用プラン</dt><dd><b>${esc(plan.name)}</b><div class="note">${esc(plan.desc)}</div></dd>
+          <dt>既定の算定</dt><dd>${plan.mode==='PERCENT'?`案件額の ${plan.percent}%`:`1件 ${yen(plan.flat)}`}</dd>
+          <dt>1件あたりの下限／上限</dt>
+            <dd>${plan.minFee!=null?yen(plan.minFee):'—'} ／ ${plan.maxFee!=null?yen(plan.maxFee):'—'}</dd>
+          <dt>初期費用</dt><dd>${l.initialFee.amount?yen(l.initialFee.amount):'なし'}
+            ${l.initialFee.status==='PAID'?'<span class="b done">入金済</span>'
+              :l.initialFee.status==='UNPAID'?'<span class="b dgr">未入金</span>':''}</dd>
+        </dl>
+
+        <h3 class="mt">適用されるルール（上から順に評価）</h3>
+        <div class="rule hdrow"><span>診療区分</span><span>技工物種別</span><span>金額帯</span>
+          <span>算定</span><span>由来</span><span></span></div>
+        ${[...l.overrides.map((r,i)=>({r,src:'個別',i})),...plan.rules.map(r=>({r,src:'プラン',i:null}))]
+          .map(({r,src,i})=>`<div class="rule">
+            <span>${r.cov?(r.cov==='PRIVATE'?'<span class="b pri2">自費</span>':'<span class="b ins">保険</span>'):'<span class="note">すべて</span>'}</span>
+            <span>${r.type?esc(r.type):'<span class="note">すべて</span>'}</span>
+            <span class="note">${r.amtMin!=null?yen(r.amtMin)+'〜':''}${r.amtMax!=null?'〜'+yen(r.amtMax):(r.amtMin!=null?'':'指定なし')}</span>
+            <span><b>${r.mode==='PERCENT'?r.percent+'%':yen(r.flat)}</b></span>
+            <span>${src==='個別'?'<span class="b wait">個別上書き</span>':'<span class="b gray">プラン</span>'}
+              ${r.memo?`<div class="note">${esc(r.memo)}</div>`:''}</span>
+            <span class="row" style="gap:2px;flex-wrap:nowrap">${src==='個別'&&isOps()
+              ?`<button class="btn sm" onclick="openOverride('${l.id}',${i})" title="編集">✎</button>
+                <button class="btn sm dgr" onclick="delOverride('${l.id}',${i})" title="削除">×</button>`
+              :''}</span></div>`).join('')||'<div class="note">ルールなし（既定の算定のみ）</div>'}
+        <div class="rule" style="border-style:dashed;background:var(--surface-2)">
+          <span class="note">上記に一致しない</span><span class="note">—</span><span class="note">—</span>
+          <span><b>${plan.mode==='PERCENT'?plan.percent+'%':yen(plan.flat)}</b></span>
+          <span class="note">プランの既定</span><span></span></div>
+        ${isOps()?`<button class="btn sm mt" onclick="openOverride('${l.id}',null)">＋ この技工所だけの上書きルールを追加</button>`:''}
+        <p class="note mt">この内容は技工所側の「サービス利用料」画面にも同じものが表示されます。
+          技工所に見えない算定根拠は作りません。</p>
+      </div></div>
+
+    <div>
+      <div class="card mb"><div class="hdr"><h3>請求・支払</h3></div><div class="bd">
+        <dl class="kv" style="grid-template-columns:100px 1fr">
+          <dt>締め日</dt><dd>${esc(l.billingDay)}</dd>
+          <dt>支払サイト</dt><dd>${esc(l.terms)}</dd>
+          <dt>支払方法</dt><dd>${l.pay==='CARD'
+            ?`<span class="b mny">カード</span> ${esc(l.card.brand)} •••• ${esc(l.card.last4)}
+               <div class="note">有効期限 ${esc(l.card.exp)}</div>`
+            :'銀行振込'}</dd>
+        </dl>
+        ${l.pay==='CARD'?`<div class="alert info mt" style="font-size:11.5px">
+          カード情報は当サービスのサーバーを通過しません。決済事業者の画面で直接入力・更新されます。</div>`
+          :`${isOps()?`<button class="btn sm block mt" onclick="inviteCard('${l.id}')">カード払いを案内</button>`:''}`}
+      </div></div>
+
+      <div class="card mb"><div class="hdr"><h3>請求履歴</h3><span class="sp"></span>
+        ${isOps()?`<button class="btn sm" onclick="openNewInvoice('${l.id}')">作成</button>`:''}</div><div class="bd">
+        ${invs.map(i=>`<div class="row rowlink" style="padding:6px 0;border-bottom:1px solid var(--border-2)"
+          onclick="go('invoice','${i.id}')">
+          <div style="flex:1"><b>${esc(i.no)}</b>
+            <div class="note">${INV_KIND[i.kind]} ・ ${esc(i.period)}</div></div>
+          <div style="text-align:right"><b>${yen(invTotal(i))}</b>
+            <div><span class="b ${INV_STATUS[i.status].c}">${INV_STATUS[i.status].l}</span></div></div>
+        </div>`).join('')||'<div class="empty">請求履歴はありません</div>'}
+      </div></div>
+
+      <div class="card mb"><div class="hdr"><h3>取引医院</h3><span class="sp"></span>
+        <span class="note">${cls.length}院</span></div><div class="bd">
+        ${cls.map(c=>`<div class="row rowlink" style="padding:5px 0" onclick="go('clinic','${c.id}')">
+          <div style="flex:1;font-size:12.5px">${esc(c.name)}
+            <div class="note"><code>${esc(c.code)}</code></div></div>
+          <span class="note">${c.cases}件</span></div>`).join('')||'<div class="empty">なし</div>'}
+        <p class="note mt">紐付けは技工所の申請と医院の承認で成立します。運営からは追加できません。</p>
+      </div></div>
+
+      <div class="card"><div class="hdr"><h3>表示設定</h3><span class="sp"></span>
+        ${isOps()?`<button class="btn sm" onclick="openBrand('lab:${l.id}','${esc(l.name)}')">変更</button>`:''}</div>
+        <div class="bd">
+        ${DL.brand.previewHtml(brand)}
+        <p class="note mt">技工所ごとにロゴとテーマカラーを設定できます。
+          通常は技工所側の設定画面から変更しますが、導入支援のため運営からも変更できます。</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card mb"><div class="hdr"><h2>案件ごとの利用料の内訳</h2><span class="sp"></span>
+    <span class="note">医院への請求が確定した案件のみ。先頭20件</span>
+    <button class="btn sm" onclick="csvFees()">CSV出力</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>ケース番号</th><th>医院</th><th>区分</th><th>技工物</th>
+        <th class="num">医院の支払額</th><th>医院の入金</th><th>算定</th>
+        <th class="num">利用料</th><th>適用</th><th></th></tr></thead>
+      <tbody>${cs.slice(0,20).map(c=>{
+        const f=resolveFee(l,c);
+        return `<tr>
+          <td><code>${esc(c.no)}</code></td>
+          <td class="note">${esc((CLINICS.find(x=>x.id===c.clinicId)||{}).name||'—')}</td>
+          <td>${covB(c.cov)}</td><td>${esc(c.type)}</td>
+          <td class="num">${yen(c.amount)}</td>
+          <td>${c.clinicPaid?'<span class="b done">入金済</span>':'<span class="b wait">未入金</span>'}</td>
+          <td class="note">${f.mode==='PERCENT'?f.percent+'%':'固定 '+yen(f.flat)}</td>
+          <td class="num" style="font-weight:700;color:var(--money)">${yen(f.fee)}</td>
+          <td>${f.source==='個別'?'<span class="b wait">個別</span>':f.source==='プラン'?'<span class="b gray">プラン</span>':'<span class="b gray">既定</span>'}
+            ${f.clamp?`<span class="b dgr">${f.clamp}</span>`:''}</td>
+          <td>${isOps()?`<button class="btn sm" onclick="openCaseBill('${c.id}')">…</button>`:''}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    ${cs.length>20?`<div class="bd"><span class="note">ほか ${cs.length-20} 件</span></div>`:''}
+    <div class="bd" style="border-top:1px solid var(--border-2)">
+      <p class="note" style="margin:0">★<b>医院が未入金でも利用料は算定します。</b>
+        技工所が請求を取り下げ（キャンセル）た案件だけが対象外になります。</p></div>
+  </div>
+
+  ${cancels.length?`<div class="card"><div class="hdr">
+    <h2>キャンセル扱いの案件（算定対象外）</h2><span class="b gray">${cancels.length}件</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>ケース番号</th><th>医院</th><th>区分</th>
+        <th class="num">医院への請求額</th><th>理由</th><th></th></tr></thead>
+      <tbody>${cancels.map(c=>`<tr>
+        <td><code>${esc(c.no)}</code></td>
+        <td class="note">${esc((CLINICS.find(x=>x.id===c.clinicId)||{}).name||'—')}</td>
+        <td>${covB(c.cov)}</td>
+        <td class="num note">${yen(c.amount)}</td>
+        <td class="note">${esc(c.cancelReason||'—')}</td>
+        <td>${isOps()?`<button class="btn sm" onclick="openCaseBill('${c.id}')">戻す</button>`:''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`:''}`;
+}
+
+/* 技工所の追加 */
+function openAddLab(){
+  S.addLab={name:'',pref:'大阪府',tel:'',contact:'',planId:'pl_std',initialFee:150000,pay:'BANK'};
+  S.modal={title:'技工所を追加',wide:true,body:`
+    <div class="alert info mb" style="font-size:12.5px">
+      技工所を登録すると、その技工所の管理者アカウントへ招待メールが送られます。
+      医院との紐付けは技工所側が行います（運営が代わりに紐付けることはしません）。</div>
+    <div class="grid g2">
+      <label class="f"><span class="lb">技工所名 <span class="req">必須</span></span>
+        <input type="text" id="alName" placeholder="なかたに技工所"></label>
+      <label class="f"><span class="lb">担当者名 <span class="req">必須</span></span>
+        <input type="text" id="alContact" placeholder="中谷 誠"></label>
+      <label class="f"><span class="lb">都道府県</span>
+        <select id="alPref">${['北海道','東京都','愛知県','大阪府','兵庫県','京都府','福岡県','その他']
+          .map(p=>`<option ${p==='大阪府'?'selected':''}>${p}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">電話番号</span>
+        <input type="text" id="alTel" placeholder="06-6xxx-xxxx"></label>
+      <label class="f"><span class="lb">料金プラン</span>
+        <select id="alPlan">${PLANS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">初期費用（円・税抜）
+        <span class="hint">0 なら請求しない</span></span>
+        <input type="number" id="alInit" value="150000"></label>
+      <label class="f"><span class="lb">支払方法</span>
+        <select id="alPay"><option value="BANK">銀行振込</option><option value="CARD">カード</option></select></label>
+      <label class="f"><span class="lb">状態</span>
+        <select id="alStatus"><option value="TRIAL">トライアル</option><option value="ACTIVE">稼働中</option></select></label>
+    </div>
+    <p class="note">技工所コードは登録時に自動発行されます。</p>`,
+    ok:'登録して招待を送る',fn:()=>{
+      const name=document.getElementById('alName').value.trim();
+      const contact=document.getElementById('alContact').value.trim();
+      if(!name||!contact){toast('技工所名と担当者名をご入力ください');return}
+      const n=Math.max(...LABS.map(l=>+l.code.replace('LAB-','')))+1;
+      const init=+document.getElementById('alInit').value||0;
+      LABS.push({id:'t'+(LABS.length+1),name,code:'LAB-'+String(n).padStart(4,'0'),
+        status:document.getElementById('alStatus').value,since:'2026-08-12',
+        pref:document.getElementById('alPref').value,
+        tel:document.getElementById('alTel').value.trim()||'—',contact,
+        planId:document.getElementById('alPlan').value,overrides:[],
+        billingDay:'月末',terms:'翌月末',pay:document.getElementById('alPay').value,card:null,
+        initialFee:{amount:init,status:init?'UNPAID':'NONE',invoicedOn:null},
+        clinics:0,staff:0});
+      S.modal=null;
+      toast(`${name} を登録し、招待を送りました`);
+      if(init)toast('初期費用の請求書を作成してください');
+      render();
+    }};
+  render();
+}
+
+/* 技工所ごとの料金カスタム */
+function openLabPricing(id){
+  const l=labById(id);
+  S.modal={title:`${l.name} の料金設定`,wide:true,body:`
+    <label class="f"><span class="lb">適用プラン</span>
+      <select id="lpPlan" onchange="previewPlan('${id}',this.value)">
+        ${PLANS.map(p=>`<option value="${p.id}" ${l.planId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}
+      </select></label>
+    <div id="lpPreview" class="alert info" style="font-size:12.5px">${planSummary(planById(l.planId))}</div>
+
+    <h3 class="mt">この技工所だけの上書きルール</h3>
+    <p class="note">プランより先に評価されます。交渉で個別の料率を約束した場合にここへ入れます。</p>
+    <div id="lpOverrides">${overrideRows(l)}</div>
+    <button class="btn sm mt" onclick="openOverride('${id}',null)">＋ 上書きルールを追加</button>
+
+    <div class="alert warn mt" style="font-size:12.5px">
+      料金設定の変更は<b>これから確定する案件</b>に適用されます。
+      すでに確定した案件の利用料は変わりません（請求済みの金額が動かないようにするため）。</div>`,
+    ok:'保存する',fn:()=>{
+      l.planId=document.getElementById('lpPlan').value;
+      S.modal=null;toast('料金設定を保存しました');render();
+    }};
+  render();
+}
+function planSummary(p){
+  return `<b>${esc(p.name)}</b> — ${esc(p.desc)}<br>
+    既定: ${p.mode==='PERCENT'?`案件額の ${p.percent}%`:`1件 ${yen(p.flat)}`}
+    ／ 下限 ${p.minFee!=null?yen(p.minFee):'—'} ／ 上限 ${p.maxFee!=null?yen(p.maxFee):'—'}
+    ／ ルール ${p.rules.length}件 ／ 初期費用 ${p.initialFee?yen(p.initialFee):'なし'}`;
+}
+function previewPlan(id,pid){
+  document.getElementById('lpPreview').innerHTML=planSummary(planById(pid));
+}
+function overrideRows(l){
+  if(!l.overrides.length)return '<div class="note">上書きルールはありません</div>';
+  return l.overrides.map((r,i)=>`<div class="rule">
+    <span>${r.cov?(r.cov==='PRIVATE'?'自費':'保険'):'すべて'}</span>
+    <span>${r.type?esc(r.type):'すべて'}</span>
+    <span class="note">${r.amtMin!=null?yen(r.amtMin)+'〜':'指定なし'}</span>
+    <span><b>${r.mode==='PERCENT'?r.percent+'%':yen(r.flat)}</b></span>
+    <span class="note">${esc(r.memo||'')}</span>
+    <span class="row" style="gap:2px;flex-wrap:nowrap">
+      <button class="btn sm" onclick="openOverride('${l.id}',${i})" title="編集">✎</button>
+      <button class="btn sm dgr" onclick="delOverride('${l.id}',${i})" title="削除">×</button></span></div>`).join('');
+}
+function delOverride(id,i){
+  const l=labById(id),r=l.overrides[i];
+  l.overrides.splice(i,1);
+  logAudit('料金設定の変更',l.name,`個別上書きを削除（${r.mode==='PERCENT'?r.percent+'%':yen(r.flat)}）`);
+  /* 料金設定モーダルの中から呼ばれた場合はその場を書き換え、
+     技工所詳細から呼ばれた場合は画面全体を描き直す */
+  const box=document.getElementById('lpOverrides');
+  if(box)box.innerHTML=overrideRows(l); else render();
+  toast('上書きルールを削除しました');
+}
+
+/* ============================================================
+   料金シミュレータ — 5つの取り方を、この技工所の実件数の上に並べる
+
+   ★重要な設計上の含み
+     ②（流通額 × 率）だけが案件ごとに確定できる。
+     ①③④⑤は「その月の合計」が出そろわないと金額が決まらない。
+     いまの設計（基本設計 29章）は案件の請求確定ごとに service_fees を
+     1行積む形なので、①③④⑤を採るなら月次で確定させる経路が別に要る。
+     表の「確定の単位」列はそれを示している。
+   ============================================================ */
+const SIM_PATTERNS=[
+  {id:'FIXED',  name:'① 固定',        hint:'月額いくら',                monthly:true,
+   fee:(s,cs,rev)=>s.fixed},
+  {id:'PERCENT',name:'② 流通額従量',   hint:'流通額 × 率',               monthly:false,
+   fee:(s,cs,rev)=>rev*s.percent/100},
+  {id:'TIER',   name:'③ 件数レンジ',   hint:'件数の帯で段階的に',        monthly:true,
+   fee:(s,cs,rev)=>s.tierStep>0?Math.max(1,Math.ceil(cs/s.tierStep))*s.tierUnit:0},
+  {id:'PROG',   name:'④ 楽天方式',     hint:'レンジごとに率を変えて合算', monthly:true,
+   fee:(s,cs,rev)=>{
+     /* 累進。各帯からはみ出した分にだけ、その帯の率をかけて合算する */
+     const B1=1000000,B2=5000000;
+     let f=Math.min(rev,B1)*s.pr1/100;
+     if(rev>B1)f+=(Math.min(rev,B2)-B1)*s.pr2/100;
+     if(rev>B2)f+=(rev-B2)*s.pr3/100;
+     return f;
+   }},
+  {id:'HYBRID', name:'⑤ ハイブリッド', hint:'月額 ＋ 従量',              monthly:true,
+   fee:(s,cs,rev)=>s.hybFixed+rev*s.hybRate/100},
+];
+
+/* 案件を決済月ごとにまとめる。月額の取り方と比べるには、月単位に揃える必要がある */
+function labMonths(id){
+  const by={};
+  labCases(id).forEach(c=>{
+    const m=(c.settledOn||'').slice(0,7);
+    (by[m]||=[]).push(c);
+  });
+  return Object.keys(by).sort().map(m=>({
+    month:m, cases:by[m].length,
+    rev:by[m].reduce((a,c)=>a+c.amount,0),
+    list:by[m]
+  }));
+}
+
+function openSim(id){
+  const l=labById(id);
+  S.sim={fixed:5000,percent:0.1,tierStep:100,tierUnit:1000,
+         pr1:0.3,pr2:0.15,pr3:0.05,hybFixed:2000,hybRate:0.05,pick:'PERCENT'};
+  S.modal={title:`${l.name} の料金シミュレーション`,wide:true,body:simBody(id),ok:null};
+  render();
+}
+
+function simBody(id){
+  const l=labById(id),s=S.sim;
+  const ms=labMonths(id);
+  if(!ms.length)return '<p class="note">算定対象の案件がありません。</p>';
+
+  /* 月ごとに5パターンを計算し、月平均で並べる。
+     1ヶ月ぶんだけで比べると、月額の取り方が有利にも不利にも振れる */
+  const rows=SIM_PATTERNS.map(p=>{
+    const per=ms.map(m=>p.fee(s,m.cases,m.rev));
+    const avg=per.reduce((a,b)=>a+b,0)/ms.length;
+    return {p,per,avg};
+  });
+  const avgCases=ms.reduce((a,m)=>a+m.cases,0)/ms.length;
+  const avgRev=ms.reduce((a,m)=>a+m.rev,0)/ms.length;
+  const cur=labFeeTotal(id)/ms.length;   /* 現在の設定（案件ごと）の月平均 */
+
+  const num=(k,step)=>`<input type="number" value="${s[k]}"${step?` step="${step}"`:''}
+      oninput="setSim('${k}',+this.value,'${id}')" style="width:100%">`;
+
+  return `
+  <p class="note">
+    ${l.name} の確定案件 <b>${ms.reduce((a,m)=>a+m.cases,0)}件</b>（${ms.map(m=>m.month).join('・')}）を
+    月ごとに分けて、5つの取り方を並べます。表は<b>月平均</b>です。
+    現在の設定（案件ごとの算定）は月平均 <b>${yen(cur)}</b>。
+  </p>
+  <p class="note">
+    ★<b>現在の設定はデモの仮置き（案件額の8%）です。</b>会議で「納得できる」とされた水準は
+    <b>流通額の0.1%程度</b>なので、下の5パターンはいずれも現在の設定より大幅に低く出ます。
+    比べるべきは「現在との差」ではなく<b>5パターンどうし</b>です。
+  </p>
+
+  <div class="grid g3 mt">
+    <div class="card stat"><div class="n">${Math.round(avgCases)}</div><div class="l">月あたり件数</div></div>
+    <div class="card stat"><div class="n">${yen(avgRev)}</div><div class="l">月あたり流通額</div></div>
+    <div class="card stat"><div class="n">${yen(avgRev/avgCases)}</div><div class="l">1件あたり平均</div></div>
+  </div>
+
+  <h3 class="mt">5つの取り方（月平均）</h3>
+  <div class="tw"><table>
+    <thead><tr><th>取り方</th><th class="num">月額</th><th class="num">実効料率</th>
+      <th class="num">1件あたり</th><th class="num">現在との差</th><th>確定の単位</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><b>${r.p.name}</b><br><span class="note">${r.p.hint}</span></td>
+      <td class="num"><b>${yen(r.avg)}</b></td>
+      <td class="num">${avgRev?pct(r.avg/avgRev*100):'—'}</td>
+      <td class="num">${avgCases?yen(r.avg/avgCases):'—'}</td>
+      <td class="num" style="color:${r.avg-cur>=0?'var(--success)':'var(--danger)'}">
+        ${r.avg-cur>=0?'+':'−'}${yen(Math.abs(r.avg-cur))}</td>
+      <td>${r.p.monthly
+        ? '<span class="b gray">月次でまとめて</span>'
+        : '<span class="b mny">案件ごと</span>'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+
+  <p class="note mt">
+    ★<b>「確定の単位」は実装に効きます。</b>案件ごとに確定できるのは②だけです。
+    ①③④⑤は月の合計が出そろうまで金額が決まらないため、
+    <b>案件の請求確定ごとに利用料を積む今の形（29章）とは別に、月次で確定させる経路が要ります。</b>
+  </p>
+
+  <h3 class="mt">パラメータ</h3>
+  <div class="grid g2">
+    <label class="f"><span class="lb">① 技工所の月額（円）</span>${num('fixed')}</label>
+    <label class="f"><span class="lb">② 料率（％）</span>${num('percent','0.01')}</label>
+  </div>
+  <div class="grid g2 mt">
+    <label class="f"><span class="lb">③ 帯の幅（件）</span>${num('tierStep')}</label>
+    <label class="f"><span class="lb">③ 1段あたり（円）</span>${num('tierUnit')}</label>
+  </div>
+  <div class="grid g3 mt">
+    <label class="f"><span class="lb">④ 100万円まで（％）</span>${num('pr1','0.01')}</label>
+    <label class="f"><span class="lb">④ 500万円まで（％）</span>${num('pr2','0.01')}</label>
+    <label class="f"><span class="lb">④ それ以上（％）</span>${num('pr3','0.01')}</label>
+  </div>
+  <div class="grid g2 mt">
+    <label class="f"><span class="lb">⑤ 月額（円）</span>${num('hybFixed')}</label>
+    <label class="f"><span class="lb">⑤ 上乗せ料率（％）</span>${num('hybRate','0.01')}</label>
+  </div>
+
+  <h3 class="mt">月ごとの内訳</h3>
+  <div class="tw"><table>
+    <thead><tr><th>月</th><th class="num">件数</th><th class="num">流通額</th>
+      ${SIM_PATTERNS.map(p=>`<th class="num">${p.name.slice(0,2)}</th>`).join('')}</tr></thead>
+    <tbody>${ms.map((m,i)=>`<tr>
+      <td>${m.month}</td><td class="num">${m.cases}</td><td class="num">${yen(m.rev)}</td>
+      ${rows.map(r=>`<td class="num">${yen(r.per[i])}</td>`).join('')}
+    </tr>`).join('')}</tbody>
+  </table></div>
+
+  <p class="note mt">
+    ③は<b>帯をまたぐ1件で跳ねます。</b>月末の1件を翌月に回す動機が毎月生まれるため、
+    納期を管理するシステムとしては採りにくい形です。採るなら④（累進）に寄せてください。
+  </p>`;
+}
+function setSim(k,v,id){S.sim[k]=v;S.modal.body=simBody(id);render()}
+
+/* ============================================================
+   医院（運営から見た全医院）
+   ============================================================ */
+/* 「別医院として扱う」と判断した組み合わせ。以後の重複検出から外す（FR-SV-009） */
+let NOT_DUPE=[];
+const pairKey=(a,b)=>[a,b].sort().join('|');
+function findDupes(){
+  const byTel={};
+  CLINICS.forEach(c=>{const t=norm(c.tel);if(!t)return;(byTel[t]||=[]).push(c)});
+  return Object.values(byTel)
+    .filter(a=>a.length>1)
+    .filter(a=>!NOT_DUPE.includes(pairKey(a[0].id,a[1].id)));
+}
+function markNotDupe(a,b){
+  const A=CLINICS.find(x=>x.id===a),B=CLINICS.find(x=>x.id===b);
+  NOT_DUPE.push(pairKey(a,b));
+  logAudit('別医院として記録',`${A.name} / ${B.name}`,'以後の重複検出から除外');
+  toast('別医院として記録しました。重複検出には出なくなります');
+  render();
+}
+function vClinics(){
+  const dupes=findDupes();
+  const dupeIds=new Set(dupes.flat().map(c=>c.id));
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>医院</h1>
+      <p class="sub" style="margin:0">医院はテナントに属さないグローバルな存在です。医院コードで一意に識別します</p></div>
+    <button class="btn" onclick="csvClinics()">CSV出力</button>
+    ${isOps()?`<button class="btn" onclick="openImportClinics()">CSV取込</button>
+      <button class="btn sm" onclick="DL.csv.template('医院マスタ_取込用テンプレート.csv',CSV_COLS.clinics,
+        {code:'CL-2026-00417',name:'さくら歯科クリニック',pref:'大阪府',tel:'06-6666-1111',
+         labs:'LAB-0001',since:'2026-08-01'});toast('テンプレートを書き出しました')">テンプレート</button>`:''}
+  </div>
+  ${NOT_DUPE.length?`<div class="alert info mb" style="font-size:12.5px">
+    「別医院として扱う」と記録した組み合わせが ${NOT_DUPE.length}件あります。重複検出からは除外しています。
+    <button class="btn sm" onclick="NOT_DUPE=[];toast('除外を解除しました');render()">除外を解除</button></div>`:''}
+
+  ${dupes.length?`<div class="card mb" style="border-color:#f0d5a8">
+    <div class="hdr" style="background:var(--accent-soft);border-radius:10px 10px 0 0">
+      <h2 style="color:#7c3d06">重複登録の疑い</h2><span class="b wait">${dupes.length}組</span></div>
+    <div class="bd">
+      <p class="note mb">電話番号が一致する別レコードです。同一医院なら統合、別医院ならそのままにします。
+        <b>誤って統合すると別医院の患者情報が混ざるため、必ず内容を確認してください。</b></p>
+      ${dupes.map(g=>`<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+        ${g.map(c=>`<div class="row" style="padding:4px 0">
+          <div style="flex:1"><b>${esc(c.name)}</b>
+            <div class="note"><code>${esc(c.code)}</code> ・ ${esc(c.pref)} ・ ${esc(c.tel)}
+              ・ 取引 ${c.labs.length}社 ・ 案件 ${c.cases}件 ・ 登録 ${esc(c.since)}</div></div>
+        </div>`).join('')}
+        ${isOps()?`<div class="row mt">
+          <button class="btn sm dgr" onclick="openMerge('${g[0].id}','${g[1].id}')">統合を検討</button>
+          <button class="btn sm" onclick="markNotDupe('${g[0].id}','${g[1].id}')">別医院として扱う</button>
+        </div>`:''}
+      </div>`).join('')}
+    </div></div>`:''}
+
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>医院コード</th><th>医院名</th><th>所在</th><th>電話</th>
+      <th class="num">取引技工所</th><th class="num">案件</th><th>登録日</th><th></th></tr></thead>
+    <tbody>${CLINICS.map(c=>`<tr class="clk ${dupeIds.has(c.id)?'dupe':''}" onclick="go('clinic','${c.id}')">
+      <td><code>${esc(c.code)}</code></td>
+      <td><b>${esc(c.name)}</b>${dupeIds.has(c.id)?' <span class="b wait">重複疑い</span>':''}</td>
+      <td>${esc(c.pref)}</td><td class="note">${esc(c.tel)}</td>
+      <td class="num">${c.labs.length}</td><td class="num">${c.cases}</td>
+      <td class="note">${esc(c.since)}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation();go('clinic','${c.id}')">詳細</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>
+
+  <div class="alert info mt" style="font-size:12.5px">
+    運営は医院を新規登録しません。医院の登録は技工所が行い、既存医院への紐付けは医院側の承認を経ます。
+    運営の役割は<b>重複の検出と統合の判断</b>です。</div>`;
+}
+
+function vClinic(){
+  const c=CLINICS.find(x=>x.id===S.param);
+  if(!c)return '<div class="empty">医院が見つかりません</div>';
+  const cCases=CASES.filter(x=>x.clinicId===c.id);
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('clinics')">医院一覧</button></div>
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px">
+      <h1>${esc(c.name)}</h1>
+      <p class="sub" style="margin:0"><code>${esc(c.code)}</code> ・ ${esc(c.pref)} ・ ${esc(c.tel)}</p>
+    </div>
+    ${isOps()?`<button class="btn" onclick="openBrand('clinic:${c.id}','${esc(c.name)}')">表示設定</button>`:''}
+    <button class="btn" onclick="openImpersonate('clinic','${c.id}')">代理ログイン</button>
+  </div>
+  <div class="grid g4 mb">
+    <div class="card stat"><div class="n">${c.labs.length}</div><div class="l">取引技工所</div></div>
+    <div class="card stat"><div class="n">${cCases.length}</div><div class="l">当月の案件</div></div>
+    <div class="card stat"><div class="n">${yen(cCases.reduce((s,x)=>s+x.amount,0))}</div>
+      <div class="l">当月の支払額</div><div class="d">技工所へ直接支払い</div></div>
+    <div class="card stat"><div class="n">${cCases.filter(x=>!x.clinicPaid&&x.billStatus==='BILLED').length}</div>
+      <div class="l">未入金の案件</div><div class="d">技工所と医院の間の話</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><div class="hdr"><h3>基本情報</h3></div><div class="bd">
+      <dl class="kv">
+        <dt>医院コード</dt><dd><code>${esc(c.code)}</code>
+          <div class="note">システム全体で一意。発行後は変更しません</div></dd>
+        <dt>登録日</dt><dd>${esc(c.since)}</dd>
+        <dt>累計案件</dt><dd>${c.cases}件</dd>
+      </dl></div></div>
+    <div class="card"><div class="hdr"><h3>取引している技工所</h3></div><div class="bd">
+      ${c.labs.map(id=>`<div class="row rowlink" style="padding:6px 0;border-bottom:1px solid var(--border-2)"
+        onclick="go('lab','${id}')">
+        <div style="flex:1">${esc(labById(id).name)}
+          <div class="note"><code>${esc(labById(id).code)}</code></div></div>
+        <span style="color:var(--faint)">›</span></div>`).join('')||'<div class="empty">取引なし</div>'}
+      <p class="note mt">1つの医院が複数の技工所と取引します。医院はログインを1つしか持ちません。</p>
+      <div class="alert info mt" style="font-size:12px">
+        <b>運営はこの医院と契約していません。</b>契約するのは技工所です。
+        運営はこの医院へ請求も送金もしません。</div>
+    </div></div>
+  </div>`;
+}
+
+function openMerge(a,b){
+  const A=CLINICS.find(x=>x.id===a),B=CLINICS.find(x=>x.id===b);
+  S.modal={title:'医院の統合',wide:true,body:`
+    <div class="alert dgr mb"><b>統合は取り消せません</b><br>
+      案件・請求・承認の記録がすべて統合先に付け替わります。
+      別医院だった場合、他院の患者情報が混ざることになります。</div>
+    <div class="grid g2">
+      <div class="card"><div class="hdr"><h3>統合先として残す</h3></div><div class="bd">
+        <b>${esc(A.name)}</b><div class="note"><code>${esc(A.code)}</code></div>
+        <dl class="kv mt" style="grid-template-columns:90px 1fr">
+          <dt>案件</dt><dd>${A.cases}件</dd><dt>取引</dt><dd>${A.labs.length}社</dd>
+          <dt>登録</dt><dd>${esc(A.since)}</dd></dl></div></div>
+      <div class="card" style="border-color:#f0c0bd"><div class="hdr"><h3>統合して消す</h3></div><div class="bd">
+        <b>${esc(B.name)}</b><div class="note"><code>${esc(B.code)}</code></div>
+        <dl class="kv mt" style="grid-template-columns:90px 1fr">
+          <dt>案件</dt><dd>${B.cases}件</dd><dt>取引</dt><dd>${B.labs.length}社</dd>
+          <dt>登録</dt><dd>${esc(B.since)}</dd></dl></div></div>
+    </div>
+    <label class="f mt" style="margin-bottom:0"><span class="lb">確認のため統合先の医院コードを入力してください</span>
+      <input type="text" id="mgCode" placeholder="${esc(A.code)}"></label>`,
+    ok:'統合する',fn:()=>{
+      if(document.getElementById('mgCode').value.trim()!==A.code){
+        toast('医院コードが一致しません');return;
+      }
+      A.cases+=B.cases;
+      B.labs.forEach(id=>{if(!A.labs.includes(id))A.labs.push(id)});
+      CASES.forEach(c=>{if(c.clinicId===b)c.clinicId=a});
+      CLINICS=CLINICS.filter(x=>x.id!==b);
+      logAudit('医院の統合',A.name,`${B.name}（${B.code}）を統合。案件・請求・承認を付け替え`);
+      closeModal();toast(`${B.name} を ${A.name} に統合しました`);go('clinics');
+    }};
+  render();
+}
+
+/* ============================================================
+   料金プラン
+   ============================================================ */
+function vPlans(){
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>料金プラン</h1>
+      <p class="sub" style="margin:0">技工所に適用する料金の雛形。技工所ごとの上書きは技工所の詳細画面で行います</p></div>
+    <button class="btn" onclick="csvPlans()">CSV出力</button>
+    ${isOps()?`<button class="btn pri lg" onclick="openPlanEdit(null)">＋ プランを作成</button>`:''}
+  </div>
+
+  <div class="alert info mb">
+    <b>課金の考え方</b><br>
+    月額固定は取りません。継続収益は<b>案件で医院から技工所へ支払われた額の一部</b>を徴収します。
+    初期費用は任意で、請求書を手動で作成します。<br>
+    運営が契約を結ぶのは<b>技工所だけ</b>で、医院とは契約しません。医院と契約するのは技工所です。<br>
+    <span class="note">料率にするか1件固定にするかは未確定です。どちらでも、また併用でも設定できるようにしています。</span>
+  </div>
+
+  ${PLANS.map(p=>{
+    const users=LABS.filter(l=>l.planId===p.id);
+    return `<div class="card mb"><div class="hdr">
+      <h2>${esc(p.name)}</h2>
+      <span class="b ${p.mode==='PERCENT'?'mny':'gray'}">${p.mode==='PERCENT'?'料率':'固定額'}</span>
+      <span class="sp"></span>
+      <span class="note">適用 ${users.length}社</span>
+      ${isOps()?`<button class="btn sm" onclick="openPlanEdit('${p.id}')">編集</button>
+        <button class="btn sm" onclick="dupPlan('${p.id}')">複製</button>
+        <button class="btn sm dgr" onclick="delPlan('${p.id}')">削除</button>`:''}</div>
+      <div class="bd">
+        <p style="margin:0 0 10px">${esc(p.desc)}</p>
+        <div class="grid g4 mb">
+          <div><div class="note">既定の算定</div>
+            <b>${p.mode==='PERCENT'?`案件額の ${p.percent}%`:`1件 ${yen(p.flat)}`}</b></div>
+          <div><div class="note">1件の下限</div><b>${p.minFee!=null?yen(p.minFee):'—'}</b></div>
+          <div><div class="note">1件の上限</div><b>${p.maxFee!=null?yen(p.maxFee):'—'}</b></div>
+          <div><div class="note">初期費用</div><b>${p.initialFee?yen(p.initialFee):'なし'}</b></div>
+        </div>
+        ${p.rules.length?`
+        <h3>案件内容別のルール（上から順に評価）</h3>
+        <div class="rule hdrow"><span>診療区分</span><span>技工物種別</span><span>金額帯</span>
+          <span>算定</span><span>メモ</span><span></span></div>
+        ${p.rules.map(r=>`<div class="rule">
+          <span>${r.cov?(r.cov==='PRIVATE'?'<span class="b pri2">自費</span>':'<span class="b ins">保険</span>'):'<span class="note">すべて</span>'}</span>
+          <span>${r.type?esc(r.type):'<span class="note">すべて</span>'}</span>
+          <span class="note">${r.amtMin!=null?yen(r.amtMin)+'以上':'指定なし'}</span>
+          <span><b>${r.mode==='PERCENT'?r.percent+'%':yen(r.flat)}</b></span>
+          <span class="note">${esc(r.memo||'')}</span><span></span></div>`).join('')}`
+        :'<p class="note">案件内容別のルールなし（既定の算定のみ）</p>'}
+        ${users.length?`<div class="row mt"><span class="note">適用中：</span>
+          ${users.map(l=>`<button class="btn sm" onclick="go('lab','${l.id}')">${esc(l.name)}</button>`).join('')}</div>`:''}
+      </div></div>`;
+  }).join('')}
+
+  <div class="card"><div class="hdr"><h3>算定の順序</h3></div><div class="bd">
+    <pre>① 技工所の個別上書きルール    ← 交渉で決めた例外
+② プランの案件内容別ルール    ← 保険/自費・技工物種別・金額帯
+③ プランの既定（料率 or 固定）
+④ 1件あたりの下限・上限で丸める</pre>
+    <p class="note">最初に一致したルールを使います。確定済みの案件の利用料は、
+      あとから設定を変えても再計算しません（請求済みの金額が動かないようにするため）。</p>
+  </div></div>`;
+}
+
+/* ============================================================
+   サービス手数料（案件別）
+   ============================================================ */
+function vFees(){
+  const rows=BILLABLE().map(c=>({c,l:labById(c.tenantId),f:resolveFee(labById(c.tenantId),c)}));
+  const cancels=CASES.filter(c=>c.billStatus==='CANCELED');
+  const unpaid=BILLABLE().filter(c=>!c.clinicPaid);
+  const byLab={};
+  rows.forEach(r=>{(byLab[r.l.id]||={l:r.l,n:0,rev:0,fee:0});
+    byLab[r.l.id].n++;byLab[r.l.id].rev+=r.c.amount;byLab[r.l.id].fee+=r.f.fee});
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>サービス利用料</h1>
+      <p class="sub" style="margin:0">医院への請求が確定した案件から算定します。2026年8月分</p></div>
+    <button class="btn" onclick="csvFees()">CSV出力</button>
+  </div>
+
+  <div class="alert info mb" style="font-size:12.5px">
+    <b>算定の起点は「医院への請求が確定した時点」です。</b>入金の確認は待ちません。<br>
+    医院が技工所へ支払わなかった場合でも、案件が要請求のままなら利用料は算定します。
+    技工所が請求を取り下げてキャンセルにした案件だけが対象外です。
+  </div>
+
+  <div class="grid g4 mb">
+    <div class="card stat"><div class="n">${rows.length}</div><div class="l">算定対象の案件</div>
+      <div class="d">キャンセル ${cancels.length}件を除く</div></div>
+    <div class="card stat"><div class="n">${yen(totalRevenue())}</div><div class="l">流通額</div>
+      <div class="d">うち未入金 ${unpaid.length}件</div></div>
+    <div class="card stat"><div class="n" style="color:var(--money)">${yen(totalFee())}</div><div class="l">利用料の合計</div></div>
+    <div class="card stat"><div class="n">${pct(totalFee()/totalRevenue()*100)}</div><div class="l">全体の実効料率</div></div>
+  </div>
+
+  <div class="card mb"><div class="hdr"><h2>技工所ごとの集計</h2><span class="sp"></span>
+    ${isOps()?`<button class="btn mny" onclick="openBulkInvoice()">当月分をまとめて請求</button>`:''}</div>
+    <div class="tw"><table>
+      <thead><tr><th>技工所</th><th>プラン</th><th class="num">件数</th><th class="num">流通額</th>
+        <th class="num">利用料</th><th class="num">実効料率</th><th></th></tr></thead>
+      <tbody>${Object.values(byLab).map(x=>`<tr class="clk" onclick="go('lab','${x.l.id}')">
+        <td><b>${esc(x.l.name)}</b></td>
+        <td class="note">${esc(planById(x.l.planId).name)}</td>
+        <td class="num">${x.n}</td><td class="num">${yen(x.rev)}</td>
+        <td class="num" style="font-weight:700;color:var(--money)">${yen(x.fee)}</td>
+        <td class="num">${pct(x.fee/x.rev*100)}</td>
+        <td>${isOps()?`<button class="btn sm mny" onclick="event.stopPropagation();openNewInvoice('${x.l.id}','FEE')">請求書</button>`:''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>
+
+  <div class="card mb"><div class="hdr"><h2>案件ごとの明細</h2><span class="sp"></span>
+    <span class="note">先頭40件</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>ケース番号</th><th>技工所</th><th>医院</th><th>区分</th><th>技工物</th>
+        <th class="num">医院の支払額</th><th>医院の入金</th><th>算定</th>
+        <th class="num">利用料</th><th>請求確定日</th><th></th></tr></thead>
+      <tbody>${rows.slice(0,40).map(r=>`<tr>
+        <td><code>${esc(r.c.no)}</code></td>
+        <td class="note">${esc(r.l.name)}</td>
+        <td class="note">${esc((CLINICS.find(x=>x.id===r.c.clinicId)||{}).name||'—')}</td>
+        <td>${covB(r.c.cov)}</td><td>${esc(r.c.type)}</td>
+        <td class="num">${yen(r.c.amount)}</td>
+        <td>${r.c.clinicPaid?'<span class="b done">入金済</span>':'<span class="b wait">未入金</span>'}</td>
+        <td class="note">${r.f.mode==='PERCENT'?r.f.percent+'%':'固定'}
+          ${r.f.clamp?`<span class="b dgr">${r.f.clamp}</span>`:''}</td>
+        <td class="num" style="font-weight:700;color:var(--money)">${yen(r.f.fee)}</td>
+        <td class="note">${esc(r.c.settledOn)}</td>
+        <td>${isOps()?`<button class="btn sm" onclick="openCaseBill('${r.c.id}')">…</button>`:''}</td></tr>`).join('')}</tbody>
+    </table></div></div>
+
+  <div class="card"><div class="hdr"><h2>キャンセル扱いの案件</h2>
+    <span class="b gray">${cancels.length}件・算定対象外</span><span class="sp"></span>
+    <span class="note">技工所が医院への請求を取り下げたもの</span></div>
+    ${cancels.length?`<div class="tw"><table>
+      <thead><tr><th>ケース番号</th><th>技工所</th><th>医院</th>
+        <th class="num">医院への請求額</th><th class="num">立てなかった利用料</th><th>理由</th><th></th></tr></thead>
+      <tbody>${cancels.map(c=>{
+        const l=labById(c.tenantId),f=resolveFee(l,c);
+        return `<tr>
+          <td><code>${esc(c.no)}</code></td><td class="note">${esc(l.name)}</td>
+          <td class="note">${esc((CLINICS.find(x=>x.id===c.clinicId)||{}).name||'—')}</td>
+          <td class="num note">${yen(c.amount)}</td>
+          <td class="num note">${yen(f.fee)}</td>
+          <td class="note">${esc(c.cancelReason||'—')}</td>
+          <td>${isOps()?`<button class="btn sm" onclick="openCaseBill('${c.id}')">戻す</button>`:''}</td></tr>`;
+      }).join('')}</tbody></table></div>`
+    :'<div class="empty">キャンセル扱いの案件はありません</div>'}
+  </div>`;
+}
+
+function openBulkInvoice(){
+  const targets=LABS.filter(l=>labCases(l.id).length);
+  S.modal={title:'当月分をまとめて請求',body:`
+    <p>以下の技工所に 2026年8月分のサービス利用料の請求書を作成します。</p>
+    <div class="tw mt"><table>
+      <thead><tr><th>技工所</th><th class="num">件数</th><th class="num">利用料（税抜）</th></tr></thead>
+      <tbody>${targets.map(l=>`<tr><td>${esc(l.name)}</td>
+        <td class="num">${labCases(l.id).length}</td>
+        <td class="num"><b>${yen(labFeeTotal(l.id))}</b></td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="note mt">作成後は「下書き」になります。内容を確認してから発行してください。</p>`,
+    ok:`${targets.length}社分を作成`,fn:()=>{
+      targets.forEach(l=>{
+        INVOICES.unshift({id:'iv'+(INVOICES.length+1+Math.floor(labFeeTotal(l.id))),
+          no:'SV-2026-08-'+String(INVOICES.length+1).padStart(3,'0'),
+          tenantId:l.id,kind:'FEE',period:'2026年8月分',
+          issuedOn:null,dueOn:'2026-09-30',status:'DRAFT',paidOn:null,
+          lines:[{name:`サービス利用料（2026年8月・案件${labCases(l.id).length}件）`,qty:1,unit:labFeeTotal(l.id)}]});
+      });
+      S.modal=null;toast(`${targets.length}社分の請求書を下書きで作成しました`);go('invoices');
+    }};
+  render();
+}
+
+/* ============================================================
+   請求管理
+   ============================================================ */
+function vInvoices(){
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>請求管理</h1>
+      <p class="sub" style="margin:0">運営から技工所への請求。${INVOICES.length}件
+        ／ 医院への請求は技工所が行うもので、ここには出ません</p></div>
+    <button class="btn" onclick="csvInvoices()">CSV出力</button>
+    ${isOps()?`<button class="btn mny lg" onclick="openNewInvoice()">＋ 請求書を作成</button>`:''}
+  </div>
+
+  <div class="grid g4 mb">
+    <div class="card stat"><div class="n">${INVOICES.filter(i=>i.status==='DRAFT').length}</div><div class="l">下書き</div></div>
+    <div class="card stat"><div class="n">${INVOICES.filter(i=>i.status==='ISSUED').length}</div><div class="l">発行済み</div></div>
+    <div class="card stat"><div class="n" style="color:var(--danger)">${INVOICES.filter(i=>i.status==='OVERDUE').length}</div><div class="l">期日超過</div></div>
+    <div class="card stat"><div class="n" style="color:var(--danger)">${yen(unpaidTotal())}</div><div class="l">未入金の合計</div></div>
+  </div>
+
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>請求書番号</th><th>技工所</th><th>種別</th><th>対象</th>
+      <th class="num">金額（税込）</th><th>発行日</th><th>支払期日</th><th>状態</th><th></th></tr></thead>
+    <tbody>${INVOICES.map(i=>`<tr class="clk" onclick="go('invoice','${i.id}')">
+      <td><code>${esc(i.no)}</code></td>
+      <td>${esc(labById(i.tenantId).name)}</td>
+      <td>${INV_KIND[i.kind]}</td>
+      <td class="note">${esc(i.period)}</td>
+      <td class="num"><b>${yen(invTotal(i))}</b></td>
+      <td class="note">${esc(i.issuedOn||'—')}</td>
+      <td class="note">${esc(i.dueOn||'—')}</td>
+      <td><span class="b ${INV_STATUS[i.status].c}">${INV_STATUS[i.status].l}</span></td>
+      <td><button class="btn sm" onclick="event.stopPropagation();go('invoice','${i.id}')">詳細</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+
+function vInvoice(){
+  const i=INVOICES.find(x=>x.id===S.param);
+  if(!i)return '<div class="empty">請求書が見つかりません</div>';
+  const l=labById(i.tenantId);
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('invoices')">請求一覧</button>
+    <span class="sp"></span><span class="b ${INV_STATUS[i.status].c}">${INV_STATUS[i.status].l}</span></div>
+  <h1>${esc(i.no)}</h1>
+  <p class="sub">${esc(l.name)} ・ ${INV_KIND[i.kind]} ・ ${esc(i.period)}</p>
+
+  ${isOps()?`<div class="card mb"><div class="bd row">
+    ${i.status==='DRAFT'?`<button class="btn pri" onclick="issueInvoice('${i.id}')">発行する</button>`:''}
+    ${['ISSUED','OVERDUE'].includes(i.status)?`<button class="btn mny" onclick="markPaid('${i.id}')">入金を記録</button>`:''}
+    <button class="btn" onclick="printInvoice('${i.id}')">PDF / 印刷</button>
+    <button class="btn" onclick="mailInvoice('${i.id}')">メールで送る</button>
+    ${['ISSUED','OVERDUE'].includes(i.status)&&l.pay==='CARD'
+      ?`<button class="btn mny" onclick="chargeCard('${i.id}')">カードに請求</button>`:''}
+    <span class="sp"></span>
+    ${i.status==='DRAFT'?`<button class="btn dgr" onclick="delInvoice('${i.id}')">削除</button>`:''}
+  </div></div>`:''}
+
+  <div class="printhint">下は PDF として出力される内容のプレビューです。
+    「PDF / 印刷」を押すとこの部分だけを印刷し、ブラウザの「PDFとして保存」で PDF になります。
+    実装ではサーバー側で同じレイアウトから PDF を生成します（基本設計 29-6）。</div>
+
+  ${invoiceHtml(i)}
+
+  ${i.paidOn?`<div class="alert ok mt">${esc(i.paidOn)} に入金を確認しました。</div>`:''}`;
+}
+
+/* 請求書の本体。画面のプレビューと印刷（PDF）で同じものを使う。
+   ★レイアウトを2か所に書かない。食い違うと「画面と違うPDFが届く」事故になる。 */
+function invoiceHtml(i){
+  const l=labById(i.tenantId);
+  return `
+  <div class="inv">
+    <div class="ih">
+      <div>
+        <div class="ttl">請 求 書</div>
+        <div style="margin-top:16px" class="to">${esc(l.name)} 御中</div>
+        <div style="margin-top:14px">下記のとおりご請求申し上げます。</div>
+        <div class="total">ご請求金額　${yen(invTotal(i))}</div>
+        <div style="font-size:11px">お支払期限　${esc(i.dueOn||'—')}</div>
+      </div>
+      <div class="meta">
+        請求書番号　${esc(i.no)}<br>
+        発行日　${esc(i.issuedOn||'（未発行）')}<br>
+        件名　${INV_KIND[i.kind]}<br>
+        対象期間　${esc(i.period)}
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th style="width:52%">内容</th><th style="width:12%">数量</th>
+        <th style="width:18%">単価</th><th style="width:18%">金額</th></tr></thead>
+      <tbody>
+        ${i.lines.map(x=>`<tr><td>${esc(x.name)}</td>
+          <td style="text-align:right">${x.qty}</td>
+          <td style="text-align:right">${yen(x.unit)}</td>
+          <td style="text-align:right">${yen(x.qty*x.unit)}</td></tr>`).join('')}
+        <tr><td colspan="3" style="text-align:right">小計（10%対象）</td>
+          <td style="text-align:right">${yen(invSubtotal(i))}</td></tr>
+        <tr><td colspan="3" style="text-align:right">消費税（10%）</td>
+          <td style="text-align:right">${yen(invTax(i))}</td></tr>
+        <tr><td colspan="3" style="text-align:right;font-weight:700">合計</td>
+          <td style="text-align:right;font-weight:700">${yen(invTotal(i))}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="from">
+      <div class="seal">運営<br>社印</div>
+      <b>株式会社G TECH JAPAN</b><br>
+      〒000-0000 大阪府○○市○○ 1-2-3<br>
+      TEL 06-0000-0000　登録番号 T0000000000000<br><br>
+      ${l.pay==='CARD'
+        ?'お支払いはご登録のクレジットカードから自動で引き落とされます。'
+        :'お振込先　○○銀行 ○○支店 普通 0000000 カ）ジーテックジャパン<br>※振込手数料は貴社にてご負担ください。'}
+    </div>
+  </div>`;
+}
+function printInvoice(id){
+  const i=INVOICES.find(x=>x.id===id);
+  DL.printNode(invoiceHtml(i),`${i.no}_${labById(i.tenantId).name}`);
+}
+function mailInvoice(id){
+  const i=INVOICES.find(x=>x.id===id),l=labById(i.tenantId);
+  if(i.status==='DRAFT'){toast('下書きのままでは送れません。先に発行してください');return}
+  S.modal={title:'請求書をメールで送る',body:`
+    <dl class="kv mb">
+      <dt>宛先</dt><dd>${esc(l.contact)} 様（${esc(l.name)}）</dd>
+      <dt>件名</dt><dd>【ご請求】${esc(i.period)} サービス利用料のご案内</dd>
+      <dt>添付</dt><dd>${esc(i.no)}.pdf</dd>
+    </dl>
+    <label class="f" style="margin-bottom:0"><span class="lb">本文</span>
+      <textarea style="min-height:120px">${esc(l.name)} ご担当者様
+
+いつもお世話になっております。
+${i.period}のサービス利用料をご請求申し上げます。
+
+ご請求金額　${yen(invTotal(i))}（税込）
+お支払期限　${i.dueOn||'—'}
+
+明細は添付の請求書をご確認ください。
+ご不明な点がございましたらお知らせください。</textarea></label>`,
+    ok:'送信する',fn:()=>{
+      logAudit('請求書の送付',l.name,`${i.no} ${yen(invTotal(i))}`);
+      closeModal();toast('請求書を送信しました');
+    }};
+  render();
+}
+
+function issueInvoice(id){const i=INVOICES.find(x=>x.id===id);
+  i.status='ISSUED';i.issuedOn='2026-08-12';
+  toast('請求書を発行しました');render()}
+function markPaid(id){const i=INVOICES.find(x=>x.id===id);
+  i.status='PAID';i.paidOn='2026-08-12';
+  const l=labById(i.tenantId);
+  if(i.kind==='INITIAL'&&l.initialFee)l.initialFee.status='PAID';
+  toast('入金を記録しました');render()}
+function delInvoice(id){
+  S.modal={title:'請求書を削除',body:'<p>この下書きを削除します。発行前なので記録は残りません。</p>',
+    ok:'削除する',fn:()=>{INVOICES=INVOICES.filter(x=>x.id!==id);
+      S.modal=null;toast('削除しました');go('invoices')}};
+  render()}
+function chargeCard(id){
+  const i=INVOICES.find(x=>x.id===id),l=labById(i.tenantId);
+  S.modal={title:'カードに請求',body:`
+    <div class="alert info mb" style="font-size:12.5px">
+      カード情報は当サービスのサーバーを通過しません。決済事業者に保管されたカードに対して請求します。</div>
+    <dl class="kv">
+      <dt>技工所</dt><dd>${esc(l.name)}</dd>
+      <dt>カード</dt><dd>${esc(l.card.brand)} •••• ${esc(l.card.last4)}（${esc(l.card.exp)}）</dd>
+      <dt>請求金額</dt><dd><b style="font-size:16px">${yen(invTotal(i))}</b></dd>
+    </dl>`,
+    ok:'請求する',fn:()=>{i.status='PAID';i.paidOn='2026-08-12';
+      S.modal=null;toast('カードへの請求が完了しました');render()}};
+  render();
+}
+
+function openNewInvoice(labId,kind){
+  S.modal={title:'請求書を作成',wide:true,body:`
+    <div class="grid g2">
+      <label class="f"><span class="lb">技工所 <span class="req">必須</span></span>
+        <select id="niLab">${LABS.map(l=>
+          `<option value="${l.id}" ${labId===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">種別</span>
+        <select id="niKind" onchange="niKindChange()">
+          <option value="FEE" ${kind==='FEE'?'selected':''}>サービス利用料</option>
+          <option value="INITIAL">初期費用</option>
+          <option value="MANUAL">手動作成（その他）</option>
+        </select></label>
+      <label class="f"><span class="lb">対象期間・件名</span>
+        <input type="text" id="niPeriod" value="2026年8月分"></label>
+      <label class="f"><span class="lb">支払期日</span>
+        <input type="date" id="niDue" value="2026-09-30"></label>
+    </div>
+    <h3>明細</h3>
+    <div id="niLines"></div>
+    <button class="btn sm mt" onclick="niAddLine()">＋ 明細行を追加</button>
+    <p class="note mt">初期費用や個別の請求は、この画面で手入力して作成できます。</p>`,
+    ok:'下書きを作成',fn:()=>{
+      const lab=document.getElementById('niLab').value;
+      const lines=[...document.querySelectorAll('#niLines .niRow')].map(r=>({
+        name:r.querySelector('.niName').value.trim(),
+        qty:+r.querySelector('.niQty').value||1,
+        unit:+r.querySelector('.niUnit').value||0
+      })).filter(x=>x.name&&x.unit);
+      if(!lines.length){toast('明細を1行以上ご入力ください');return}
+      INVOICES.unshift({id:'iv'+Date.now(),
+        no:'SV-2026-08-'+String(INVOICES.length+1).padStart(3,'0'),
+        tenantId:lab,kind:document.getElementById('niKind').value,
+        period:document.getElementById('niPeriod').value,
+        issuedOn:null,dueOn:document.getElementById('niDue').value,
+        status:'DRAFT',paidOn:null,lines});
+      S.modal=null;toast('請求書を下書きで作成しました');go('invoices');
+    }};
+  render();
+  setTimeout(()=>{niKindChange()},0);
+}
+function niKindChange(){
+  /* ★setTimeout(...,0) から呼ばれる。発火する前にモーダルが閉じられていると
+     要素が無く、TypeError で落ちる（2026-08-28 の網羅テストで検出）。
+     遅れて走るコードは、要素がまだあるかを必ず確かめる。 */
+  const kEl=document.getElementById('niKind');
+  const labEl=document.getElementById('niLab');
+  const box=document.getElementById('niLines');
+  if(!kEl||!labEl||!box)return;
+  const k=kEl.value;
+  const lab=labById(labEl.value);
+  let name='',unit=0;
+  if(k==='FEE'){name=`サービス利用料（2026年8月・案件${labCases(lab.id).length}件）`;unit=labFeeTotal(lab.id)}
+  else if(k==='INITIAL'){name='初期導入費用';unit=lab.initialFee?.amount||planById(lab.planId).initialFee||0}
+  box.innerHTML='';
+  niAddLine(name,1,unit);
+}
+function niAddLine(name,qty,unit){
+  const box=document.getElementById('niLines');
+  if(!box)return;
+  const d=document.createElement('div');
+  d.className='niRow rule';
+  d.style.gridTemplateColumns='1fr 70px 110px 34px';
+  d.innerHTML=`<input type="text" class="niName" placeholder="内容" value="${esc(name||'')}">
+    <input type="number" class="niQty" value="${qty||1}">
+    <input type="number" class="niUnit" placeholder="単価" value="${unit||''}">
+    <button class="btn sm dgr" onclick="this.closest('.niRow').remove()">×</button>`;
+  box.appendChild(d);
+}
+
+/* ============================================================
+   評価基準
+   ============================================================ */
+function vScoring(){
+  const cw=SCORING.clinic.weights.reduce((s,x)=>s+x.w,0);
+  const sw=SCORING.staff.weights.reduce((s,x)=>s+x.w,0);
+  const st=SCORING.staff;
+  return `
+  <h1>評価基準</h1>
+  <p class="sub">医院とスタッフのスコアの算出方法を設定します。全技工所の既定値になります</p>
+
+  <div class="card mb"><div class="hdr"><h2>医院スコア</h2>
+    <span class="b ${cw===100?'done':'dgr'}">重みの合計 ${cw}%</span>
+    <span class="sp"></span><span class="note">技工所の管理者・マネージャーのみ閲覧可</span></div>
+    <div class="bd">
+      ${cw!==100?`<div class="alert dgr mb">重みの合計が100%になっていません（現在 ${cw}%）。保存できません。</div>`:''}
+      ${SCORING.clinic.weights.map((x,i)=>`
+        <div style="margin-bottom:12px">
+          <div class="row" style="gap:8px">
+            <b style="flex:1;font-size:13px">${esc(x.l)}</b>
+            <span class="num" style="width:46px"><b>${x.w}%</b></span>
+          </div>
+          <div class="note" style="margin-bottom:3px">${esc(x.desc)}</div>
+          ${isOps()?`<input type="range" min="0" max="50" step="5" value="${x.w}"
+            oninput="setWeight('clinic',${i},+this.value)">`
+            :`<div class="bar"><i style="width:${x.w*2}%"></i></div>`}
+        </div>`).join('')}
+
+      <div class="grid g2 mt">
+        <label class="f"><span class="lb">スコアを算出する最低件数
+          <span class="hint">これ未満は「データ不足」と表示</span></span>
+          <input type="number" value="${SCORING.clinic.minCases}"
+            ${isOps()?`onchange="SCORING.clinic.minCases=+this.value;render()"`:'disabled'}></label>
+        <div>
+          <div class="lb" style="font-size:12.5px;font-weight:600;margin-bottom:4px">スコア帯の区切り</div>
+          <div class="row">
+            <span class="b done">優良</span><span class="note">${SCORING.clinic.bands.good}点以上</span>
+            <span class="b gray">標準</span><span class="note">${SCORING.clinic.bands.normal}〜${SCORING.clinic.bands.good-1}点</span>
+            <span class="b dgr">要注意</span><span class="note">${SCORING.clinic.bands.normal-1}点以下</span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+
+  <div class="card mb" style="border-color:${st.enabled?'#f0d5a8':'var(--border)'}">
+    <div class="hdr" style="${st.enabled?'background:var(--accent-soft);border-radius:10px 10px 0 0':''}">
+      <h2 ${st.enabled?'style="color:#7c3d06"':''}>医院スタッフ個人スコア</h2>
+      <span class="b ${st.enabled?'wait':'gray'}">${st.enabled?'有効':'無効'}</span>
+      <span class="sp"></span>
+      ${isOps()?`<button class="sw ${st.enabled?'on':''}" onclick="toggleStaffScore()"
+        title="${st.enabled?'無効にする':'有効にする'}"></button>`:''}</div>
+    <div class="bd">
+      <div class="alert dgr mb">
+        <b>これは取引先企業の従業員に対する評価データです。</b><br>
+        有効化には以下の両方が必要です。片方でも未了なら有効にできません。
+        <div class="mt">
+          <div class="row" style="gap:7px">
+            <span class="b ${st.legalOk?'done':'dgr'}">${st.legalOk?'済':'未'}</span>
+            <span style="flex:1">弁護士による適法性の確認（CP-11）</span>
+            ${isOps()?`<button class="btn sm" onclick="SCORING.staff.legalOk=!SCORING.staff.legalOk;render()">
+              ${st.legalOk?'未了に戻す':'確認済みにする'}</button>`:''}
+          </div>
+          <div class="row mt" style="gap:7px">
+            <span class="b ${st.termsOk?'done':'dgr'}">${st.termsOk?'済':'未'}</span>
+            <span style="flex:1">利用規約への利用目的の明記</span>
+            ${isOps()?`<button class="btn sm" onclick="SCORING.staff.termsOk=!SCORING.staff.termsOk;render()">
+              ${st.termsOk?'未了に戻す':'明記済みにする'}</button>`:''}
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g2">
+        <div>
+          <h3>算出に使う項目（重み合計 ${sw}%）</h3>
+          ${st.weights.map(x=>`<div class="row" style="padding:4px 0">
+            <span style="flex:1;font-size:13px">${esc(x.l)}</span><b>${x.w}%</b></div>`).join('')}
+          <label class="f mt"><span class="lb">最低件数</span>
+            <input type="number" value="${st.minCases}" ${isOps()?'':'disabled'}
+              onchange="SCORING.staff.minCases=+this.value;render()"></label>
+        </div>
+        <div>
+          <h3>開示の範囲</h3>
+          <div class="row" style="padding:5px 0">
+            <span style="flex:1;font-size:13px">技工所の管理職</span><span class="b done">数値を見せる</span></div>
+          <div class="row" style="padding:5px 0">
+            <span style="flex:1;font-size:13px">医院の管理者</span>
+            <span class="b ${st.showToClinic?'wait':'gray'}">${st.showToClinic?'見せる':'見せない'}</span></div>
+          <div class="row" style="padding:5px 0">
+            <span style="flex:1;font-size:13px">本人</span>
+            <span class="b ${st.showToSelf?'wait':'gray'}">${st.showToSelf?'数値を見せる':'数値は見せない'}</span></div>
+          <div class="alert info mt" style="font-size:12px">
+            本人への還元は<b>評価ではなく入力支援</b>として行います。<br>
+            「あなたは65点」ではなく「バイトの同梱をお忘れがちです」という形にします。<br>
+            臨床技術への言及は含めません。</div>
+        </div>
+      </div>
+    </div></div>
+
+  <div class="card"><div class="hdr"><h3>技工所スタッフの生産性</h3></div><div class="bd">
+    <p style="margin:0 0 8px">技工所内のスタッフの完了件数・所要時間も<b>管理職のみ</b>が閲覧します。</p>
+    <div class="row"><span style="flex:1">本人に見せる範囲</span>
+      <span class="b gray">自分の完了件数のみ</span></div>
+    <div class="row mt"><span style="flex:1">他者との比較・順位</span>
+      <span class="b dgr">表示しない</span></div>
+    <p class="note mt">医院スタッフへの配慮と同じ扱いにしています。</p>
+  </div></div>`;
+}
+function setWeight(kind,i,v){SCORING[kind].weights[i].w=v;render()}
+function toggleStaffScore(){
+  const st=SCORING.staff;
+  if(!st.enabled){
+    if(!st.legalOk||!st.termsOk){
+      S.modal={title:'有効にできません',body:`
+        <div class="alert dgr">個人スコアの有効化には、弁護士による適法性の確認と
+          利用規約への利用目的の明記が必要です。<br><br>
+          未了の項目：${[!st.legalOk?'弁護士確認':null,!st.termsOk?'規約への明記':null]
+            .filter(Boolean).join('、')}</div>
+        <p class="note">この制限は意図的なものです。取引先企業の従業員を評価するデータのため、
+          手続きを経ずに有効化できないようにしています。</p>`,ok:null};
+      render();return;
+    }
+    st.enabled=true;toast('個人スコアを有効にしました');
+  }else{st.enabled=false;toast('個人スコアを無効にしました')}
+  render();
+}
+
+/* ============================================================
+   運営ユーザー
+   ============================================================ */
+function vUsers(){
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>運営ユーザー</h1>
+      <p class="sub" style="margin:0">サービス運営側のアカウント。${SVC_USERS.filter(u=>u.status!=='DISABLED').length}名が有効</p></div>
+    ${isOps()?`<button class="btn pri" onclick="openAddOpsUser()">＋ ユーザーを招待</button>`:''}
+  </div>
+
+  <div class="card mb"><div class="tw"><table>
+    <thead><tr><th>氏名</th><th>メール</th><th>権限</th><th>できること</th><th>状態</th><th></th></tr></thead>
+    <tbody>${SVC_USERS.map(u=>`<tr>
+      <td><b>${esc(u.name)}</b>${u.id===S.me?' <span class="b prog">ログイン中</span>':''}</td>
+      <td class="note">${esc(u.email||'—')}</td>
+      <td><span class="b ${u.role==='SYS_ADMIN'?'prog':'gray'}">${u.role}</span></td>
+      <td class="note">${u.role==='SYS_ADMIN'
+        ?'技工所の追加・料金設定・請求・評価基準の変更'
+        :'閲覧と代理ログイン。料金・請求の変更は不可'}</td>
+      <td>${u.status==='DISABLED'?'<span class="b dgr">無効</span>':'<span class="b done">有効</span>'}</td>
+      <td>${isOps()&&u.id!==S.me?`
+        <button class="btn sm" onclick="toggleOpsUser('${u.id}')">${u.status==='DISABLED'?'有効にする':'無効にする'}</button>`
+        :'<span class="note">—</span>'}</td>
+    </tr>`).join('')}</tbody></table></div></div>
+
+  <div class="grid g2">
+    <div class="card"><div class="hdr"><h3>代理ログイン</h3></div><div class="bd">
+      <p style="margin:0 0 10px">技工所・医院の画面に運営が入って調査する機能です。</p>
+      <div class="row"><span style="flex:1">対象への通知</span><span class="b done">必ず通知する</span></div>
+      <div class="row mt"><span style="flex:1">操作の記録</span><span class="b done">全操作をログに残す</span></div>
+      <div class="row mt"><span style="flex:1">承認・検収の代行</span><span class="b dgr">不可</span></div>
+      <p class="note mt">承認・検収・リスク判断は画面からしか行えず、運営が代行することはできません。
+        誰がいつ承認したかの記録を守るためです。</p>
+      <div class="row mt">
+        <select id="impTarget" style="flex:1">
+          ${LABS.map(l=>`<option value="lab:${l.id}">技工所：${esc(l.name)}</option>`).join('')}
+          ${CLINICS.map(c=>`<option value="clinic:${c.id}">医院：${esc(c.name)}</option>`).join('')}
+        </select>
+        <button class="btn" onclick="(()=>{const v=document.getElementById('impTarget').value.split(':');
+          openImpersonate(v[0],v[1])})()">開始</button></div>
+    </div></div>
+
+    <div class="card"><div class="hdr"><h3>最近の操作</h3><span class="sp"></span>
+      <button class="btn sm" onclick="go('audit')">監査ログ</button></div><div class="bd">
+      ${AUDIT.slice(0,5).map(a=>`<div style="padding:6px 0;border-bottom:1px solid var(--border-2)">
+        <div class="row" style="gap:6px"><b style="font-size:12.5px">${esc(a.act)}</b>
+          <span class="sp"></span><span class="note">${esc(a.at)}</span></div>
+        <div class="note">${esc(a.target)} — ${esc(a.detail)}</div></div>`).join('')}
+    </div></div>
+  </div>`;
+}
+function openAddOpsUser(){
+  S.modal={title:'運営ユーザーを招待',body:`
+    <div class="grid g2">
+      <label class="f"><span class="lb">氏名 <span class="req">必須</span></span>
+        <input type="text" id="ouName" placeholder="山田 花子"></label>
+      <label class="f"><span class="lb">メールアドレス <span class="req">必須</span></span>
+        <input type="text" id="ouMail" placeholder="yamada@g-tech.example.jp"></label>
+    </div>
+    <label class="f"><span class="lb">権限</span>
+      <select id="ouRole">
+        <option value="SYS_SUPPORT">SYS_SUPPORT（閲覧と代理ログインのみ）</option>
+        <option value="SYS_ADMIN">SYS_ADMIN（すべての操作）</option></select></label>
+    <div class="alert warn" style="font-size:12.5px">
+      SYS_ADMIN は料金設定と請求を変更できます。人数は必要最小限にしてください。</div>`,
+    ok:'招待を送る',fn:()=>{
+      const name=document.getElementById('ouName').value.trim();
+      const email=document.getElementById('ouMail').value.trim();
+      if(!name||!email){toast('氏名とメールアドレスをご入力ください');return}
+      const role=document.getElementById('ouRole').value;
+      SVC_USERS.push({id:'a'+(SVC_USERS.length+1),name,email,role,
+        label:role==='SYS_ADMIN'?'運営管理者':'サポート',status:'INVITED'});
+      logAudit('運営ユーザーの招待',name,role);
+      closeModal();toast(`${name} に招待を送りました`);
+      const us=document.getElementById('userSel');
+      us.innerHTML=SVC_USERS.map(u=>`<option value="${u.id}">${u.name}（${u.label}）</option>`).join('');
+      us.value=S.me;render();
+    }};
+  render();
+}
+function toggleOpsUser(id){
+  const u=SVC_USERS.find(x=>x.id===id);
+  const admins=SVC_USERS.filter(x=>x.role==='SYS_ADMIN'&&x.status!=='DISABLED');
+  if(u.status!=='DISABLED'&&u.role==='SYS_ADMIN'&&admins.length<=1){
+    toast('SYS_ADMIN が0人になるため無効にできません');return;
+  }
+  u.status=u.status==='DISABLED'?'ACTIVE':'DISABLED';
+  logAudit('運営ユーザーの状態変更',u.name,u.status==='DISABLED'?'無効化':'有効化');
+  toast(`${u.name} を${u.status==='DISABLED'?'無効に':'有効に'}しました`);render();
+}
+
+/* ============================================================
+   監査ログ
+
+   代理ログイン・料金変更・医院の統合など「後から誰がやったか問われる操作」を残す。
+   本実装では audit_logs テーブル（追記専用）。
+   ============================================================ */
+let AUDIT=[
+  {at:'2026-08-14 18:22',who:'高根 弘二',act:'料金設定の変更',target:'サンライズ・デンタルラボ',
+   detail:'個別上書きルールを追加（自費・ラミネートベニア 4%）'},
+  {at:'2026-08-13 11:05',who:'運営サポート',act:'代理ログイン',target:'なかたに技工所',
+   detail:'問い合わせ対応のため 12分間。対象へ通知済み'},
+  {at:'2026-08-12 09:40',who:'高根 弘二',act:'請求書の発行',target:'サンライズ・デンタルラボ',
+   detail:'SV-2026-07-002 ¥20,240'}
+];
+function logAudit(act,target,detail){
+  AUDIT.unshift({at:DL.TODAY.replace(/-/g,'-')+' '+new Date().toTimeString().slice(0,5),
+    who:ME().name,act,target,detail});
+}
+
+function vAudit(){
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>監査ログ</h1>
+      <p class="sub" style="margin:0">運営が行った操作の記録。追記のみで、削除・編集はできません</p></div>
+    <button class="btn" onclick="csvAudit()">CSV出力</button>
+  </div>
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>日時</th><th>実行者</th><th>操作</th><th>対象</th><th>内容</th></tr></thead>
+    <tbody>${AUDIT.map(a=>`<tr>
+      <td class="note">${esc(a.at)}</td><td>${esc(a.who)}</td>
+      <td><b>${esc(a.act)}</b></td><td>${esc(a.target)}</td>
+      <td class="note">${esc(a.detail)}</td></tr>`).join('')}</tbody>
+  </table></div></div>
+  <div class="alert info mt" style="font-size:12.5px">
+    承認・検収・リスク判断は運営が代行できません（画面からのみ・DBの制約で担保）。
+    代理ログイン中の操作もすべてここに残ります。</div>`;
+}
+
+/* ============================================================
+   CSV の入出力
+
+   導入時に効くのは「今の台帳をそのまま流し込めること」。
+   取り込みは必ずプレビューを挟み、いきなり反映しない。
+   ============================================================ */
+const CSV_COLS={
+  labs:[{k:'code',l:'技工所コード'},{k:'name',l:'技工所名'},{k:'pref',l:'都道府県'},
+    {k:'tel',l:'電話番号'},{k:'contact',l:'担当者'},{k:'status',l:'契約状態'},
+    {k:'since',l:'開始日'},{k:'plan',l:'料金プラン'},{k:'billingDay',l:'締め日'},
+    {k:'terms',l:'支払サイト'},{k:'pay',l:'支払方法'},{k:'initialFee',l:'初期費用'},
+    {k:'initialStatus',l:'初期費用の状態'}],
+  clinics:[{k:'code',l:'医院コード'},{k:'name',l:'医院名'},{k:'pref',l:'都道府県'},
+    {k:'tel',l:'電話番号'},{k:'labs',l:'取引技工所コード'},{k:'since',l:'登録日'}],
+  fees:[{k:'no',l:'ケース番号'},{k:'lab',l:'技工所'},{k:'clinic',l:'医院'},
+    {k:'cov',l:'診療区分'},{k:'type',l:'技工物種別'},{k:'amount',l:'医院の支払額'},
+    {k:'mode',l:'算定方式'},{k:'rate',l:'料率/固定額'},{k:'fee',l:'サービス利用料'},
+    {k:'source',l:'適用元'},{k:'bill',l:'請求状態'},{k:'settledOn',l:'請求確定日'}],
+  invoices:[{k:'no',l:'請求書番号'},{k:'lab',l:'技工所'},{k:'kind',l:'種別'},
+    {k:'period',l:'対象'},{k:'subtotal',l:'小計'},{k:'tax',l:'消費税'},{k:'total',l:'合計'},
+    {k:'issuedOn',l:'発行日'},{k:'dueOn',l:'支払期日'},{k:'status',l:'状態'},{k:'paidOn',l:'入金日'}],
+  plans:[{k:'plan',l:'プラン名'},{k:'row',l:'種別'},{k:'cov',l:'診療区分'},{k:'type',l:'技工物種別'},
+    {k:'amtMin',l:'金額下限'},{k:'amtMax',l:'金額上限'},{k:'mode',l:'算定方式'},
+    {k:'value',l:'料率/固定額'},{k:'memo',l:'メモ'}],
+  audit:[{k:'at',l:'日時'},{k:'who',l:'実行者'},{k:'act',l:'操作'},{k:'target',l:'対象'},{k:'detail',l:'内容'}]
+};
+const stamp=()=>DL.TODAY.replace(/-/g,'');
+
+function csvLabs(){
+  DL.csv.export(`技工所一覧_${stamp()}.csv`,CSV_COLS.labs,LABS.map(l=>({
+    code:l.code,name:l.name,pref:l.pref,tel:l.tel,contact:l.contact,
+    status:LAB_STATUS[l.status].l,since:l.since,plan:planById(l.planId).name,
+    billingDay:l.billingDay,terms:l.terms,pay:l.pay==='CARD'?'カード':'銀行振込',
+    initialFee:l.initialFee.amount,
+    initialStatus:{NONE:'なし',UNPAID:'未入金',PAID:'入金済',WAIVED:'免除'}[l.initialFee.status]})));
+  toast('技工所一覧を書き出しました');
+}
+function csvClinics(){
+  DL.csv.export(`医院マスタ_${stamp()}.csv`,CSV_COLS.clinics,CLINICS.map(c=>({
+    code:c.code,name:c.name,pref:c.pref,tel:c.tel,
+    labs:c.labs.map(id=>labById(id).code).join(' '),since:c.since})));
+  toast('医院マスタを書き出しました');
+}
+function csvFees(){
+  const rows=BILLABLE().concat(CASES.filter(c=>c.billStatus==='CANCELED')).map(c=>{
+    const l=labById(c.tenantId),f=resolveFee(l,c);
+    return {no:c.no,lab:l.name,clinic:(CLINICS.find(x=>x.id===c.clinicId)||{}).name||'',
+      cov:c.cov==='INSURANCE'?'保険':'自費',type:c.type,amount:c.amount,
+      mode:f.mode==='PERCENT'?'料率':'固定額',rate:f.mode==='PERCENT'?f.percent+'%':f.flat,
+      fee:c.billStatus==='CANCELED'?0:f.fee,source:f.source,
+      bill:c.billStatus==='CANCELED'?'キャンセル（対象外）':'請求確定',settledOn:c.settledOn};
+  });
+  DL.csv.export(`サービス利用料明細_${stamp()}.csv`,CSV_COLS.fees,rows);
+  toast(`${rows.length}件を書き出しました`);
+}
+function csvInvoices(){
+  DL.csv.export(`請求一覧_${stamp()}.csv`,CSV_COLS.invoices,INVOICES.map(i=>({
+    no:i.no,lab:labById(i.tenantId).name,kind:INV_KIND[i.kind],period:i.period,
+    subtotal:invSubtotal(i),tax:invTax(i),total:invTotal(i),
+    issuedOn:i.issuedOn||'',dueOn:i.dueOn||'',status:INV_STATUS[i.status].l,paidOn:i.paidOn||''})));
+  toast('請求一覧を書き出しました');
+}
+function csvPlans(){
+  const rows=[];
+  PLANS.forEach(p=>{
+    rows.push({plan:p.name,row:'既定',cov:'',type:'',amtMin:'',amtMax:'',
+      mode:p.mode==='PERCENT'?'料率':'固定額',value:p.mode==='PERCENT'?p.percent+'%':p.flat,
+      memo:`初期費用 ${p.initialFee} / 下限 ${p.minFee??''} / 上限 ${p.maxFee??''}`});
+    p.rules.forEach(r=>rows.push({plan:p.name,row:'ルール',
+      cov:r.cov==='INSURANCE'?'保険':r.cov==='PRIVATE'?'自費':'',type:r.type||'',
+      amtMin:r.amtMin??'',amtMax:r.amtMax??'',
+      mode:r.mode==='PERCENT'?'料率':'固定額',value:r.mode==='PERCENT'?r.percent+'%':r.flat,memo:r.memo||''}));
+  });
+  LABS.forEach(l=>l.overrides.forEach(r=>rows.push({plan:l.name+'（個別上書き）',row:'上書き',
+    cov:r.cov==='INSURANCE'?'保険':r.cov==='PRIVATE'?'自費':'',type:r.type||'',
+    amtMin:r.amtMin??'',amtMax:r.amtMax??'',
+    mode:r.mode==='PERCENT'?'料率':'固定額',value:r.mode==='PERCENT'?r.percent+'%':r.flat,memo:r.memo||''})));
+  DL.csv.export(`料金プラン_${stamp()}.csv`,CSV_COLS.plans,rows);
+  toast('料金プランを書き出しました');
+}
+function csvAudit(){
+  DL.csv.export(`監査ログ_${stamp()}.csv`,CSV_COLS.audit,AUDIT);
+  toast('監査ログを書き出しました');
+}
+
+/* 医院マスタの取り込み。既存は医院コードで突き合わせて更新、無ければ追加 */
+function openImportClinics(){
+  DL.csv.pickFile(text=>{
+    if(text==null){toast('ファイルを読み込めませんでした');return}
+    const {items}=DL.csv.toObjects(CSV_COLS.clinics,DL.csv.parse(text));
+    const issues=items.map(o=>{
+      if(!o.name)return {level:'error',msg:'医院名がありません'};
+      if(!o.code)return {level:'warn',msg:'医院コードなし → 新規採番'};
+      const hit=CLINICS.find(c=>c.code===o.code);
+      if(hit)return {level:'warn',msg:'既存を更新'};
+      const dup=CLINICS.find(c=>norm(c.tel)===norm(o.tel)&&norm(o.tel));
+      if(dup)return {level:'warn',msg:`電話番号が ${dup.code} と一致`};
+      return null;
+    });
+    const errs=issues.filter(x=>x&&x.level==='error').length;
+    S.modal={title:'医院マスタの取り込み',wide:true,body:`
+      <p>${items.length}行を読み込みました。内容を確認してから取り込んでください。</p>
+      ${errs?`<div class="alert dgr mb">${errs}行にエラーがあります。該当行は取り込みません。</div>`:''}
+      ${DL.csv.previewHtml(CSV_COLS.clinics,items,issues)}
+      <div class="alert warn mt" style="font-size:12.5px">
+        医院コードが一致する行は<b>上書き更新</b>、無い行は<b>新規登録（コードを採番）</b>します。
+        電話番号が既存と一致する行は重複の疑いとして残るので、取り込み後に医院一覧で確認してください。</div>`,
+      ok:`${items.length-errs}行を取り込む`,fn:()=>{
+        let add=0,upd=0;
+        items.forEach((o,i)=>{
+          if(issues[i]&&issues[i].level==='error')return;
+          const hit=o.code&&CLINICS.find(c=>c.code===o.code);
+          if(hit){Object.assign(hit,{name:o.name||hit.name,pref:o.pref||hit.pref,tel:o.tel||hit.tel});upd++;}
+          else{
+            const n=Math.max(...CLINICS.map(c=>+String(c.code).slice(-5)||0))+1+add;
+            CLINICS.push({id:'c'+(CLINICS.length+1+add),
+              code:o.code||`CL-2026-${String(n).padStart(5,'0')}`,
+              name:o.name,pref:o.pref||'—',tel:o.tel||'',labs:[],cases:0,since:DL.TODAY});
+            add++;
+          }
+        });
+        logAudit('医院マスタの取り込み','医院マスタ',`新規${add}件・更新${upd}件`);
+        closeModal();toast(`新規 ${add}件・更新 ${upd}件を取り込みました`);go('clinics');
+      }};
+    render();
+  });
+}
+
+/* ============================================================
+   料金プランの作成・編集
+   ============================================================ */
+/* プラン本体とルールを1つのモーダルの中で行き来する。
+   入れ子のモーダルにすると、閉じたときにどちらが残るのか分かりにくくなるため。 */
+function openPlanEdit(id){
+  const p=id?PLANS.find(x=>x.id===id):null;
+  S.planTarget=p||null;
+  S.planDraft=p?JSON.parse(JSON.stringify(p)):{id:'pl_'+Date.now(),name:'',desc:'',initialFee:0,
+    mode:'PERCENT',percent:8,flat:300,minFee:null,maxFee:null,rules:[]};
+  S.ruleEdit=null;
+  planModal();
+}
+/* 状態（プラン本体を編集中か、ルールを編集中か）からモーダルを組み立て直す */
+function planModal(){
+  const p=S.planTarget,d=S.planDraft;
+  if(S.ruleEdit){
+    S.modal={title:S.ruleEdit.i==null?'ルールを追加':'ルールを編集',wide:true,
+      body:`<div class="alert info mb" style="font-size:12.5px">
+        このルールは<b>${esc(d.name||'（プラン名未入力）')}</b>に属します。
+        上から順に評価され、最初に一致したものが使われます。</div>
+        ${ruleForm(S.ruleEdit.r,'pr')}`,
+      ok:'このルールを反映',fn:()=>{
+        const v=readRuleForm('pr');
+        if(!v)return;
+        if(S.ruleEdit.i==null)d.rules.push(v); else d.rules[S.ruleEdit.i]=v;
+        S.ruleEdit=null;planModal();
+      },
+      foot:`<button class="btn" onclick="S.ruleEdit=null;planModal()">ルール編集をやめる</button>`};
+  }else{
+    S.modal={title:p?`${p.name} を編集`:'料金プランを作成',wide:true,body:planForm(),
+      ok:'保存する',fn:()=>{
+        const g=k=>document.getElementById(k);
+        d.name=g('pfName').value.trim();
+        d.desc=g('pfDesc').value.trim();
+        d.initialFee=+g('pfInit').value||0;
+        d.mode=g('pfMode').value;
+        d.percent=+g('pfPct').value||0;
+        d.flat=+g('pfFlat').value||0;
+        d.minFee=g('pfMin').value===''?null:+g('pfMin').value;
+        d.maxFee=g('pfMax').value===''?null:+g('pfMax').value;
+        if(!d.name){toast('プラン名をご入力ください');return}
+        if(d.minFee!=null&&d.maxFee!=null&&d.minFee>d.maxFee){toast('下限が上限を超えています');return}
+        if(p){Object.assign(p,d);logAudit('料金プランの変更',d.name,planSummaryText(d));}
+        else {PLANS.push(d);logAudit('料金プランの作成',d.name,planSummaryText(d));}
+        S.planDraft=null;S.planTarget=null;closeModal();
+        toast(p?'プランを保存しました':'プランを作成しました');render();
+      }};
+  }
+  render();
+}
+/* プラン本体の入力欄は render のたびに作り直されるので、
+   ルール編集へ移る前に入力中の値を控えておく */
+function keepPlanFields(){
+  const d=S.planDraft,g=k=>document.getElementById(k);
+  if(!g('pfName'))return;
+  d.name=g('pfName').value;d.desc=g('pfDesc').value;
+  d.initialFee=+g('pfInit').value||0;d.mode=g('pfMode').value;
+  d.percent=+g('pfPct').value||0;d.flat=+g('pfFlat').value||0;
+  d.minFee=g('pfMin').value===''?null:+g('pfMin').value;
+  d.maxFee=g('pfMax').value===''?null:+g('pfMax').value;
+}
+function delPlan(id){
+  const p=PLANS.find(x=>x.id===id);
+  const users=LABS.filter(l=>l.planId===id);
+  S.modal={title:'料金プランを削除',body:users.length
+    ?`<div class="alert dgr"><b>${esc(p.name)}</b> は ${users.length}社に適用中です。<br>
+       先に別のプランへ切り替えてから削除してください。
+       <div class="note mt">${users.map(l=>esc(l.name)).join('／')}</div></div>`
+    :`<p><b>${esc(p.name)}</b> を削除します。</p>
+      <p class="note">すでに確定した案件の利用料は、このプランを削除しても変わりません
+        （適用した内容は案件側にスナップショットとして残るため）。</p>`,
+    ok:users.length?null:'削除する',danger:true,fn:()=>{
+      PLANS=PLANS.filter(x=>x.id!==id);
+      logAudit('料金プランの削除',p.name,'');
+      closeModal();toast('プランを削除しました');render();
+    }};
+  render();
+}
+function dupPlan(id){
+  const p=PLANS.find(x=>x.id===id);
+  const c=JSON.parse(JSON.stringify(p));
+  c.id='pl_'+Date.now();c.name=p.name+'（複製）';
+  PLANS.push(c);logAudit('料金プランの複製',c.name,'');
+  toast('プランを複製しました');render();
+}
+function planSummaryText(p){
+  return `${p.mode==='PERCENT'?p.percent+'%':yen(p.flat)+'/件'} 下限${p.minFee??'—'} 上限${p.maxFee??'—'} ルール${p.rules.length}件`;
+}
+function planForm(){
+  const d=S.planDraft;
+  return `
+  <div class="grid g2">
+    <label class="f"><span class="lb">プラン名 <span class="req">必須</span></span>
+      <input type="text" id="pfName" value="${esc(d.name)}" placeholder="標準（レベニューシェア）"></label>
+    <label class="f"><span class="lb">初期費用（円・税抜）<span class="hint">0 なら請求しない</span></span>
+      <input type="number" id="pfInit" value="${d.initialFee}"></label>
+  </div>
+  <label class="f"><span class="lb">説明</span>
+    <input type="text" id="pfDesc" value="${esc(d.desc)}" placeholder="案件額の8%。1件あたり200〜5,000円で頭打ち"></label>
+  <div class="grid g4">
+    <label class="f"><span class="lb">既定の算定方式</span>
+      <select id="pfMode" onchange="S.planDraft.mode=this.value;refreshPlanForm()">
+        <option value="PERCENT" ${d.mode==='PERCENT'?'selected':''}>料率（％）</option>
+        <option value="FLAT" ${d.mode==='FLAT'?'selected':''}>1件あたり固定額</option></select></label>
+    ${d.mode==='PERCENT'
+      ?`<label class="f"><span class="lb">料率（％）</span>
+          <input type="number" id="pfPct" step="0.5" value="${d.percent}">
+          <input type="hidden" id="pfFlat" value="${d.flat}"></label>`
+      :`<label class="f"><span class="lb">1件あたり（円）</span>
+          <input type="number" id="pfFlat" value="${d.flat}">
+          <input type="hidden" id="pfPct" value="${d.percent}"></label>`}
+    <label class="f"><span class="lb">1件の下限（円）</span>
+      <input type="number" id="pfMin" value="${d.minFee??''}" placeholder="なし"></label>
+    <label class="f"><span class="lb">1件の上限（円）</span>
+      <input type="number" id="pfMax" value="${d.maxFee??''}" placeholder="なし"></label>
+  </div>
+
+  <h3 class="mt">案件内容別のルール</h3>
+  <p class="note">上から順に評価し、最初に一致したものを採用します。条件を空にすると「すべて」の意味になるので、
+    広い条件を上に置くと下のルールが効かなくなります。</p>
+  <div class="rule hdrow"><span>診療区分</span><span>技工物種別</span><span>金額帯</span>
+    <span>算定</span><span>メモ</span><span></span></div>
+  <div id="pfRules">${planRuleRows()}</div>
+  <button class="btn sm mt" onclick="openPlanRule(null)">＋ ルールを追加</button>`;
+}
+function refreshPlanForm(){keepPlanFields();S.modal.body=planForm();render()}
+/* ルール編集へ切り替える。入力途中のプラン本体の値を失わないよう先に控える */
+function openPlanRule(i){
+  keepPlanFields();
+  S.ruleEdit={i,r:i==null
+    ?{cov:null,type:null,amtMin:null,amtMax:null,mode:'PERCENT',percent:5,flat:300,memo:''}
+    :JSON.parse(JSON.stringify(S.planDraft.rules[i]))};
+  planModal();
+}
+function planRuleRows(){
+  const d=S.planDraft;
+  if(!d.rules.length)return '<div class="note">ルールなし（既定の算定のみ）</div>';
+  return d.rules.map((r,i)=>`<div class="rule">
+    <span>${r.cov?(r.cov==='PRIVATE'?'<span class="b pri2">自費</span>':'<span class="b ins">保険</span>'):'<span class="note">すべて</span>'}</span>
+    <span>${r.type?esc(r.type):'<span class="note">すべて</span>'}</span>
+    <span class="note">${r.amtMin!=null?yen(r.amtMin)+'〜':''}${r.amtMax!=null?'〜'+yen(r.amtMax):(r.amtMin!=null?'':'指定なし')}</span>
+    <span><b>${r.mode==='PERCENT'?r.percent+'%':yen(r.flat)}</b></span>
+    <span class="note">${esc(r.memo||'')}</span>
+    <span class="row" style="gap:2px;flex-wrap:nowrap">
+      <button class="btn sm" onclick="movePlanRule(${i},-1)" ${i===0?'disabled':''} title="上へ">↑</button>
+      <button class="btn sm" onclick="movePlanRule(${i},1)" ${i===d.rules.length-1?'disabled':''} title="下へ">↓</button>
+      <button class="btn sm" onclick="openPlanRule(${i})" title="編集">✎</button>
+      <button class="btn sm dgr" onclick="delPlanRule(${i})" title="削除">×</button></span></div>`).join('');
+}
+function movePlanRule(i,d){
+  const a=S.planDraft.rules,j=i+d;
+  if(j<0||j>=a.length)return;
+  [a[i],a[j]]=[a[j],a[i]];
+  document.getElementById('pfRules').innerHTML=planRuleRows();
+}
+function delPlanRule(i){
+  S.planDraft.rules.splice(i,1);
+  document.getElementById('pfRules').innerHTML=planRuleRows();
+}
+/* 条件行の共通フォーム。プランのルールと技工所の上書きで同じものを使う */
+function ruleForm(r,pfx){
+  return `
+  <div class="grid g2">
+    <label class="f"><span class="lb">診療区分</span>
+      <select id="${pfx}Cov">
+        <option value="">すべて</option>
+        <option value="INSURANCE" ${r.cov==='INSURANCE'?'selected':''}>保険</option>
+        <option value="PRIVATE" ${r.cov==='PRIVATE'?'selected':''}>自費</option></select></label>
+    <label class="f"><span class="lb">技工物種別</span>
+      <select id="${pfx}Type"><option value="">すべて</option>
+        ${TYPES.map(t=>`<option ${r.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
+    <label class="f"><span class="lb">金額の下限（円）<span class="hint">この額以上に適用</span></span>
+      <input type="number" id="${pfx}Min" value="${r.amtMin??''}" placeholder="指定なし"></label>
+    <label class="f"><span class="lb">金額の上限（円）</span>
+      <input type="number" id="${pfx}Max" value="${r.amtMax??''}" placeholder="指定なし"></label>
+    <label class="f"><span class="lb">算定方式</span>
+      <select id="${pfx}Mode" onchange="document.getElementById('${pfx}PctBox').style.display=this.value==='PERCENT'?'':'none';document.getElementById('${pfx}FlatBox').style.display=this.value==='FLAT'?'':'none'">
+        <option value="PERCENT" ${r.mode==='PERCENT'?'selected':''}>料率（％）</option>
+        <option value="FLAT" ${r.mode==='FLAT'?'selected':''}>1件あたり固定額</option></select></label>
+    <div>
+      <label class="f" id="${pfx}PctBox" style="display:${r.mode==='PERCENT'?'':'none'}">
+        <span class="lb">料率（％）</span>
+        <input type="number" id="${pfx}Pct" step="0.5" value="${r.percent??5}"></label>
+      <label class="f" id="${pfx}FlatBox" style="display:${r.mode==='FLAT'?'':'none'}">
+        <span class="lb">1件あたり（円）</span>
+        <input type="number" id="${pfx}Flat" value="${r.flat??300}"></label>
+    </div>
+  </div>
+  <label class="f"><span class="lb">メモ <span class="hint">なぜこの条件にしたかを残す</span></span>
+    <input type="text" id="${pfx}Memo" value="${esc(r.memo||'')}" placeholder="高額な自費は率を下げる"></label>`;
+}
+function readRuleForm(pfx){
+  const g=k=>document.getElementById(pfx+k);
+  const mode=g('Mode').value;
+  const v={cov:g('Cov').value||null,type:g('Type').value||null,
+    amtMin:g('Min').value===''?null:+g('Min').value,
+    amtMax:g('Max').value===''?null:+g('Max').value,
+    mode,percent:+g('Pct').value||0,flat:+g('Flat').value||0,memo:g('Memo').value.trim()};
+  if(mode==='PERCENT'&&!v.percent){toast('料率をご入力ください');return null}
+  if(mode==='FLAT'&&!v.flat){toast('固定額をご入力ください');return null}
+  if(v.amtMin!=null&&v.amtMax!=null&&v.amtMin>v.amtMax){toast('金額の下限が上限を超えています');return null}
+  return v;
+}
+
+/* ============================================================
+   技工所ごとの個別上書きルール
+   ============================================================ */
+function openOverride(labId,i){
+  const l=labById(labId);
+  const r=i==null?{cov:'PRIVATE',type:null,amtMin:null,amtMax:null,mode:'PERCENT',percent:5,flat:300,memo:'交渉により'}
+                 :JSON.parse(JSON.stringify(l.overrides[i]));
+  S.modal={title:`${l.name} の上書きルール`,wide:true,body:`
+    <div class="alert info mb" style="font-size:12.5px">
+      上書きルールは<b>プランのルールより先に</b>評価されます。交渉で個別の料率を約束した場合に使います。</div>
+    ${ruleForm(r,'ov')}`,
+    ok:i==null?'追加する':'保存する',fn:()=>{
+      const v=readRuleForm('ov');
+      if(!v)return;
+      if(i==null)l.overrides.push(v); else l.overrides[i]=v;
+      logAudit('料金設定の変更',l.name,
+        `個別上書き${i==null?'を追加':'を変更'}（${v.cov==='PRIVATE'?'自費':v.cov==='INSURANCE'?'保険':'区分なし'}・${v.mode==='PERCENT'?v.percent+'%':yen(v.flat)}）`);
+      closeModal();toast('上書きルールを保存しました');render();
+    }};
+  render();
+}
+
+/* ============================================================
+   契約・請求条件
+   ============================================================ */
+function openLabContract(id){
+  const l=labById(id);
+  S.modal={title:`${l.name} の契約・請求条件`,wide:true,body:`
+    <div class="grid g2">
+      <label class="f"><span class="lb">契約状態</span>
+        <select id="lcStatus">${Object.keys(LAB_STATUS).map(k=>
+          `<option value="${k}" ${l.status===k?'selected':''}>${LAB_STATUS[k].l}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">利用開始日</span>
+        <input type="date" id="lcSince" value="${esc(l.since)}"></label>
+      <label class="f"><span class="lb">締め日</span>
+        <select id="lcDay">${['月末','20日','15日','10日','5日'].map(d=>
+          `<option ${l.billingDay===d?'selected':''}>${d}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">支払サイト</span>
+        <select id="lcTerms">${['翌月末','翌月10日','翌月20日','翌々月末'].map(d=>
+          `<option ${l.terms===d?'selected':''}>${d}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">支払方法</span>
+        <select id="lcPay"><option value="BANK" ${l.pay==='BANK'?'selected':''}>銀行振込</option>
+          <option value="CARD" ${l.pay==='CARD'?'selected':''}>クレジットカード</option></select></label>
+      <label class="f"><span class="lb">初期費用の状態</span>
+        <select id="lcInit">${[['NONE','なし'],['UNPAID','未入金'],['PAID','入金済'],['WAIVED','免除']].map(([k,v])=>
+          `<option value="${k}" ${l.initialFee.status===k?'selected':''}>${v}</option>`).join('')}</select></label>
+    </div>
+    <div class="alert warn" style="font-size:12.5px">
+      契約状態を「停止中」にすると、その技工所は新規の依頼を受けられなくなります。
+      進行中の案件は完了まで進みます。</div>`,
+    ok:'保存する',fn:()=>{
+      const g=k=>document.getElementById(k).value;
+      const before=LAB_STATUS[l.status].l;
+      l.status=g('lcStatus');l.since=g('lcSince');l.billingDay=g('lcDay');
+      l.terms=g('lcTerms');l.pay=g('lcPay');l.initialFee.status=g('lcInit');
+      if(l.pay==='CARD'&&!l.card)l.card={brand:'（未登録）',last4:'____',exp:'--/--'};
+      logAudit('契約条件の変更',l.name,`${before} → ${LAB_STATUS[l.status].l} ／ 締め ${l.billingDay} ／ ${l.terms}`);
+      closeModal();toast('契約・請求条件を保存しました');render();
+    }};
+  render();
+}
+
+/* ============================================================
+   ブランディング（ロゴ・テーマカラー）
+
+   技工所・医院が自分で設定するのが基本だが、導入支援で運営が代わりに
+   設定することがあるため、運営コンソールからも触れるようにしている。
+   ============================================================ */
+function openBrand(scope,name,after){
+  S.brandDraft=DL.brand.load(scope,name);
+  S.modal={title:`${name} の表示設定`,wide:true,body:brandForm(scope),
+    ok:'保存する',fn:()=>{
+      DL.brand.save(scope,S.brandDraft);
+      logAudit('表示設定の変更',name,`テーマカラー ${S.brandDraft.color} ／ ロゴ ${
+        {mark:'文字',emoji:'絵文字',image:'画像'}[S.brandDraft.logoType]}`);
+      closeModal();toast('表示設定を保存しました');
+      if(after)after();
+      render();
+    },
+    foot:`<button class="btn" onclick="resetBrand('${scope}','${esc(name)}')">既定に戻す</button>`};
+  render();
+}
+function resetBrand(scope,name){
+  DL.brand.reset(scope);
+  S.brandDraft=DL.brand.load(scope,name);
+  S.modal.body=brandForm(scope);
+  toast('既定に戻しました');render();
+}
+function brandForm(scope){
+  const b=S.brandDraft;
+  const contrast=DL.color.contrast(b.color,'#ffffff');
+  return `
+  <div class="grid g2">
+    <div>
+      <label class="f"><span class="lb">表示名</span>
+        <input type="text" value="${esc(b.name)}" oninput="setBrand('name',this.value,'${scope}')"></label>
+
+      <div class="lb" style="font-size:12.5px;font-weight:600;margin-bottom:5px">テーマカラー</div>
+      <div class="chips mb">
+        ${DL.brand.PRESETS.map(p=>`<button class="chip ${b.color===p.color?'on':''}"
+          onclick="setBrand('color','${p.color}','${scope}')" title="${esc(p.name)}">
+          <span style="display:inline-block;width:11px;height:11px;border-radius:3px;
+            background:${p.color};margin-right:5px;vertical-align:-1px"></span>${esc(p.name)}</button>`).join('')}
+      </div>
+      <label class="f"><span class="lb">自由に指定</span>
+        <div class="row"><input type="color" value="${esc(b.color)}"
+          style="width:52px;height:34px;padding:2px" oninput="setBrand('color',this.value,'${scope}')">
+          <input type="text" value="${esc(b.color)}" style="flex:1"
+            oninput="setBrand('color',this.value,'${scope}')"></div></label>
+      ${contrast<4.5?`<div class="alert warn" style="font-size:11.5px">
+        白文字とのコントラストが ${contrast.toFixed(1)}:1 です。ヘッダーの文字が読みにくくなる可能性があります
+        （4.5:1 以上を推奨）。</div>`:''}
+    </div>
+
+    <div>
+      <div class="lb" style="font-size:12.5px;font-weight:600;margin-bottom:5px">ロゴ</div>
+      <div class="chips mb">
+        <button class="chip ${b.logoType==='mark'?'on':''}" onclick="setBrand('logoType','mark','${scope}')">文字</button>
+        <button class="chip ${b.logoType==='emoji'?'on':''}" onclick="setBrand('logoType','emoji','${scope}')">絵文字</button>
+        <button class="chip ${b.logoType==='image'?'on':''}" onclick="setBrand('logoType','image','${scope}')">画像</button>
+      </div>
+      ${b.logoType==='mark'?`
+        <label class="f"><span class="lb">文字（1〜2字）<span class="hint">社名の頭文字など</span></span>
+          <input type="text" maxlength="2" value="${esc(b.mark)}" oninput="setBrand('mark',this.value,'${scope}')"></label>`
+      :b.logoType==='emoji'?`
+        <label class="f"><span class="lb">絵文字</span>
+          <input type="text" maxlength="2" value="${esc(b.emoji)}" oninput="setBrand('emoji',this.value,'${scope}')"></label>
+        <div class="chips">${['🦷','🏥','⚙️','🔬','✨','🌿','🌸','🧑‍🔧'].map(e=>
+          `<button class="chip" onclick="setBrand('emoji','${e}','${scope}')">${e}</button>`).join('')}</div>`
+      :`<div class="row mb"><button class="btn sm" onclick="pickBrandImage('${scope}')">画像を選ぶ</button>
+          ${b.image?`<button class="btn sm dgr" onclick="setBrand('image',null,'${scope}')">削除</button>`:''}
+          <span class="note">PNG / JPG。256px に縮小して保存します</span></div>
+        ${b.image?`<img src="${esc(b.image)}" alt="" style="max-width:120px;max-height:60px;
+          border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff">`
+          :'<div class="note">未設定（文字ロゴで表示されます）</div>'}`}
+
+      <div class="lb mt" style="font-size:12.5px;font-weight:600;margin-bottom:5px">プレビュー</div>
+      ${DL.brand.previewHtml(b)}
+    </div>
+  </div>
+  <p class="note mt">この設定は<b>その技工所（医院）にログインした人の画面だけ</b>に効きます。
+    運営コンソールの配色は変わりません。取り違え防止のため運営側は紫で固定しています。</p>`;
+}
+function setBrand(k,v,scope){S.brandDraft[k]=v;S.modal.body=brandForm(scope);render()}
+function pickBrandImage(scope){
+  DL.brand.pickImage(url=>{
+    if(!url){toast('画像を読み込めませんでした');return}
+    S.brandDraft.image=url;S.brandDraft.logoType='image';
+    S.modal.body=brandForm(scope);render();
+  });
+}
+
+function inviteCard(id){
+  const l=labById(id);
+  S.modal={title:'カード払いのご案内',body:`
+    <p><b>${esc(l.name)}</b> に、カード登録用のリンクをメールで送ります。</p>
+    <div class="alert info mt" style="font-size:12.5px">
+      リンク先は決済事業者の画面です。カード情報は当サービスを通過しません。
+      登録後は毎月の利用料が自動で引き落とされます（都度課金）。</div>
+    <label class="f mt" style="margin-bottom:0"><span class="lb">宛先</span>
+      <input type="text" value="${esc(l.contact)} 様（${esc(l.name)}）" disabled></label>`,
+    ok:'案内を送る',fn:()=>{
+      logAudit('カード払いの案内',l.name,'登録用リンクを送付');
+      closeModal();toast('カード払いの案内を送信しました');
+    }};
+  render();
+}
+
+/* ============================================================
+   代理ログイン
+   ============================================================ */
+function openImpersonate(kind,id){
+  const t=kind==='lab'?labById(id):CLINICS.find(c=>c.id===id);
+  S.modal={title:'代理ログイン',body:`
+    <div class="alert warn mb">
+      <b>${esc(t.name)}</b> の画面に運営として入ります。<br>
+      対象に通知が届き、この間の全操作が監査ログに残ります。</div>
+    <dl class="kv">
+      <dt>できること</dt><dd>閲覧・設定の確認</dd>
+      <dt>できないこと</dt><dd><b>承認・検収・リスク判断の代行</b>（画面からのみ可能）</dd>
+      <dt>記録</dt><dd>開始・終了時刻と全操作</dd>
+    </dl>
+    <label class="f mt" style="margin-bottom:0"><span class="lb">目的 <span class="req">必須</span></span>
+      <input type="text" id="impReason" placeholder="問い合わせ対応（請求内容の確認）"></label>`,
+    ok:'代理ログインを開始',fn:()=>{
+      const r=document.getElementById('impReason').value.trim();
+      if(!r){toast('目的をご入力ください');return}
+      logAudit('代理ログイン',t.name,r);
+      closeModal();
+      toast(`${t.name} へ代理ログインしました（通知済み・記録中）`);
+    }};
+  render();
+}
+
+/* ============================================================
+   案件のキャンセル（＝利用料を立てない）
+
+   ★医院が支払わなかった場合でも、案件が「要請求」のままなら利用料は立てる。
+     技工所が折れてキャンセルにしたときだけ対象外にする、というのが決めた運用。
+   ============================================================ */
+function openCaseBill(caseId){
+  const c=CASES.find(x=>x.id===caseId);
+  const l=labById(c.tenantId),f=resolveFee(l,c);
+  const canceled=c.billStatus==='CANCELED';
+  S.modal={title:canceled?'請求対象に戻す':'この案件をキャンセル扱いにする',wide:true,body:`
+    <dl class="kv mb">
+      <dt>ケース番号</dt><dd><code>${esc(c.no)}</code></dd>
+      <dt>技工所</dt><dd>${esc(l.name)}</dd>
+      <dt>医院</dt><dd>${esc((CLINICS.find(x=>x.id===c.clinicId)||{}).name||'—')}</dd>
+      <dt>医院への請求額</dt><dd>${yen(c.amount)}</dd>
+      <dt>医院からの入金</dt><dd>${c.clinicPaid?'<span class="b done">確認済み</span>':'<span class="b wait">未入金</span>'}</dd>
+      <dt>サービス利用料</dt><dd><b>${yen(f.fee)}</b></dd>
+    </dl>
+    ${canceled?`<div class="alert info">キャンセル扱いを解除すると、この案件は再び利用料の算定対象になります。</div>
+      <p class="note">現在の理由：${esc(c.cancelReason||'—')}</p>`
+    :`<div class="alert warn">
+      <b>医院が支払っていないこと自体は、キャンセルの理由になりません。</b><br>
+      案件が「要請求」のままなら、運営は技工所へ利用料を請求します。
+      技工所が請求を取り下げた場合にのみ、キャンセル扱いにしてください。</div>
+     <label class="f mt" style="margin-bottom:0"><span class="lb">理由 <span class="req">必須</span></span>
+      <input type="text" id="ccReason" placeholder="再製作のため技工所判断で請求取下げ"></label>`}`,
+    ok:canceled?'請求対象に戻す':'キャンセル扱いにする',danger:!canceled,fn:()=>{
+      if(canceled){c.billStatus='BILLED';c.cancelReason=null;
+        logAudit('案件の請求対象化',l.name,`${c.no} を算定対象に戻した`);
+        closeModal();toast('請求対象に戻しました');render();return}
+      const r=document.getElementById('ccReason').value.trim();
+      if(!r){toast('理由をご入力ください');return}
+      c.billStatus='CANCELED';c.cancelReason=r;
+      logAudit('案件のキャンセル扱い',l.name,`${c.no}（${yen(f.fee)}）— ${r}`);
+      closeModal();toast('キャンセル扱いにしました。利用料は算定されません');render();
+    }};
+  render();
+}
+
+/* ============================================================
+   共通
+   ============================================================ */
+/* ★ここは以前 (${m.fn})() と関数を文字列化して呼んでいたが、それだと
+   クロージャが失われ、モーダル内の変数を参照する確定ボタンが軒並み動かなかった。
+   S.modal.fn を直接呼ぶ形にして、開いた側の変数をそのまま使えるようにしている。 */
+function closeModal(){S.modal=null;render()}
+function renderModal(){
+  if(!S.modal)return '';
+  const m=S.modal;
+  return `<div class="mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal ${m.wide?'wide':''}"><div class="mh">${esc(m.title)}</div>
+      <div class="mb">${m.body}</div>
+      <div class="mf">${m.foot||''}
+      <button class="btn" onclick="closeModal()">${m.ok?'キャンセル':'閉じる'}</button>
+      ${m.ok?`<button class="btn ${m.danger?'dgr':'pri'}" onclick="S.modal.fn()">${esc(m.ok)}</button>`:''}</div></div></div>`;
+}
+
+const TABS=[['dashboard','ダッシュボード'],['labs','技工所'],['clinics','医院'],
+  ['plans','料金プラン'],['fees','サービス利用料'],['invoices','請求管理'],
+  ['scoring','評価基準'],['users','運営ユーザー'],['audit','監査ログ']];
+const TAB_PARENT={lab:'labs',clinic:'clinics',invoice:'invoices'};
+
+function render(){
+  document.getElementById('userPill').innerHTML=
+    `${esc(ME().name)} <span class="note">${esc(ME().label)}</span>`;
+  const cur=TAB_PARENT[S.route]||S.route;
+  document.getElementById('tabs').innerHTML=TABS.map(([r,l])=>
+    `<button class="${cur===r?'on':''}" onclick="go('${r}')">${l}</button>`).join('');
+  const V={dashboard:vDashboard,labs:vLabs,lab:vLab,clinics:vClinics,clinic:vClinic,
+    plans:vPlans,fees:vFees,invoices:vInvoices,invoice:vInvoice,scoring:vScoring,
+    users:vUsers,audit:vAudit};
+  document.getElementById('app').innerHTML=(V[S.route]||vDashboard)();
+  document.getElementById('overlay').innerHTML=renderModal()+
+    (S.toast?`<div class="toast">${esc(S.toast)}</div>`:'');
+}
+
+const us=document.getElementById('userSel');
+us.innerHTML=SVC_USERS.map(u=>`<option value="${u.id}">${u.name}（${u.label}）</option>`).join('');
+us.onchange=e=>{S.me=e.target.value;S.route='dashboard';S.hist=[];render()};
+render();
+</script>
+</body>
+</html>

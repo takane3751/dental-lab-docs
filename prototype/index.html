@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>操作デモ｜歯科技工物 管理・受発注システム</title>
+<style>
+:root{--bg:#f4f7f6;--surface:#fff;--border:#dde5e2;--text:#16241f;--muted:#61736c;--faint:#8a9a94;
+ --primary:#0f766e;--primary-dark:#115e59;--primary-soft:#e6f2f0;--accent:#b45309;--accent-soft:#fdf2e3;
+ --ins:#1d4ed8;--ins-soft:#e8eefc;--pri:#a16207;--pri-soft:#fbf3e0;--rf:#7c3aed;--rf-soft:#f1eafd}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+ background:var(--bg);color:var(--text);line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--primary)}
+.wrap{max-width:1000px;margin:0 auto;padding:48px 20px 90px}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--primary);font-weight:700}
+h1{font-size:30px;margin:8px 0 10px}
+.lede{color:var(--muted);font-size:15px;max-width:660px;margin:0 0 8px}
+.warn{background:var(--accent-soft);border:1px solid #f0d5a8;color:#7c3d06;border-radius:10px;
+ padding:12px 15px;font-size:13px;margin:22px 0 34px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(min-width:1200px){.cards{grid-template-columns:1fr 1fr 1fr 1fr}}
+@media(max-width:900px){.cards{grid-template-columns:1fr}}
+.c{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+ box-shadow:0 1px 2px rgba(16,40,34,.06),0 6px 20px rgba(16,40,34,.05);display:flex;flex-direction:column}
+.c .top{padding:22px 22px 16px}
+.c .ico{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;margin-bottom:11px}
+.c h2{font-size:18px;margin:0 0 6px}
+.c p{color:var(--muted);font-size:13px;margin:0}
+.c ul{margin:12px 0 0;padding-left:17px;font-size:12.5px;color:var(--muted);line-height:1.95}
+.c ul b{color:var(--text)}
+.c .btm{margin-top:auto;padding:14px 22px 20px}
+.btn{display:block;text-align:center;background:var(--primary);color:#fff;border-radius:9px;
+ padding:11px;font-weight:700;text-decoration:none;font-size:14px}
+.btn:hover{background:var(--primary-dark)}
+h3{font-size:15px;margin:40px 0 12px}
+.pts{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 20px}
+.pt{padding:14px 0;border-bottom:1px solid #eef3f1;font-size:13.5px}
+.pt:last-child{border-bottom:none}
+.pt b{display:block;font-size:14px;margin-bottom:2px}
+.pt span{color:var(--muted)}
+.tag{display:inline-block;border-radius:99px;padding:1px 9px;font-size:11px;font-weight:700;margin-right:6px;vertical-align:1px}
+.t1{background:var(--ins-soft);color:var(--ins)}
+.t2{background:var(--pri-soft);color:var(--pri)}
+.t3{background:var(--rf-soft);color:var(--rf)}
+.t4{background:var(--primary-soft);color:var(--primary-dark)}
+.t5{background:var(--accent-soft);color:var(--accent)}
+.note{font-size:12px;color:var(--faint);margin-top:26px;line-height:1.9}
+.note code{background:#fff;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">操作デモ v0.8.3</div>
+  <h1>歯科技工物 管理・受発注システム</h1>
+  <p class="lede">歯科医院 ⇄ 歯科技工所の技工物受発注をデジタル化するB2B SaaS のプロトタイプです。
+    <b>2026-08-25 にいただいた確認事項チェックシートのご回答（97項目）を反映した状態</b>です。</p>
+
+  <div class="warn">
+    <b>これは画面プロトタイプです。</b>データはすべてブラウザ内のダミーで、保存されません。リロードすると初期状態に戻ります。
+  </div>
+
+  <div class="cards">
+    <div class="c">
+      <div class="top">
+        <div class="ico" style="background:var(--primary-soft);color:var(--primary-dark)">🏥</div>
+        <h2>医院側</h2>
+        <p>技工物を発注する歯科医院の画面。</p>
+        <ul>
+          <li>★<b>納期はアポイントベース</b>（ご来院日の前日にお届け）</li>
+          <li>★<b>特急 20 / 50 / 100 / 150%</b>（差額を明示）</li>
+          <li>★<b>再製作の責任申告</b>（必須・入れないと送れない）</li>
+          <li>★<b>仕様変更の料金</b>（加工後も受け付ける）</li>
+          <li>義歯の往復ステージ（メタルの回は2週間）</li>
+          <li>進捗は3段階・患者コード・承認・検収</li>
+        </ul>
+      </div>
+      <div class="btm"><a class="btn" href="clinic.html">医院側を開く</a></div>
+    </div>
+
+    <div class="c">
+      <div class="top">
+        <div class="ico" style="background:var(--accent-soft);color:var(--accent)">🔧</div>
+        <h2>技工所側</h2>
+        <p>製作を行う技工所の画面。ロール切替あり。</p>
+        <ul>
+          <li>★<b>デモ3規模</b>（小規模ラボが既定・ヘッダーで切替）</li>
+          <li>★<b>13工程 ＋ 仕上げの細分工程</b>（順番を入れ替えられる）</li>
+          <li>★<b>発送日が第一の日付</b>／難易度は★表示</li>
+          <li>★<b>発送予定</b>（スマホ幅で成立）・月次グラフ・面談シート</li>
+          <li><b>設定画面 25種</b>（納期・特急・細分工程・変更料金 等）</li>
+          <li>案件ボード・指示書の印刷プレビュー</li>
+        </ul>
+      </div>
+      <div class="btm"><a class="btn" href="lab.html">技工所側を開く</a></div>
+    </div>
+
+    <div class="c">
+      <div class="top">
+        <div class="ico" style="background:var(--rf-soft);color:var(--rf)">📡</div>
+        <h2>工程エリア端末</h2>
+        <p>各工程に設置するミニPC＋モニターの画面。</p>
+        <ul>
+          <li><b>この工程にあるもの</b>（納期順）</li>
+          <li><b>まもなく来るもの</b></li>
+          <li><b>誤配置アラート</b></li>
+          <li>トレイの出入りで自動更新</li>
+          <li>オフライン時の挙動</li>
+          <li>2m離れて読める文字サイズ</li>
+        </ul>
+      </div>
+      <div class="btm"><a class="btn" href="station.html">工程端末を開く</a></div>
+    </div>
+
+    <div class="c">
+      <div class="top">
+        <div class="ico" style="background:#f0eafc;color:#5b21b6">🏛</div>
+        <h2>運営管理コンソール</h2>
+        <p>サービス全体を運営する側の画面。技工所・医院・料金・請求を管理します。</p>
+        <ul>
+          <li><b>技工所の追加</b>と契約状態の管理</li>
+          <li><b>料金プラン</b>（料率／1件固定／併用）</li>
+          <li><b>技工所ごとの料金カスタム</b></li>
+          <li><b>案件別のサービス利用料</b>の算定</li>
+          <li><b>請求書の作成・発行・PDF</b>／カード払い</li>
+          <li><b>評価基準の設定</b>（医院・スタッフ）</li>
+          <li><b>医院の重複検出と統合</b></li>
+        </ul>
+      </div>
+      <div class="btm"><a class="btn" href="admin.html">運営側を開く</a></div>
+    </div>
+  </div>
+
+  <h3>特に見ていただきたい点</h3>
+  <p class="note" style="margin-top:-6px">
+    いただいたご回答のうち、<b>設計の根幹に関わった7点</b>を画面で確認できるようにしています。</p>
+  <div class="pts">
+    <div class="pt"><b><span class="tag t4">規模</span>小規模・中規模・大型を切り替える</b>
+      <span>技工所側 → ヘッダーの「規模」。<b>既定は小規模ラボ</b>です。
+      切り替えると進行中件数・技工士数・取引医院数が変わります。
+      ★小規模・中規模の件数は<b>まだ伺えていないため仮の数字</b>です。実際の目安をお聞かせください。</span></div>
+
+    <div class="pt"><b><span class="tag t5">工程</span>大工程13 ＋ 仕上げの細分工程</b>
+      <span>技工所側 → 設定 → <b>細分工程</b>。いただいた9パターン（7〜16手順）が入っています。
+      <b>↑↓で順番を入れ替え、手順の追加・削除ができます。</b>
+      「定められるのは大まかな形だけ」というお話をそのまま形にしました。
+      ★細分工程には RFID の読み取りを置いていません（1手順ごとに読ませると現場が止まるため）。</span></div>
+
+    <div class="pt"><b><span class="tag t3">RFID</span>完了棚と「前の工程の完了棚」</b>
+      <span>工程端末 → 帯の並びは <b>作業中 → 待機 → 前の工程 → 完了</b>。
+      ★<b>「すぐ来る（前の工程の完了棚）」と「まだ来ない（作業中・待機中）」を分けて</b>出しています。
+      デモ操作の「作業中の台 → 完了棚に移す」で実作業時間が確定します。</span></div>
+
+    <div class="pt"><b><span class="tag t5">納期</span>アポイントベースの納期</b>
+      <span>医院側 → 新規依頼。<b>保険1週間・自費2週間</b>が起点で、<b>本数が増えても日数は変わりません</b>。
+      次回ご来院日を入れると<b>その前日</b>にお届けする日程になります（前もって作りすぎない）。
+      ご来院日が最短より前だと「◯日間に合いません」と出て特急をご案内します。</span></div>
+
+    <div class="pt"><b><span class="tag t5">特急</span>20 / 50 / 100 / 150%</b>
+      <span>「特急料金で対応」を押すと4段階が並びます。<b>通常との差額を必ず出しています。</b>
+      上限は4日短縮、義歯は対象外です（来院のたびに医院を経由するため縮められません）。</span></div>
+
+    <div class="pt"><b><span class="tag t2">再製作</span>責任の所在の申告（必須）</b>
+      <span>医院側 → 納品完了の案件 → 「不具合を報告」。
+      <b>前回の指示書が自動で添付され、外せません。</b>
+      <b>責任の所在を選ばないと送信できません</b>（押すとその項目まで自動でスクロールします）。
+      「修正」と「再製作」も別のものとして扱っています。</span></div>
+
+    <div class="pt"><b><span class="tag t1">変更</span>仕様変更の料金</b>
+      <span>技工所側 → 設定 → <b>仕様変更の料金</b>。文言を編集でき、<b>医院の画面での見え方をその場で確認</b>できます。
+      医院側では加工後も「仕様の変更を依頼する」が出ます（お断りしません）。
+      受注時に「変更の可能性あり」を申告すると技工料が発生しません。</span></div>
+
+    <div class="pt"><b><span class="tag t4">評価</span>難易度★と面談シート</b>
+      <span>難易度は全画面で<b>★表示</b>にしました（数値は出していません）。
+      技工所側 → 作業時間 → <b>月次グラフ</b>と<b>面談シート</b>。
+      面談シートは<b>点数・順位・他の方との比較を載せていません</b>。紙で渡す1枚です。</span></div>
+
+    <div class="pt"><b><span class="tag t4">発送</span>発送日を第一の日付に</b>
+      <span>技工所側 → 案件一覧・案件ボード・指示書。<b>発送日が主、納期（医院着）は「◯/◯(◯)着」で併記</b>です。
+      <b>発送予定</b>タブは本日・明日・明後日を日ごとに区切り、<b>スマホの縦画面で成立</b>します。</span></div>
+
+    <div class="pt"><b><span class="tag t3">RFID</span>誤配置アラートは確認では消えません</b>
+      <span>工程端末 → デモ操作の「別工程のトレイを置く」で発報します。
+      <b>「確認」を押すと点滅は止まりますが、帯は残ります。</b>
+      「戻した」を押して現物が正しい場所に戻ったときだけ消えます。
+      「通信を切断」でオフライン時の挙動も確認できます。</span></div>
+
+    <div class="pt"><b><span class="tag t4">端末</span>管理者だけ発送予定日を変えられます</b>
+      <span>工程端末 → ヘッダーの「管理者操作」（デモのコードは <code>1234</code>）。
+      入れている間だけ各明細に「発送日を変更」が出ます。
+      <b>変えられるのは発送予定日だけ</b>で、仕様・承認・検収は端末からは行えません。
+      誰が・いつ・何を・なぜ変えたかを記録に残します。</span></div>
+
+    <div class="pt"><b><span class="tag t4">設定</span>RFIDを使わない運用</b>
+      <span>技工所側 → 設定 → RFID のスイッチをオフにすると、トレイ・エリア端末の設定が使用不可になり、
+      案件一覧のトレイ列も消えます。RFIDなしでも成立することを確認できます。</span></div>
+
+    <div class="pt"><b><span class="tag t5">指示書</span>紙とデジタルの両対応</b>
+      <span>技工所側 → 設定 → 指示書。A6/A5/A4 の印刷プレビューが出ます。
+      ★<b>発送日を大きく出し、医院着を下に小さく</b>入れています。同じレイアウトを電子ペーパーにも配信します。</span></div>
+
+    <div class="pt"><b><span class="tag t1">表示設定</span>技工所・医院ごとのロゴとテーマカラー</b>
+      <span>技工所側 → 設定 → 表示設定／医院側 → 設定 → 表示設定。色を変えると画面全体に反映されます。
+        運営側は取り違え防止のため紫で固定です。</span></div>
+
+    <div class="pt"><b><span class="tag t2">CSV</span>導入時の一括登録に対応</b>
+      <span>医院マスタ・単価表・技工物×材料・<b>細分工程</b>・請求・トレイなどを CSV で出力／取込できます。
+        取込は必ずプレビューを挟み、いきなり反映しません。</span></div>
+
+    <div class="pt"><b><span class="tag t1">取引</span>取引開始はどちらからでも申請できます</b>
+      <span>医院側 → 取引先技工所 → 「技工所に取引を申請する」（デモのコードは <code>LAB-0207</code>）。
+        ★<b>承認は医院管理者に限りません。</b>承認権限をお持ちの方が承認できます。
+        技工所コードは<b>完全一致のみ</b>です（一覧を出さないため）。</span></div>
+
+    <div class="pt"><b><span class="tag t4">運営</span>サービス利用料とキャンセル</b>
+      <span>運営側 → サービス利用料。算定の起点は「医院への請求確定」です。
+        医院が未入金でも利用料は立ち、技工所が請求を取り下げた案件だけが対象外になります。</span></div>
+  </div>
+
+  <p class="note">
+    <b>このサイトは操作デモだけを公開しています。</b>
+    要件定義書・基本設計書・フロー図などの設計資料は公開していません。ご入用の際は個別にお送りします。<br>
+    データはすべて架空です。実在の医院・技工所・患者とは関係ありません。<br>
+    <code>prototype/</code> 配下の5ファイル ＋ <code>shared.js</code> のみで動作します（外部ライブラリなし）。
+  </p>
+</div>
+</body>
+</html>

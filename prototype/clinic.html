@@ -1,0 +1,3307 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>技工物発注システム（医院側）</title>
+<style>
+:root{
+  --bg:#f4f7f6; --surface:#fff; --surface-2:#fafcfb; --border:#dde5e2; --border-2:#eef3f1;
+  --text:#16241f; --muted:#61736c; --faint:#8a9a94;
+  --primary:#0f766e; --primary-dark:#115e59; --primary-soft:#e6f2f0;
+  --accent:#b45309; --accent-soft:#fdf2e3;
+  --danger:#b91c1c; --danger-soft:#fdeceb;
+  --success:#15803d; --success-soft:#e9f6ed;
+  --ins:#1d4ed8; --ins-soft:#e8eefc;
+  --pri:#a16207; --pri-soft:#fbf3e0;
+  --radius:10px; --shadow:0 1px 2px rgba(16,40,34,.06),0 4px 14px rgba(16,40,34,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--text);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--primary);text-decoration:none}
+
+.devbar{background:#111827;color:#9ca3af;font-size:11.5px;padding:4px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.devbar b{color:#e5e7eb}.devbar .sp{flex:1}.devbar a{color:#93c5fd}
+.devbar select{width:auto;padding:1px 5px;font-size:11.5px;background:#374151;border:1px solid #4b5563;color:#fff;border-radius:4px}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+.hd{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+.logo .mk{width:26px;height:26px;border-radius:7px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:13px}
+.hd .sp{flex:1}
+.pill{border:1px solid var(--border);background:var(--surface-2);border-radius:99px;padding:4px 10px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.bell{position:relative;border:1px solid var(--border);background:var(--surface-2);width:34px;height:34px;border-radius:9px;display:grid;place-items:center;cursor:pointer}
+.bell .dot{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;border-radius:99px;font-size:10.5px;min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px;font-weight:700}
+nav.tabs{max-width:1180px;margin:0 auto;padding:0 16px;display:flex;gap:2px;overflow-x:auto}
+nav.tabs button{background:none;border:none;padding:9px 13px;font-size:13.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav.tabs button.on{color:var(--primary-dark);border-bottom-color:var(--primary);font-weight:600}
+
+main{max-width:1180px;margin:0 auto;padding:22px 16px 90px}
+h1{font-size:21px;margin:0 0 4px}
+h2{font-size:16px;margin:0 0 12px}
+h3{font-size:14px;margin:0 0 8px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card .hdr{padding:12px 16px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;gap:10px}
+.card .hdr h2,.card .hdr h3{margin:0}
+.card .bd{padding:16px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+.form2{grid-template-columns:1fr 340px}
+@media(max-width:900px){.g2,.g3,.form2{grid-template-columns:1fr}}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}.mt{margin-top:16px}.mb{margin-bottom:16px}
+
+.btn{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:14px;transition:.12s}
+.btn:hover{border-color:var(--faint);background:var(--surface-2)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.btn.pri:hover{background:var(--primary-dark)}
+.btn.dgr{background:#fff;border-color:#e5b4b1;color:var(--danger)}
+.btn.wrn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.lg{padding:12px 22px;font-size:15px}
+.btn.block{width:100%;display:block}
+
+.b{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:2px 9px;font-size:11.5px;font-weight:600;line-height:1.7;white-space:nowrap}
+.b.ins{background:var(--ins-soft);color:var(--ins)}
+.b.pri2{background:var(--pri-soft);color:var(--pri)}
+.b.wait{background:var(--accent-soft);color:var(--accent)}
+.b.prog{background:var(--primary-soft);color:var(--primary-dark)}
+.b.done{background:var(--success-soft);color:var(--success)}
+.b.dgr{background:var(--danger-soft);color:var(--danger)}
+.b.gray{background:#eef1f0;color:var(--muted)}
+
+.alert{border-radius:var(--radius);padding:13px 15px;font-size:13.5px;border:1px solid}
+.alert.warn{background:var(--accent-soft);border-color:#f0d5a8;color:#7c3d06}
+.alert.dgr{background:var(--danger-soft);border-color:#f0c0bd;color:#8c1d18}
+.alert.info{background:var(--primary-soft);border-color:#b8dcd7;color:#0b544e}
+.alert.ok{background:var(--success-soft);border-color:#b7e0c4;color:#12592d}
+
+.actrow{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;transition:.12s}
+.actrow:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+.actrow+.actrow{margin-top:9px}
+.actrow .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none}
+.actrow .ttl{font-weight:600;font-size:14px}
+.actrow .meta{color:var(--muted);font-size:12.5px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:9px 12px;border-bottom:1px solid var(--border);background:var(--surface-2);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tr.clk{cursor:pointer}tr.clk:hover td{background:var(--surface-2)}
+.tw{overflow-x:auto}
+
+label.f{display:block;margin-bottom:14px}
+label.f .lb{font-size:13px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+label.f .hint{font-size:12px;color:var(--muted);font-weight:400}
+.req{color:var(--danger);font-size:11px;font-weight:700}
+input[type=text],input[type=date],input[type=number],select,textarea{
+  width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 11px;background:#fff;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+textarea{min-height:70px;resize:vertical}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{border:1px solid var(--border);border-radius:8px;padding:7px 13px;cursor:pointer;background:#fff;font-size:13.5px}
+.chip.on{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+
+.tc{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:12px}
+.tc .q{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.tc .mid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tc .lbl{font-size:11px;color:var(--faint);text-align:center;margin:3px 0}
+.tooth{aspect-ratio:1/1.25;border:1px solid var(--border);background:#fff;border-radius:5px;font-size:11.5px;cursor:pointer;display:grid;place-items:center;padding:0;min-height:32px}
+.tooth.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}
+
+.ck{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer}
+.ck+.ck{margin-top:7px}
+.ck.on{border-color:var(--success);background:var(--success-soft)}
+.ck input{margin-top:4px;width:16px;height:16px;accent-color:var(--success)}
+.ck .t{font-size:13.5px;font-weight:600}
+.ck .d{font-size:12px;color:var(--muted)}
+
+.tl{position:relative;padding-left:22px}
+.tl::before{content:"";position:absolute;left:6px;top:5px;bottom:5px;width:2px;background:var(--border)}
+.tli{position:relative;padding-bottom:16px}
+.tli::before{content:"";position:absolute;left:-19px;top:6px;width:9px;height:9px;border-radius:99px;background:var(--border);border:2px solid var(--surface)}
+.tli.hi::before{background:var(--primary)}
+.tli.ap::before{background:var(--success)}
+.tli.wn::before{background:var(--accent)}
+.tli .tm{font-size:11.5px;color:var(--faint)}
+.tli .tx{font-size:13.5px}
+.tli .who{font-weight:600}
+
+/* 🧑‍🔧 v0.8 医院に見せる3段階のミニバー。一覧の1セルに収める。
+   ★工程名は出さない。3つだけ（ご回答 #61・BR-58） */
+.e3{display:inline-flex;gap:3px;white-space:nowrap}
+.e3c{font-size:10.5px;line-height:1.5;padding:1px 6px;border-radius:5px;
+  background:var(--surface-2);color:var(--faint);border:1px solid var(--border-2)}
+.e3c.dn{background:var(--primary-soft);color:var(--primary-dark);border-color:#b8dcd7}
+.e3c.cur{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+.steps{display:flex;gap:0;overflow-x:auto;padding:2px}
+.stp{flex:1;min-width:78px;text-align:center;position:relative;font-size:11.5px;color:var(--faint);padding-top:22px}
+.stp::before{content:"";position:absolute;top:6px;left:50%;width:12px;height:12px;border-radius:99px;background:#fff;border:2px solid var(--border);transform:translateX(-50%);z-index:2}
+.stp::after{content:"";position:absolute;top:11px;left:50%;width:100%;height:2px;background:var(--border);z-index:1}
+.stp:last-child::after{display:none}
+.stp.dn{color:var(--primary-dark)}
+.stp.dn::before{background:var(--primary);border-color:var(--primary)}
+.stp.dn::after{background:var(--primary)}
+.stp.cur{color:var(--primary-dark);font-weight:700}
+.stp.cur::before{background:#fff;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+
+.diff{border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.diff .r{padding:13px 15px}
+.diff .r+.r{border-top:1px solid var(--border-2)}
+.diff .fn{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.diff .bf{color:var(--faint);text-decoration:line-through;font-size:13.5px}
+.diff .af{font-size:15px;font-weight:700;color:var(--primary-dark)}
+.diff .rs{margin-top:7px;font-size:12.5px;color:#5b4a2e;background:var(--accent-soft);border-left:3px solid var(--accent);padding:8px 11px;border-radius:0 6px 6px 0}
+
+.mask{position:fixed;inset:0;background:rgba(15,30,25,.5);display:grid;place-items:center;z-index:100;padding:16px}
+.modal.wide{max-width:860px}
+.setnav{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.setnav a{padding:10px 13px;background:#fff;font-size:13.5px;cursor:pointer;color:var(--text)}
+.setnav a:hover{background:var(--surface-2)}
+.setnav a.on{background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
+@media(max-width:800px){main .grid[style*="200px"]{grid-template-columns:1fr!important}}
+/* 請求書プレビュー（PDF出力と同じ） */
+.inv{background:#fff;border:1px solid #ccc;padding:26px 30px;max-width:720px;margin:0 auto;
+  font-size:12px;line-height:1.7;color:#000}
+.inv .ih{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.inv .ttl{font-size:21px;font-weight:700;letter-spacing:.22em;border-bottom:2px solid #000;padding-bottom:3px}
+.inv .meta{font-size:11px;text-align:right;line-height:1.9}
+.inv .to{font-size:14px;font-weight:700;border-bottom:1px solid #000;padding-bottom:3px;display:inline-block;min-width:250px}
+.inv .total{border:2px solid #000;padding:7px 12px;font-size:17px;font-weight:700;display:inline-block;margin:12px 0}
+.inv table{font-size:11.5px;margin-top:10px}
+.inv th{background:#f0f0f0;color:#000;border:1px solid #999;padding:5px 7px;font-size:11px}
+.inv td{border:1px solid #ccc;padding:5px 7px}
+.inv .from{margin-top:20px;font-size:11px;border-top:1px solid #ccc;padding-top:10px}
+.modal{background:#fff;border-radius:14px;max-width:560px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);max-height:88vh;overflow:auto}
+.modal .mh{padding:16px 20px;border-bottom:1px solid var(--border-2);font-weight:700}
+.modal .mb{padding:20px}
+.modal .mf{padding:14px 20px;border-top:1px solid var(--border-2);display:flex;gap:10px;justify-content:flex-end;background:var(--surface-2);border-radius:0 0 14px 14px}
+
+.kv{display:grid;grid-template-columns:120px 1fr;gap:7px 14px;font-size:13.5px}
+.kv dt{color:var(--muted);font-size:12.5px}
+.kv dd{margin:0}
+.stat{padding:14px 16px}
+.stat .n{font-size:26px;font-weight:700;line-height:1.2}
+.stat .l{font-size:12.5px;color:var(--muted)}
+.empty{text-align:center;padding:38px 16px;color:var(--faint);font-size:13.5px}
+.ph{background:var(--surface-2);border:1px dashed var(--border);border-radius:8px;display:grid;place-items:center;color:var(--faint);font-size:12px;aspect-ratio:4/3}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#16241f;color:#fff;padding:11px 20px;border-radius:99px;font-size:13.5px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.note{font-size:12px;color:var(--faint)}
+code{background:var(--surface-2);border:1px solid var(--border-2);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:ui-monospace,Menlo,monospace}
+
+/* 見積・納期パネル */
+.quote{position:sticky;top:104px}
+.qbox{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.qbox .qh{padding:11px 15px;border-bottom:1px solid var(--border-2);font-size:13px;font-weight:700;background:var(--surface-2)}
+.qbox .qb{padding:15px}
+.due{text-align:center;padding:6px 0 10px}
+.due .dl{font-size:11.5px;color:var(--muted)}
+.due .dv{font-size:26px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.due .dd{font-size:12px;color:var(--muted)}
+.brk{font-size:11.5px;color:var(--muted);line-height:1.9;border-top:1px dashed var(--border);padding-top:9px;margin-top:6px}
+.brk .bi{display:flex;gap:8px}
+.brk .bi span:last-child{margin-left:auto;color:var(--text)}
+.pricerow{display:flex;font-size:13px;padding:3px 0}
+.pricerow span:last-child{margin-left:auto;font-variant-numeric:tabular-nums}
+.pricerow.tot{border-top:1px solid var(--border);margin-top:7px;padding-top:9px;font-weight:700;font-size:16px}
+/* 🖥 v0.6：親子構造・義歯のステージ・部位の重複表示 */
+.itm{display:flex;gap:11px;align-items:center;padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:#fff}
+.itm+.itm{margin-top:8px}
+.itm .t{font-size:13.5px;font-weight:600}
+.itm .d{font-size:12px;color:var(--muted)}
+.ino{width:22px;height:22px;border-radius:99px;background:var(--primary);color:#fff;font-size:11.5px;font-weight:700;display:grid;place-items:center;flex:none}
+.addpanel{border:1px dashed var(--primary);border-radius:10px;padding:14px;background:var(--primary-soft)}
+.addpanel .f{margin-bottom:12px}
+.blocked{border:1px solid var(--border);border-radius:9px;padding:11px;background:var(--surface-2)}
+.blocked .bh{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.ck.dis{opacity:.55;cursor:not-allowed;background:var(--surface-2)}
+.itabs{display:flex;gap:6px;flex-wrap:wrap}
+.itab{display:flex;gap:7px;align-items:center;border:1px solid var(--border);border-radius:9px 9px 0 0;background:var(--surface-2);padding:9px 13px;cursor:pointer;font-size:13px}
+.itab.on{background:#fff;border-bottom-color:#fff;font-weight:700;color:var(--primary-dark)}
+.itab .n{width:18px;height:18px;border-radius:99px;background:var(--border);color:var(--text);font-size:10.5px;font-weight:700;display:grid;place-items:center}
+.itab.on .n{background:var(--primary);color:#fff}
+.itab .dot{width:7px;height:7px;border-radius:99px;background:var(--accent)}
+.tooth.other{background:var(--surface-2);border-style:dashed;color:var(--faint)}
+.tlegend{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;border:1px dashed var(--border);background:var(--surface-2)}
+.lead{font-size:11.5px;border-top:1px dashed var(--border);padding-top:8px;margin-top:6px}
+.lead .li{display:flex;gap:8px;color:var(--muted);line-height:1.85}
+.lead .li span:last-child{margin-left:auto}
+.lead .li.late{color:var(--accent);font-weight:600}
+.cfi{border:1px solid var(--border);border-radius:9px;padding:12px;background:var(--surface-2)}
+.cfi+.cfi{margin-top:9px}
+.kv.sm dt,.kv.sm dd{font-size:12.5px;padding:3px 0}
+.dtl{display:flex;flex-direction:column}
+.dsi{display:flex;gap:11px;align-items:flex-start;padding:11px 0}
+.dsi+.dsi{border-top:1px dashed var(--border)}
+.dsi .dn{width:24px;height:24px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.dsi.fin .dn{background:var(--success-soft);color:var(--success)}
+.dsi .t{font-size:13.5px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dsi .d{font-size:12px;color:var(--muted)}
+.pricerow.rush{color:var(--accent)}
+.cd{background:var(--accent-soft);border:1px solid #f0d5a8;border-radius:8px;padding:9px 11px;font-size:12.5px;color:#7c3d06;margin-top:10px}
+.cd b{font-variant-numeric:tabular-nums}
+.rushopt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#fff}
+.rushopt+.rushopt{margin-top:7px}
+.rushopt:hover{border-color:var(--accent)}
+.rushopt.on{border-color:var(--accent);background:var(--accent-soft)}
+.rushopt .rd{font-weight:700;font-size:14px}
+.rushopt .rp{margin-left:auto;text-align:right}
+.rushopt .rm{font-size:12px;color:var(--accent);font-weight:700}
+.rushopt .ra{font-size:12.5px;font-variant-numeric:tabular-nums}
+.rushopt.dis{opacity:.4;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<div class="devbar">
+  <b>DEMO</b>
+  <span>ログイン中</span><select id="userSel"></select>
+  <span>表示する発注先</span><select id="tenantSel"></select>
+  <span class="sp"></span>
+  <a href="lab.html">技工所側</a><a href="station.html">工程端末</a><a href="admin.html">運営側</a>
+</div>
+
+<header>
+  <div class="hd">
+    <div class="logo" id="brandLogo"><span class="mk">歯</span>
+      <span><span id="brand"></span>
+        <span class="note" style="font-weight:400;margin-left:6px">医院コード <code id="clinicCode"></code></span></span></div>
+    <span class="sp"></span>
+    <button class="bell" onclick="showNotif()">🔔<span class="dot">3</span></button>
+    <span class="pill" id="userPill"></span>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+
+<main id="app"></main>
+<div id="overlay"></div>
+
+<script src="shared.js"></script>
+<script>
+/* ============================================================
+   マスタ相当のデモデータ
+   ============================================================ */
+/* ログインしている医院。医院コードはシステム全体で一意（BR-32／A-7）。
+   このコードがあるので、2社目の技工所が同じ医院を新規登録することはできない。 */
+const CLINIC={
+  name:'さくら歯科クリニック', code:'CL-2026-00417',
+  addr:'大阪市中央区○○ 1-2-3', tel:'06-6xxx-xxxx', founder:'佐々木 誠'
+};
+
+/* 取引先技工所（医院視点）。医院は複数の技工所と同時に取引する。
+   status: ACTIVE=取引中 / PENDING=技工所から紐付け申請が届いている / INACTIVE=停止中 */
+/* 🧑‍🔧 v0.8 status に REQUESTED（こちらから申請中）を追加した。
+   取引開始は双方から申請できる（ご回答 #77・BR-33 改訂）。
+   ★t4 は「まだ取引していない技工所」。技工所コード LAB-0207 で申請できる。 */
+const LABS=[
+  {id:'t1',name:'なかたに技工所',code:'LAB-0001',pre:'NKTN',status:'ACTIVE',since:'2024-04-01',
+   tel:'06-6xxx-xxxx',handles:['INSURANCE','PRIVATE'],cutoff:'16:30',
+   note:'メインの発注先。保険・自費とも対応'},
+  {id:'t2',name:'サンライズ・デンタルラボ',code:'LAB-0042',pre:'SNRS',status:'ACTIVE',since:'2025-11-10',
+   tel:'072-xxx-xxxx',handles:['PRIVATE'],cutoff:'14:00',
+   note:'自費専門。ラミネートベニアなどの審美系が得意'},
+  {id:'t3',name:'みどり歯科技工所',code:'LAB-0130',pre:'MDRI',status:'PENDING',since:null,
+   tel:'—',handles:[],cutoff:null,
+   note:'技工所側から取引開始の申請が届いています'},
+  {id:'t4',name:'かわせ技工所',code:'LAB-0207',pre:'KWSE',status:'INACTIVE',since:null,
+   tel:'—',handles:[],cutoff:null,
+   note:'まだ取引がありません。技工所コード LAB-0207 で申請できます'}
+];
+const activeLabs=()=>LABS.filter(l=>l.status==='ACTIVE');
+const labById=id=>LABS.find(l=>l.id===id)||{name:'—',code:'—'};
+
+/* 既定の発注先ルール。上から順に最初に一致したものを使う。
+   都度選ばせると手数が増えるので、既定を出しつつ新規依頼画面で変更できるようにする（A-4）。 */
+const ROUTING={
+  fallback:'t1',
+  rules:[
+    {cov:'PRIVATE',   type:'ラミネートベニア', lab:'t2'},
+    {cov:'PRIVATE',   type:'ブリッジ',         lab:'t2'},
+    {cov:'PRIVATE',   type:null,               lab:'t1'},
+    {cov:'INSURANCE', type:null,               lab:'t1'}
+  ]
+};
+function routeLab(cov,type){
+  const r=ROUTING.rules.find(x=>x.cov===cov&&(x.type===null||x.type===type));
+  return r?r.lab:ROUTING.fallback;
+}
+function routeReason(cov,type){
+  const r=ROUTING.rules.find(x=>x.cov===cov&&(x.type===null||x.type===type));
+  if(!r)return '既定の発注先';
+  return r.type?`「${r.cov==='PRIVATE'?'自費':'保険'}・${r.type}」の既定`:`「${r.cov==='PRIVATE'?'自費':'保険'}」全般の既定`;
+}
+
+const USERS=[
+  {id:'u1',name:'田中 美咲',role:'医院スタッフ',canApprove:false,email:'tanaka@sakura-dc.example',status:'ACTIVE',last:'2026-08-11 09:12'},
+  {id:'u2',name:'山田 太郎',role:'ドクター',canApprove:true,email:'yamada@sakura-dc.example',status:'ACTIVE',last:'2026-08-11 08:40'},
+  {id:'u3',name:'佐々木 院長',role:'医院管理者',canApprove:true,email:'sasaki@sakura-dc.example',status:'ACTIVE',last:'2026-08-10 19:05'},
+  {id:'u4',name:'中村 彩',role:'医院スタッフ',canApprove:false,email:'nakamura@sakura-dc.example',status:'INVITED',last:'—'},
+  {id:'u5',name:'小林 健',role:'医院スタッフ',canApprove:false,email:'kobayashi@sakura-dc.example',status:'DISABLED',last:'2026-05-30 17:22'}
+];
+const ROLES=['医院管理者','ドクター','医院スタッフ'];
+const USTATUS={ACTIVE:{l:'有効',c:'done'},INVITED:{l:'招待中',c:'wait'},DISABLED:{l:'無効',c:'gray'}};
+const loginUsers=()=>USERS.filter(u=>u.status==='ACTIVE');
+
+/* 内部の6段階。★医院にはこのままでは見せない（BR-58） */
+const STEPS=['受付','仕様調整','資材お預かり','製作','発送','納品完了'];
+/* ============================================================
+   🧑‍🔧 v0.8 医院に見せる3段階（ご回答 #61）
+
+   > 「この3つだけでいいと思います」
+
+   ★内部の工程を丸見えにすると「動いていないけれど後回しにされているのかな」
+     という誤解を生む。技工所が見せたくない情報であるという配慮も含む（BR-58）。
+   ★リアルタイムには反映しない。技工所が通知を出すタイミングで切り替わる。
+   ============================================================ */
+const EXT3=['受付','製作中','発送済'];
+/* 内部の段階（0〜5）→ 医院に見せる3段階 */
+function ext3(step){
+  if(step<=1)return 0;      /* 受付・仕様調整 → 受付 */
+  if(step>=4)return 2;      /* 発送・納品完了 → 発送済 */
+  return 1;                 /* 資材お預かり・製作 → 製作中 */
+}
+
+/* ============================================================
+   🧑‍🔧 v0.8 技工所ごとの条件
+
+   ★実装では技工所の設定（lab.html の CFG）から降ってくる。
+     医院はここを編集できない。技工所ごとに違う値が入る。
+   ============================================================ */
+const LAB_TERMS={
+  /* --- 納期（ご回答 #1・#2・#3・#5） --- */
+  leadBase:{INSURANCE:7,PRIVATE:14},  /* 「保険は1週間、自費は2週間」 */
+  leadMetalExtra:7,                   /* ★義歯：メタルを扱うステージは＋1週間 */
+  perUnitExtra:0,                     /* ★本数の加算なし（「追加の必要なし」） */
+  iosMinusDays:1,                     /* IOS は1日短縮（「マイナス1日しても大丈夫」） */
+  cutoff:'16:30',                     /* 当日受付の締切 */
+  beforeVisit:1,                      /* 次回ご来院日の何日前に届けるか */
+  dueSuffix:'着',                     /* 「8月25日着」（ご回答 #7） */
+  /* --- 特急（ご回答 #9〜#12） --- */
+  rushMaxDays:4,
+  rushExcludeKind:'REMOVABLE',        /* 「対象外はデンチャーだけでいい」 */
+  rushShowDiff:true,                  /* 定価との差を明示する */
+  /* --- 仕様変更の料金（ご回答 #25・#60） --- */
+  changeFee:true,
+  changeFeeAfterMilling:true,         /* ★加工後の変更依頼も受け付ける */
+  changeFeeExemptOnNotice:true,       /* 事前に申告があれば免除 */
+  changeFeeText:'仕様のご変更により、それまでに進んだ工程の技工料が発生する場合があります。\n'+
+    'ご発注時に「変更の可能性あり」とお知らせいただいていた場合は発生しません。',
+  /* --- 配送（ご回答 #46） --- */
+  amCarrier:'大和（ヤマト）',
+  amFee:330
+};
+/* 再製作の責任の所在（ご回答 #29・#30）。★申告は必須。選ばないと送信できない */
+const FAULT_OPTIONS=[
+  {k:'LAB',    l:'技工所の作製に起因すると思われる',
+   note:'適合・咬合・形態・色調が指示と異なる、破損していたなど'},
+  {k:'CLINIC', l:'当院の印象・形成・記録に起因すると思われる',
+   note:'印象の不備、形成量の不足、バイトのずれなど'},
+  {k:'PATIENT',l:'患者様の要因と思われる',
+   note:'装着後の破損、ご希望の変更など'},
+  {k:'UNKNOWN',l:'原因が判断できない。技工所と一緒に確認したい',
+   note:'どちらの責任かを決めずに、まず原因を確認したい場合'}
+];
+
+/* 技工物種別 × 材料（製作単位）
+
+   🧑‍🔧 v0.8：★日数の考え方が変わった。
+
+   > 「アポイントベースで、保険は1週間、自費は2週間」
+   > 「本数が増えたときの追加日数 → 追加の必要なし」（2026-08-25 ご回答 #1・#2）
+
+   v0.7 は技工物ごとの標準製作日数（days）を積み上げ、本数と試適で加算していた。
+   v0.8 は<b>診療区分の基準日数</b>（LAB_TERMS.leadBase）を起点にし、
+   days は「その基準からの調整」に格下げした。adj がその調整分（暦日）。
+   ★本数の加算は既定 0。metal は義歯の納期に効く。 */
+const VARIANTS=[
+  {id:'v1',cov:'INSURANCE',type:'クラウン',mat:'CAD/CAM冠用レジンブロック',adj:0,tryIn:0,rush:true,price:6800,metal:false},
+  {id:'v2',cov:'INSURANCE',type:'クラウン',mat:'金銀パラジウム合金 12%',adj:0,tryIn:0,rush:true,price:7200,metal:true},
+  {id:'v3',cov:'INSURANCE',type:'クラウン',mat:'硬質レジンジャケット冠',adj:0,tryIn:0,rush:true,price:6200,metal:false},
+  {id:'v4',cov:'INSURANCE',type:'インレー',mat:'CAD/CAM冠用レジンブロック',adj:0,tryIn:0,rush:true,price:5200,metal:false},
+  {id:'v5',cov:'INSURANCE',type:'インレー',mat:'金銀パラジウム合金 12%',adj:0,tryIn:0,rush:true,price:5600,metal:true},
+  {id:'v6',cov:'INSURANCE',type:'ブリッジ',mat:'金銀パラジウム合金 12%',adj:2,tryIn:0,rush:true,price:18400,metal:true},
+  {id:'v7',cov:'INSURANCE',type:'前装冠',mat:'金銀パラジウム合金 12%',adj:1,tryIn:0,rush:true,price:9800,metal:true},
+  {id:'p1',cov:'PRIVATE',type:'クラウン',mat:'ジルコニア（高透過）',adj:0,tryIn:3,rush:true,price:24000,metal:false},
+  {id:'p2',cov:'PRIVATE',type:'クラウン',mat:'ジルコニア（高強度）',adj:0,tryIn:3,rush:true,price:22000,metal:false},
+  {id:'p3',cov:'PRIVATE',type:'クラウン',mat:'e.max',adj:0,tryIn:3,rush:false,price:26000,metal:false},
+  {id:'p4',cov:'PRIVATE',type:'クラウン',mat:'ゴールドクラウン 18K',adj:1,tryIn:2,rush:true,price:38000,metal:true},
+  {id:'p5',cov:'PRIVATE',type:'クラウン',mat:'メタルボンド',adj:2,tryIn:3,rush:true,price:32000,metal:true},
+  {id:'p6',cov:'PRIVATE',type:'インレー',mat:'ジルコニア（高強度）',adj:0,tryIn:0,rush:true,price:16000,metal:false},
+  {id:'p7',cov:'PRIVATE',type:'インレー',mat:'e.max',adj:0,tryIn:0,rush:false,price:18000,metal:false},
+  {id:'p8',cov:'PRIVATE',type:'ラミネートベニア',mat:'e.max',adj:3,tryIn:3,rush:false,price:42000,metal:false},
+  {id:'p9',cov:'PRIVATE',type:'ブリッジ',mat:'ジルコニア（高強度）',adj:3,tryIn:3,rush:true,price:64000,metal:false}
+];
+
+/* 義歯（🖥 v0.6 で新設・BR-50）
+
+   義歯は「医院と技工所を複数回往復する」のが本質で、固定物の1行では表せない。
+   種別ごとに既定のステージ列（往復の単位）を持つ。基本設計 4-3 の default_stages に相当。
+
+   🧑‍🔧 v0.8：★ステージの日数を「メタルを扱うか」で決めるようにした。
+
+   > 「デンチャーは……メタルが絡むケースに関しては2週間。
+   >   メタルが絡まないケースに関しては1週間。
+   >   メタルをどの段階で絡ませるかによってアポイントが決まります」（ご回答 自由記入1）
+
+   ★日数はステージに直書きしない。metal から導く（dentStageDays）。
+     診療区分ではなくメタルの有無で決まる、というのがいただいたご回答である。
+   ★個人トレー・ロー堤を単独でも頼めるようにした（single:true）。
+     「先にこれだけ作ってほしい」が実務にある。 */
+const DENTURES=[
+  {id:'dn1',cov:'INSURANCE',name:'総義歯（片顎）',price:38000,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false,ret:true},
+    {code:'BITE',name:'咬合採得（ロー堤・ベースプレート付き）',metal:false,ret:true},
+    {code:'WAX', name:'蝋義歯試適',metal:false,ret:true},
+    {code:'FIN', name:'完成（重合・研磨）',metal:false,ret:false}]},
+  {id:'dn2',cov:'INSURANCE',name:'局部床義歯（レジン床）',price:32000,stages:[
+    {code:'BITE',name:'咬合採得・設計',metal:false,ret:true},
+    {code:'WAX', name:'蝋義歯試適',metal:false,ret:true},
+    {code:'FIN', name:'完成（重合・研磨）',metal:false,ret:false}]},
+  {id:'dn2b',cov:'INSURANCE',name:'局部床義歯（金属クラスプ）',price:36000,stages:[
+    {code:'BITE', name:'咬合採得・設計',metal:false,ret:true},
+    {code:'FRAME',name:'クラスプ製作・試適',metal:true,ret:true},
+    {code:'WAX',  name:'蝋義歯試適',metal:false,ret:true},
+    {code:'FIN',  name:'完成（重合・研磨）',metal:false,ret:false}]},
+  {id:'dn3',cov:'INSURANCE',name:'義歯の修理',price:8000,stages:[
+    {code:'FIN', name:'修理',metal:false,ret:false}]},
+  {id:'dn4',cov:'INSURANCE',name:'リベース（床裏装）',price:12000,stages:[
+    {code:'FIN', name:'リベース',metal:false,ret:false}]},
+  /* 🧑‍🔧 v0.8：単独で頼めるもの（ご回答 自由記入1） */
+  {id:'dn8', cov:'INSURANCE',name:'個人トレー（単独）',price:3500,single:true,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false,ret:false}]},
+  {id:'dn9', cov:'INSURANCE',name:'ロー堤（ベースプレート付き・単独）',price:5000,single:true,stages:[
+    {code:'BITE',name:'ロー堤製作（ベースプレート付き）',metal:false,ret:false}]},
+  {id:'dn10',cov:'INSURANCE',name:'ロー堤（ワックスのみ・単独）',price:3800,single:true,stages:[
+    {code:'BITE',name:'ロー堤製作（ワックス）',metal:false,ret:false}]},
+  {id:'dn5',cov:'PRIVATE',name:'総義歯（金属床）',price:280000,stages:[
+    {code:'TRAY', name:'個人トレー製作',metal:false,ret:true},
+    {code:'BITE', name:'咬合採得（ロー堤・ベースプレート付き）',metal:false,ret:true},
+    {code:'FRAME',name:'金属フレーム試適',metal:true,ret:true},
+    {code:'WAX',  name:'蝋義歯試適',metal:false,ret:true},
+    {code:'FIN',  name:'完成（重合・研磨）',metal:true,ret:false}]},
+  {id:'dn6',cov:'PRIVATE',name:'局部床義歯（金属床）',price:180000,stages:[
+    {code:'BITE', name:'咬合採得・設計',metal:false,ret:true},
+    {code:'FRAME',name:'金属フレーム試適',metal:true,ret:true},
+    {code:'WAX',  name:'蝋義歯試適',metal:false,ret:true},
+    {code:'FIN',  name:'完成（重合・研磨）',metal:true,ret:false}]},
+  {id:'dn7',cov:'PRIVATE',name:'ノンクラスプデンチャー',price:120000,stages:[
+    {code:'BITE',name:'咬合採得・設計',metal:false,ret:true},
+    {code:'WAX', name:'蝋義歯試適',metal:false,ret:true},
+    {code:'FIN', name:'完成',metal:false,ret:false}]},
+  {id:'dn11',cov:'PRIVATE',name:'個人トレー（単独）',price:6000,single:true,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false,ret:false}]}
+];
+/* ★ステージの日数はメタルの有無で決まる。1週 or 2週（ご回答 自由記入1）。
+   診療区分ではなくメタルで決まる、というのがいただいたご回答である。 */
+const dentStageDays=s=>LAB_TERMS.leadBase.INSURANCE+(s.metal?LAB_TERMS.leadMetalExtra:0);
+
+/* 義歯の指示項目。固定物の TECH_FIELDS とは中身がまるごと違う */
+const DENT_FIELDS=[
+  {c:'arch',      l:'対象',            req:true, opts:['上顎','下顎','上下顎']},
+  {c:'toothShade',l:'人工歯の色',                opts:['A2','A3','A3.5','A4','技工所にお任せ']},
+  {c:'toothForm', l:'人工歯の形態',              opts:['標準','やや小さめ','やや大きめ','解剖学的形態']},
+  {c:'existing',  l:'既存義歯',                  opts:['なし（新製）','あり（複製を希望）','あり（参考として同梱）']},
+  {c:'clasp',     l:'クラスプの指示',            opts:['該当なし','技工所にお任せ','部位を指定（特記事項へ）']}
+];
+
+/* 🧑‍🔧 v0.8 特急の段階（ご回答 #9）
+
+   > 「1日20%、2日50%、3日100%、4日150%」
+   > 「最優先に回せば4日短縮できます」
+
+   ★差額は必ず明示する（LAB_TERMS.rushShowDiff）。合計だけ出すと不信を招く。 */
+const RUSH_TIERS=[
+  {days:1,mult:1.2,pct:20, label:'1日短縮'},
+  {days:2,mult:1.5,pct:50, label:'2日短縮'},
+  {days:3,mult:2.0,pct:100,label:'3日短縮'},
+  {days:4,mult:2.5,pct:150,label:'4日短縮'}
+];
+
+/* オプション料金 */
+const OPTIONS=[
+  {code:'tryin',   name:'試適',       type:'FIXED',amount:3000},
+  {code:'warranty',name:'保証書発行', type:'FIXED',amount:2000}
+];
+
+/* 医院ごとのテクニカル項目デフォルト */
+const CLINIC_DEFAULTS={
+  occl:'標準', margin:'シャンファー', cont:'強め', grade:'技工所にお任せ', surface:'ツヤ抑えめ（自然）'
+};
+
+const TECH_FIELDS={
+  INSURANCE:[
+    {c:'occl',  l:'咬合の指示',   opts:['標準','やや低め','やや高め']},
+    {c:'margin',l:'マージン形態', opts:['シャンファー','ショルダー','ナイフエッジ']},
+    {c:'cont',  l:'コンタクト',   opts:['弱め','標準','強め']}
+  ],
+  PRIVATE:[
+    {c:'grade', l:'材料の詳細規格', opts:['技工所にお任せ','高透過グレード','高強度グレード','14K','16K','18K']},
+    {c:'occl',  l:'咬合の指示',     opts:['標準','やや低め','やや高め']},
+    {c:'margin',l:'マージン形態',   opts:['シャンファー','ショルダー','ナイフエッジ']},
+    {c:'cont',  l:'コンタクト',     opts:['弱め','標準','強め']},
+    {c:'pontic',l:'ポンティック基底面形態', opts:['該当なし','離底型','偏側型','船底型']},
+    {c:'warranty',l:'保証書の発行', opts:['不要','希望する']}
+  ]
+};
+
+/* 🧑‍🔧 v0.8 同梱物。★忘れやすいものが分かった（ご回答 #58）
+
+   > 「あとはシェード写真。その他資料。石膏模型を忘れることはほとんどない」
+
+   v0.7 は「バイトの同梱忘れ」を想定の中心にしていたが、
+   実際に足りないのは<b>シェード写真とその他の資料</b>だった。
+   模型は現物なので忘れない。忘れるのは「一緒に送るはずの情報」である。
+   ★ so 忘れやすいものを上に置き、模型類は下にまとめる。 */
+const MATS={
+  INSURANCE:[
+    {k:'SHADEPHOTO',l:'お口の中のお写真',hint:'★お忘れになりやすいものです',often:true},
+    {k:'DOCS',      l:'その他の資料（旧補綴物・参考資料など）',hint:'★お忘れになりやすいものです',often:true},
+    {k:'IMPRESSION',l:'印象（型取り）'},{k:'OPPOSING',l:'対合模型'},{k:'BITE',l:'バイト（咬合採得）'}],
+  PRIVATE:[
+    {k:'SHADEPHOTO',l:'シェード写真',hint:'★最もお忘れになりやすいものです',often:true},
+    {k:'DOCS',      l:'その他の資料（シェードガイド併写・参考資料など）',hint:'★お忘れになりやすいものです',often:true},
+    {k:'IMPRESSION',l:'印象（型取り）'},{k:'OPPOSING',l:'対合模型'},{k:'BITE',l:'バイト（咬合採得）'}],
+  /* 🖥 v0.6：義歯は同梱物が違う。現在お使いの義歯をお借りできるかで作りが変わる */
+  DENTURE:[
+    {k:'SHADEPHOTO',l:'お口の中のお写真',hint:'★お忘れになりやすいものです',often:true},
+    {k:'DOCS',      l:'その他の資料',often:true},
+    {k:'IMPRESSION',l:'印象（型取り）'},{k:'OPPOSING',l:'対合模型'},{k:'BITE',l:'バイト（咬合採得）'},
+    {k:'OLDDENTURE',l:'現在お使いの義歯（お持ちの場合）'}]
+};
+
+/* ★本人への還元は「評価」ではなく「入力支援」として行う（BR-39・原則18）。
+   点数ではなく「何をお忘れがちか」を返す。 */
+const HINTS={u1:['シェード写真の添付をお忘れになることが多いようです。'],u2:[],u3:[]};
+
+let CASES=[
+  {id:'c1',no:'NKTN-2026-000123',tenant:'t1',patient:'山田 花子',chart:'A-4501',pno:'P-40215',
+   cov:'INSURANCE',type:'クラウン',mat:'ゴールドクラウン',teeth:[46],shade:'A3',due:'2026-08-12',
+   status:'AWAITING_APPROVAL',step:1,creator:'u1',amount:8500,
+   proposal:{rev:1,by:'佐藤（なかたに技工所）',at:'08/05 15:40',amount:8500,due:'2026-08-12',
+     diffs:[{f:'材料',before:'ゴールドクラウン',after:'ゴールドクラウン 14K',kind:'変更',
+       reason:'46番（大臼歯）は咬合力が強くかかる部位のため、硬度のある14Kを推奨いたします。18Kですと摩耗が早まる可能性があります。'},
+       {f:'シェード',before:'（未指定）',after:'A3',kind:'追加',
+       reason:'お送りいただいたお写真から判断いたしました。ご確認をお願いします。'}],
+     keep:[['マージン形態','シャンファー'],['コンタクト','強め']]},
+   timeline:[{t:'08/05 14:23',who:'田中 美咲',tx:'依頼を送信しました',k:''},
+     {t:'08/05 15:01',who:'佐藤（技工所）',tx:'内容を確認しています',k:''},
+     {t:'08/05 15:40',who:'佐藤（技工所）',tx:'仕様をご提案しました（第1版）',k:'hi'}]},
+
+  {id:'c2',no:'NKTN-2026-000131',tenant:'t1',patient:'佐藤 健一',chart:'A-4622',pno:'P-41880',
+   cov:'INSURANCE',type:'クラウン',mat:'CAD/CAM冠用レジンブロック',teeth:[16],shade:'A3.5',due:'2026-08-14',
+   status:'ACTION_REQUIRED',step:3,creator:'u1',amount:6800,
+   issue:{by:'田中（技工所・スキャン担当）',at:'08/07 09:15',
+     desc:'スキャンを行った結果、以下の箇所が不明瞭でした。\n・頬側のマージンラインが読み取れません\n・遠心側の形成が浅く、必要な厚みを確保できない可能性があります',
+     risk:'このまま作製した場合、適合不良により再製作が必要になる可能性があります。'},
+   timeline:[{t:'08/03 10:10',who:'田中 美咲',tx:'依頼を送信しました',k:''},
+     {t:'08/03 14:00',who:'山田 太郎',tx:'仕様を承認しました → 受注確定',k:'ap'},
+     {t:'08/05 09:20',who:'田中 美咲',tx:'資材を発送しました（ヤマト 4821-9930-1122）',k:''},
+     {t:'08/06 11:05',who:'鈴木（技工所）',tx:'資材を受領しました',k:''},
+     {t:'08/07 09:15',who:'田中（技工所）',tx:'スキャン所見を報告しました',k:'wn'}]},
+
+  {id:'c3',no:'NKTN-2026-000118',tenant:'t1',patient:'鈴木 一郎',chart:'A-4390',pno:'P-39004',
+   cov:'PRIVATE',type:'クラウン',mat:'ジルコニア（高透過）',teeth:[11],shade:'A2',due:'2026-08-09',
+   status:'SHIPPED',step:4,creator:'u2',amount:27000,
+   timeline:[{t:'07/28 16:40',who:'山田 太郎',tx:'依頼を送信しました',k:''},
+     {t:'07/29 09:30',who:'山田 太郎',tx:'仕様を承認しました → 受注確定',k:'ap'},
+     {t:'07/30 10:00',who:'田中 美咲',tx:'資材を発送しました',k:''},
+     {t:'08/04 15:20',who:'山本（技工所）',tx:'デザインが完了しました',k:''},
+     {t:'08/07 17:00',who:'佐藤（技工所）',tx:'発送しました（ヤマト 4821-9931-8877）',k:'hi'}]},
+
+  {id:'c4',no:'NKTN-2026-000140',tenant:'t1',patient:'高橋 由美',chart:'A-4701',pno:'P-42663',
+   cov:'PRIVATE',type:'ラミネートベニア',mat:'e.max',teeth:[11,12,21,22],shade:'BL3',due:'2026-08-20',
+   status:'IN_PRODUCTION',step:3,creator:'u1',amount:186000,
+   /* 🧑‍🔧 v0.8：受注時に「変更の可能性あり」を申告した例。
+      この案件は加工後に仕様を変えても技工料が発生しない（ご回答 #60） */
+   changeNotice:true,
+   timeline:[{t:'08/01 11:00',who:'田中 美咲',tx:'依頼を送信しました',k:''},
+     {t:'08/01 18:30',who:'佐々木 院長',tx:'仕様を承認しました → 受注確定',k:'ap'},
+     {t:'08/04 09:00',who:'鈴木（技工所）',tx:'資材を受領しました',k:''},
+     {t:'08/06 14:00',who:'山本（技工所）',tx:'デザイン工程に入りました',k:''}]},
+
+  {id:'c5',no:'NKTN-2026-000099',tenant:'t1',patient:'伊藤 三郎',chart:'A-4201',pno:'P-37551',
+   cov:'INSURANCE',type:'局部床義歯',mat:'コバルトクロム',teeth:[34,35,36],shade:'—',due:'2026-07-30',
+   status:'DELIVERED',step:5,creator:'u1',amount:32000,
+   timeline:[{t:'07/10 09:00',who:'田中 美咲',tx:'依頼を送信しました',k:''},
+     {t:'07/28 16:00',who:'佐藤（技工所）',tx:'発送しました',k:''},
+     {t:'07/30 10:15',who:'山田 太郎',tx:'検収しました → 納品完了',k:'ap'}]},
+
+  {id:'c6',no:'SNRS-2026-000045',tenant:'t2',patient:'渡辺 京子',chart:'A-4655',pno:'P-41302',
+   cov:'PRIVATE',type:'インレー',mat:'ジルコニア（高強度）',teeth:[26],shade:'A2',due:'2026-08-18',
+   status:'IN_PRODUCTION',step:3,creator:'u1',amount:16000,
+   timeline:[{t:'08/04 10:00',who:'田中 美咲',tx:'依頼を送信しました',k:''}]}
+];
+
+const STATUS={
+  DRAFT:{l:'下書き',c:'gray'},SUBMITTED:{l:'依頼送信済み',c:'gray'},
+  IN_CLARIFICATION:{l:'内容確認中',c:'prog'},AWAITING_APPROVAL:{l:'ご承認待ち',c:'wait'},
+  CONFIRMED:{l:'受注確定',c:'prog'},MATERIALS_PENDING:{l:'資材お預かり待ち',c:'wait'},
+  IN_PRODUCTION:{l:'製作中',c:'prog'},ACTION_REQUIRED:{l:'ご判断のお願い',c:'dgr'},
+  SHIPPED:{l:'発送済み',c:'prog'},DELIVERED:{l:'納品完了',c:'done'},
+  RETURNED:{l:'差し戻し中',c:'dgr'},BILLED:{l:'請求済み',c:'done'},
+  /* 不具合のご報告を受けて再製作に入った状態 */
+  REMAKE:{l:'再製作の手配中',c:'dgr'}
+};
+
+/* ============================================================
+   状態
+   ============================================================ */
+/* labFilter='ALL' のとき全取引先の案件をまとめて表示する。
+   医院は1つの管理画面で複数技工所を扱うので、これが既定（A-4／A-7）。 */
+const S={user:'u1',labFilter:'ALL',route:'dashboard',param:null,sub:null,draft:null,toast:null,modal:null,hist:[]};
+const U=()=>USERS.find(u=>u.id===S.user);
+const myCases=()=>S.labFilter==='ALL'?CASES.slice():CASES.filter(c=>c.tenant===S.labFilter);
+const findCase=id=>CASES.find(c=>c.id===id);
+const needsMe=c=>['AWAITING_APPROVAL','ACTION_REQUIRED','SHIPPED'].includes(c.status);
+const filterLabel=()=>S.labFilter==='ALL'?'すべての取引先':labById(S.labFilter).name;
+
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+function badge(c){const s=STATUS[c.status];return `<span class="b ${s.c}">${s.l}</span>`}
+/* 🧑‍🔧 v0.8 医院に見せる進捗は3段階だけ（ご回答 #61・BR-58）。
+   一覧では小さな3コマのバーで出す。工程名は出さない。 */
+function ext3Bar(c){
+  const cur=ext3(c.step);
+  return `<span class="e3" title="${esc(EXT3[cur])}">${EXT3.map((s,i)=>
+    `<span class="e3c ${i<cur?'dn':i===cur?'cur':''}">${esc(s)}</span>`).join('')}</span>`;
+}
+function covB(cv){return cv==='INSURANCE'?'<span class="b ins">保険</span>':'<span class="b pri2">自費</span>'}
+function teethLabel(t){return t.map(n=>({1:'右上',2:'左上',3:'左下',4:'右下'}[Math.floor(n/10)]+(n%10))).join('・')}
+/* 画面遷移。ブラウザバック相当を成立させるため履歴を積む（A-1）。
+   同じ画面への遷移では積まない（戻るを連打したときに同じ画面に留まるのを防ぐ）。 */
+/* ★以前は引数を2つしか受けていなかったため、go('settings',null,'clinic') の
+   第3引数が黙って捨てられ、S.sub が常に undefined だった。
+   その結果、設定の4ページのうち「表示設定」以外に到達できなかった。 */
+function go(r,p,sub){
+  const np=p||null;
+  if(S.route!==r||S.param!==np||(sub!==undefined&&S.sub!==sub))
+    S.hist.push({r:S.route,p:S.param,s:S.sub});
+  S.route=r;S.param=np;
+  if(sub!==undefined)S.sub=sub;
+  window.scrollTo(0,0);render();
+}
+function back(){
+  const h=S.hist.pop();
+  if(h){S.route=h.r;S.param=h.p;S.sub=h.s}else{S.route='dashboard';S.param=null;S.sub=null}
+  window.scrollTo(0,0);render();
+}
+/* 詳細系の画面の左上に必ず置く。履歴が空でもホームに抜けられるので行き止まりにならない。 */
+function backBtn(){return `<button class="btn sm" onclick="back()" title="直前の画面に戻ります">← 戻る</button>`}
+function toast(m){S.toast=m;render();setTimeout(()=>{S.toast=null;render()},2400)}
+function yen(n){return '¥'+Math.round(n).toLocaleString()}
+
+/* ============================================================
+   納期算出（デモ実装）
+   ============================================================ */
+const TODAY=new Date('2026-08-11T10:30:00+09:00');
+/* 🧑‍🔧 v0.8 当日受付の締切。「16:30でも可」（ご回答 #4）。分まで見る */
+const CUTOFF=LAB_TERMS.cutoff;
+const cutoffMin=()=>{const [h,m]=CUTOFF.split(':').map(Number);return h*60+(m||0)};
+const pastCutoff=()=>(TODAY.getHours()*60+TODAY.getMinutes())>=cutoffMin();
+const LAB_CLOSED=[0,6];                  // 技工所の休業日（日・土）
+const CLINIC_CLOSED=[0,4];               // 医院の休診日（日・木）
+const HOLIDAYS=['2026-08-13','2026-08-14','2026-08-15'];  // 夏季休業
+
+/* ★toISOString は UTC に変換する。深夜0時JST の Date を通すと前日になる。
+   v0.8 で納期の起点が「ご来院日の前日」（＝深夜0時の Date）になったため、
+   ここが直接 submitCase() の保存値を1日ずらしていた（監査 B-4）。
+   ローカル日付で組み立てること。lab.html にも同じ定義がある。★両方そろえる */
+const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+/* ★日付だけで引き算する。時刻を持つ Date と深夜0時の Date を素で引くと、
+   差に「その日の経過時間」が乗り、Math.round の境界が正午で反転する。
+   同じ依頼が午前は「間に合う」・午後は「間に合わない」になっていた（監査 B-1）。
+   lab.html:daysTo / station.html:daysTo は最初からこの形。★3画面でそろえる */
+const DAY0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const dayDiff=(a,b)=>Math.round((DAY0(a)-DAY0(b))/86400000);
+const WD=['日','月','火','水','木','金','土'];
+const fmtJ=d=>`${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`;
+/* 🧑‍🔧 v0.8 納期は「◯月◯日着」と書く。「8月25日着とか」（ご回答 #7）。
+   医院にとっての納期は「届く日」なので、そう書かないと発送日と混同される。 */
+const fmtDue=d=>fmtJ(d)+LAB_TERMS.dueSuffix;
+const fmtDueStr=s=>s?fmtJ(new Date(s+'T00:00:00+09:00'))+LAB_TERMS.dueSuffix:'—';
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const isLabClosed=d=>LAB_CLOSED.includes(d.getDay())||HOLIDAYS.includes(fmt(d));
+const isClinicClosed=d=>CLINIC_CLOSED.includes(d.getDay());
+function addBiz(d,n){let x=new Date(d),left=n;while(left>0){x=addDays(x,1);if(!isLabClosed(x))left--;}return x}
+function nextLabOpen(d){let x=new Date(d);while(isLabClosed(x))x=addDays(x,1);return x}
+function nextClinicOpen(d){let x=new Date(d);while(isClinicClosed(x))x=addDays(x,1);return x}
+
+/* ============================================================
+   🧑‍🔧 v0.8 納期算出
+
+   ★v0.7 は「技工物ごとの標準製作日数を積み上げ、本数と試適で加算する」設計だった。
+     実務は違った。
+
+     > 「アポイントベースで、保険は1週間、自費は2週間」
+     > 「本数が増えたときの追加日数 → 追加の必要なし」（2026-08-25 ご回答 #1・#2）
+
+   起点＝<b>診療区分の基準日数</b>。技工物ごとの差（adj）はそこからの調整。
+   本数の加算は既定 0。IOS は1日短縮。
+
+   ★技工所の設定が「次回ご来院日から逆算」のときは、
+     最短日を満たす限り<b>ご来院日の前日</b>にお届けする（早く作りすぎない）。
+     ご来院日が最短より前のときは、その旨を出して特急でのみ受ける（原則13）。
+   ============================================================ */
+function calcLeadTime(variant,units,tryIn,method,cov){
+  const notes=[];
+  const cv=cov||variant.cov||'INSURANCE';
+  // 1. 受付起点日
+  let d0=new Date(TODAY);
+  if(pastCutoff()){d0=addDays(d0,1);notes.push(`${CUTOFF} を過ぎたため受付は翌日`);}
+  d0=nextLabOpen(d0);
+  // 2. 資材の到着
+  let d1;
+  if(method==='IOS'){d1=new Date(d0);notes.push('IOSデータのため搬送日数なし');}
+  else{
+    const ship=nextClinicOpen(addDays(d0,0));
+    d1=nextLabOpen(addDays(ship,1));
+    notes.push(`資材の到着に ${dayDiff(d1,d0)}日`);
+  }
+  // 3. 基準日数（★ここが起点）
+  let w=LAB_TERMS.leadBase[cv];
+  notes.push(`${cv==='PRIVATE'?'自費':'保険'}の基準 ${w}日`);
+  if(variant.adj){w+=variant.adj;notes.push(`${variant.type} のため ${variant.adj>0?'+':''}${variant.adj}日`);}
+  if(tryIn&&variant.tryIn){w+=variant.tryIn;notes.push(`試適のため +${variant.tryIn}日`);}
+  const per=Math.max(0,units-1)*LAB_TERMS.perUnitExtra;
+  if(per){w+=per;notes.push(`${units}本のため +${per}日`);}
+  else if(units>1)notes.push(`${units}本でも日数は変わりません`);
+  if(method==='IOS'&&LAB_TERMS.iosMinusDays){
+    w-=LAB_TERMS.iosMinusDays;notes.push(`IOSのため −${LAB_TERMS.iosMinusDays}日`);}
+  w=Math.max(1,Math.ceil(w));
+  // 4. 製作完了（暦日で数え、休業日にあたったら次の営業日へ）
+  let d2=nextLabOpen(addDays(d1,w));
+  const hol=HOLIDAYS.filter(h=>{const hd=new Date(h);return hd>=d1&&hd<=d2});
+  if(hol.length)notes.push(`${hol.length}日間の休業により繰り延べ`);
+  // 5-6. 発送 → 医院着
+  const d4=nextClinicOpen(addDays(d2,1));
+  return {earliest:d4,breakdown:{d0,d1,w,d2,d4,notes}};
+}
+
+/* ★ご来院日から逆算した「お届け日」。
+   最短日より後なら、ご来院日の前日にお届けする（早く作りすぎない）。
+   最短日より前なら null を返し、呼び出し側が特急を案内する。 */
+function deliverFor(earliest,visitStr){
+  if(!visitStr)return {date:earliest,mode:'EARLIEST',short:0};
+  const visit=new Date(visitStr+'T00:00:00+09:00');
+  const want=nextClinicOpen(addDays(visit,-LAB_TERMS.beforeVisit));
+  const short=dayDiff(earliest,want);   /* ★日付だけで比べる（監査 B-1） */
+  if(short<=0)return {date:want,mode:'VISIT',short:0,visit,want};
+  return {date:earliest,mode:'TOO_SOON',short,visit,want};
+}
+
+/* 🧑‍🔧 v0.8 特急。上限は LAB_TERMS.rushMaxDays（4日）。
+   ★対象外は義歯だけ（ご回答 #11）。義歯は来院のたびに医院を経由するので、
+     技工所側の努力では縮められない。 */
+function rushOptions(variant,earliest,units,tryIn,cov,want){
+  if(!variant.rush)return [];
+  const out=[];
+  for(const t of RUSH_TIERS){
+    if(t.days>LAB_TERMS.rushMaxDays)continue;
+    const d=nextClinicOpen(addDays(earliest,-t.days));
+    /* ★休診日で押し戻されて最短と同じ日になる段階は選ばせない。
+       「1日短縮」なのに同じ日付が並ぶと、割増だけ取られるように見える。 */
+    const future=dayDiff(d,TODAY)>0, sooner=dayDiff(d,earliest)<0;
+    /* 🧑‍🔧 v0.8 ★ご来院日に届かない段階は選ばせない（監査 B-2）。
+       3日足りないのに「1日短縮＋20%」を押せると、割増を払って結局間に合わない。
+       want が無い（ご来院日の未入力）ときは判定しない。 */
+    const reaches=!want||dayDiff(d,want)<=0;
+    const ok=future&&sooner&&reaches;
+    const why=!future?'本日より前になるため'
+      :!sooner?'休診日にあたり、通常のお届けと同じ日になるため'
+      :!reaches?'この短縮ではご来院日に届かないため':null;
+    out.push({days:t.days,date:d,mult:t.mult,pct:t.pct,label:t.label,ok,why,reaches});
+  }
+  return out;
+}
+
+function calcPrice(variant,units,opts,rushMult){
+  const base=variant.price*units;
+  /* eslint-disable-line — 以下は v0.7 から変えていない */
+  let optSum=0;const optLines=[];
+  for(const o of opts){const m=OPTIONS.find(x=>x.code===o);if(m){optSum+=m.amount;optLines.push(m);}}
+  const sub=base+optSum;
+  const rush=rushMult?Math.round(sub*(rushMult-1)):0;
+  const ex=sub+rush;
+  const tax=Math.round(ex*0.1);
+  return {base,units,optLines,optSum,sub,rush,ex,tax,total:ex+tax};
+}
+
+/* ============================================================
+   ダッシュボード
+   ============================================================ */
+function vDashboard(){
+  const cs=myCases(),act=cs.filter(needsMe);
+  const prod=cs.filter(c=>['IN_PRODUCTION','CONFIRMED','MATERIALS_PENDING','IN_CLARIFICATION'].includes(c.status));
+  const done=cs.filter(c=>c.status==='DELIVERED');
+  const pend=LABS.filter(l=>l.status==='PENDING');
+  return `
+  <div class="row mb" style="align-items:flex-start;gap:16px">
+    <div style="flex:1;min-width:220px">
+      <h1>こんにちは、${esc(U().name)} さん</h1>
+      <p class="sub" style="margin:0">${esc(filterLabel())} への発注状況</p>
+    </div>
+    <button class="btn pri lg" onclick="startNew()">＋ 新しい技工依頼</button>
+  </div>
+
+  ${pend.length?`<div class="alert info mb row">
+    <div style="flex:1"><b>${esc(pend[0].name)} から取引開始の申請が届いています</b>
+      <div class="note">承認すると、この技工所へ発注できるようになります</div></div>
+    <button class="btn" onclick="go('labs')">確認する</button></div>`:''}
+
+  ${act.length?`
+  <div class="card mb" style="border-color:#f0d5a8">
+    <div class="hdr" style="background:var(--accent-soft);border-radius:10px 10px 0 0">
+      <h2 style="color:#7c3d06">ご対応をお願いします</h2><span class="b wait">${act.length}件</span></div>
+    <div class="bd">
+      ${act.map(c=>{
+        const m=c.status==='AWAITING_APPROVAL'?{ic:'✓',bg:'var(--accent-soft)',fg:'var(--accent)',t:'仕様のご承認をお願いします',r:'approve'}
+              :c.status==='ACTION_REQUIRED'?{ic:'!',bg:'var(--danger-soft)',fg:'var(--danger)',t:'スキャン所見のご判断をお願いします',r:'issue'}
+              :{ic:'📦',bg:'var(--primary-soft)',fg:'var(--primary)',t:'お届け物のご確認をお願いします',r:'accept'};
+        return `<div class="actrow" onclick="go('${m.r}','${c.id}')">
+          <div class="ic" style="background:${m.bg};color:${m.fg}">${m.ic}</div>
+          <div style="flex:1"><div class="ttl">${m.t}</div>
+            <div class="meta">${esc(c.patient)}様 ／ ${esc(c.type)} ${teethLabel(c.teeth)} ／ ${esc(c.no)}</div></div>
+          ${covB(c.cov)}<span style="color:var(--faint)">›</span></div>`;}).join('')}
+    </div></div>`:`<div class="alert ok mb">現在ご対応が必要な案件はありません</div>`}
+
+  <div class="grid g3 mb">
+    <div class="card stat"><div class="n">${prod.length}</div><div class="l">製作中</div></div>
+    <div class="card stat"><div class="n">${act.length}</div><div class="l">要対応</div></div>
+    <div class="card stat"><div class="n">¥84,300</div><div class="l">今月のご請求（見込）</div></div>
+  </div>
+
+  <div class="card mb">
+    <div class="hdr"><h2>製作中の技工物</h2><span class="sp"></span>
+      <button class="btn sm" onclick="go('cases')">すべて見る</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>患者</th><th>区分</th><th>技工物</th><th>部位</th><th>発注先</th>
+        <th>進捗</th><th>状況</th><th>納期</th></tr></thead>
+      <tbody>${prod.map(c=>`<tr class="clk" onclick="go('case','${c.id}')">
+        <td><b>${esc(c.patient)}</b><div class="note">${esc(c.chart)}${c.pno?' ／ '+esc(c.pno):''}</div></td>
+        <td>${covB(c.cov)}</td><td>${esc(c.type)}</td>
+        <td>${teethLabel(c.teeth)}</td>
+        <td class="note">${esc(labById(c.tenant).name)}</td>
+        <td>${ext3Bar(c)}</td>
+        <td>${badge(c)}</td><td style="white-space:nowrap">${fmtDueStr(c.due)}</td></tr>`).join('')
+        ||'<tr><td colspan="8" class="empty">製作中の案件はありません</td></tr>'}</tbody>
+    </table></div></div>
+
+  <div class="grid g2">
+    <div class="card"><div class="hdr"><h3>直近の納品</h3></div>
+      <div class="bd">${done.map(c=>`<div class="row" style="padding:7px 0;border-bottom:1px solid var(--border-2)">
+        <div style="flex:1"><b>${esc(c.patient)}</b>様 ${esc(c.type)}<div class="note">${esc(c.no)}</div></div>
+        <span class="b done">検収済</span></div>`).join('')||'<div class="empty">まだありません</div>'}</div></div>
+    <div class="card"><div class="hdr"><h3>ご請求</h3></div><div class="bd">
+      <div class="row"><div style="flex:1">2026年7月分</div><b>¥112,400</b><span class="b done">入金済</span></div>
+      <div class="row mt"><div style="flex:1">2026年8月分（集計中）</div><b>¥84,300</b><span class="b gray">締め前</span></div>
+      <button class="btn block mt" onclick="go('invoices')">請求書一覧</button></div></div>
+  </div>
+
+  <div class="card mt"><div class="hdr"><h3>取引先技工所ごとの状況</h3><span class="sp"></span>
+    <button class="btn sm" onclick="go('labs')">発注先の設定</button></div>
+    <div class="bd">${activeLabs().map(l=>{
+      const lc=CASES.filter(c=>c.tenant===l.id);
+      const la=lc.filter(needsMe);
+      return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--border-2)">
+        <div style="flex:1"><b>${esc(l.name)}</b>
+          <div class="note"><code>${esc(l.code)}</code>
+            ${ROUTING.fallback===l.id?' <span class="b prog">既定の発注先</span>':''}</div></div>
+        <span class="note">進行中 ${lc.length}件</span>
+        ${la.length?`<span class="b wait">要対応 ${la.length}件</span>`:'<span class="b done">対応待ちなし</span>'}
+        <button class="btn sm" onclick="S.labFilter='${l.id}';go('cases')">案件を見る</button>
+      </div>`;}).join('')}
+    </div></div>`;
+}
+
+/* ============================================================
+   新規依頼（🖥 v0.6 で全面改訂）
+
+   第3回会議（2026-08-20）で決まった3点をここで表現している。
+   - BR-48 1依頼に技工物明細を複数持てる（同一患者で複数部位・複数種別が同時に来る）
+   - BR-49 保険と自費を同一依頼に混在させない。★理由を画面に出す。隠すだけにしない
+   - BR-50 義歯は固定物と同一依頼に混在させない → 専用フローへ分岐する
+   - BR-52 分納しない。納期は最も遅い明細に律速される
+   ============================================================ */
+
+let ITEM_SEQ=0;
+const newItem=()=>({iid:'i'+(++ITEM_SEQ),type:null,variant:null,units:1,teeth:[],tryIn:false,
+  vals:Object.assign({},CLINIC_DEFAULTS),photos:0});
+
+function startNew(kind){
+  S.draft={kind:kind||'FIXED',stage:0,cov:null,lab:null,labManual:false,
+    method:'PHYSICAL',mats:{},rush:null,techOpen:true,
+    pat:{},items:[],cur:null,adding:false,pick:{type:null,variant:null},
+    dent:null,dvals:{},dteeth:[],
+    /* 🧑‍🔧 v0.8 */
+    related:[],          /* 関連する依頼（ご回答 #71） */
+    changeNotice:false}; /* 「変更の可能性あり」の事前申告（ご回答 #60） */
+  go('new');
+}
+/* 🧑‍🔧 v0.8 関連する依頼の候補。
+   ★同じ患者様で進行中のものを出す。カルテ番号で寄せる（患者コードがあればそちらを優先）。 */
+function relatedCandidates(){
+  const d=D();
+  const key=(d.pat.pno||'').trim(), ch=(d.pat.chart||'').trim();
+  if(!key&&!ch)return [];
+  return CASES.filter(c=>c.status!=='DELIVERED'&&
+    ((key&&c.pno===key)||(ch&&c.chart===ch)));
+}
+function toggleRelated(id){
+  const d=D(),i=d.related.indexOf(id);
+  i<0?d.related.push(id):d.related.splice(i,1);
+  render();
+}
+const D=()=>S.draft;
+const varOf=it=>VARIANTS.find(v=>v.id===it.variant)||{};
+const CUR=()=>{const d=D();return d.items.find(i=>i.iid===d.cur)||d.items[0]||null};
+const dentOf=()=>DENTURES.find(x=>x.id===D().dent)||null;
+const covLabel=c=>c==='PRIVATE'?'自費':'保険';
+
+/* ---------- 集約：納期・料金 ----------
+   明細ごとに算出して、納期は最も遅いもの、料金は合算する。
+   分納しない（BR-52）ので「最も遅い明細に律速される」が正しい挙動になる。 */
+function itemLead(it){return calcLeadTime(varOf(it),it.units,it.tryIn,D().method,D().cov)}
+
+function draftLead(){
+  const d=D(); if(!d.items.length)return null;
+  let worst=null;
+  for(const it of d.items){
+    const lt=itemLead(it);
+    if(!worst||lt.earliest>worst.lt.earliest)worst={it,lt};
+  }
+  return worst;
+}
+
+/* 特急は「1つでも特急不可の明細があれば依頼全体で不可」。
+   一部だけ早く作っても分納しないので意味がない。
+   🧑‍🔧 v0.8：技工物ごとの下限（rushMin）は撤去した。
+   上限は技工所の設定（LAB_TERMS.rushMaxDays＝4日）で一律に管理する。 */
+function draftRush(){
+  const d=D(),w=draftLead();
+  if(!w)return [];
+  if(d.kind==='REMOVABLE'&&LAB_TERMS.rushExcludeKind==='REMOVABLE')return [];
+  if(d.items.some(it=>!varOf(it).rush))return [];
+  /* 🧑‍🔧 v0.8 ★ご来院日から逆算した「必要な日」を渡す。
+     間に合わない段階を選ばせないため（監査 B-2） */
+  const dv=deliverFor(w.lt.earliest,d.pat.visit);
+  return rushOptions(varOf(w.it),w.lt.earliest,w.it.units,w.it.tryIn,d.cov,
+                     dv.mode==='TOO_SOON'?dv.want:null);
+}
+const chosenRush=()=>{const d=D();return d.rush!=null?draftRush().find(r=>r.days===d.rush):null};
+
+function draftPrice(){
+  const d=D(),chosen=chosenRush();
+  let base=0,optSum=0;const optLines=[],lines=[];
+  if(d.kind==='REMOVABLE'){
+    const dn=dentOf();
+    if(dn){
+      const mult=d.dvals.arch==='上下顎'?2:1;
+      base=dn.price*mult;
+      lines.push({name:dn.name+(mult>1?' × 上下顎':''),amount:base});
+    }
+  }else{
+    for(const it of d.items){
+      const v=varOf(it),amt=v.price*it.units;
+      base+=amt;
+      lines.push({name:`${v.type}（${v.mat}）× ${it.units}`,amount:amt});
+      if(it.tryIn){const m=OPTIONS.find(x=>x.code==='tryin');
+        optSum+=m.amount;optLines.push({name:`試適（${v.type}）`,amount:m.amount});}
+      if(it.vals.warranty==='希望する'){const m=OPTIONS.find(x=>x.code==='warranty');
+        optSum+=m.amount;optLines.push({name:`保証書発行（${v.type}）`,amount:m.amount});}
+    }
+  }
+  const sub=base+optSum;
+  const rush=chosen?Math.round(sub*(chosen.mult-1)):0;
+  const ex=sub+rush,tax=Math.round(ex*0.1);
+  return {base,lines,optLines,optSum,sub,rush,ex,tax,total:ex+tax};
+}
+
+/* ---------- 義歯：ステージの日程 ----------
+   固定物と違い、医院と技工所を何度も往復する。往復のたびに来院日が挟まる。
+   基本設計 4-2 の case_stages に対応する。 */
+function dentSchedule(){
+  const d=D(),dn=dentOf(); if(!dn)return [];
+  const out=[];let from=new Date(TODAY);
+  dn.stages.forEach((s,i)=>{
+    /* ★ステージの日数はメタルの有無で決まる（1週 / 2週）。ご回答 自由記入1 */
+    const days=dentStageDays(s);
+    let deliver;
+    if(i===0){
+      /* 1回目だけは資材の到着を待つ。基準日数は診療区分ではなくメタルで決める */
+      const fake={type:s.name,adj:days-LAB_TERMS.leadBase.INSURANCE,tryIn:0,rush:false,price:0};
+      deliver=calcLeadTime(fake,1,false,d.method,'INSURANCE').earliest;
+    }else{
+      deliver=nextClinicOpen(addDays(nextLabOpen(addDays(from,1)),days+1));
+    }
+    const visit=nextClinicOpen(deliver);
+    out.push({no:i+1,code:s.code,name:s.name,days,metal:!!s.metal,ret:s.ret,deliver,visit});
+    from=visit;
+  });
+  return out;
+}
+
+/* ---------- 送付物 ---------- */
+function matsFor(){
+  const d=D();
+  if(d.kind==='REMOVABLE')return MATS.DENTURE;
+  return MATS[d.cov]||[];
+}
+
+/* ---------- 未入力チェック ---------- */
+function missing(){
+  const d=D(),m=[];
+  if(!d.pat.chart)m.push('カルテ番号');
+  if(!d.pat.patient)m.push('患者氏名');
+  if(!d.pat.visit)m.push('次回ご来院日');
+  if(d.kind==='REMOVABLE'){
+    if(!d.dteeth.length)m.push('欠損部位');
+    if(!d.dvals.arch)m.push('対象（上顎／下顎）');
+  }else{
+    if(!d.items.length)m.push('技工物');
+    d.items.forEach((it,n)=>{
+      const v=varOf(it),tag=d.items.length>1?`明細${n+1}の`:'';
+      if(!it.teeth.length)m.push(tag+'部位');
+      if(d.cov==='PRIVATE'&&!it.vals.shade)m.push(tag+'シェード');
+      if(d.cov==='PRIVATE'&&!it.photos)m.push(tag+'シェードテイキング写真');
+    });
+  }
+  return [...new Set(m)];
+}
+const canNext=()=>missing().length===0;
+
+/* 同じ歯が複数の明細に入っている場合。支台歯とポンティックの関係で正当に重複することが
+   あるため、送信はブロックせず警告だけ出す（設計メモ 3-1）。 */
+function dupTeeth(){
+  const d=D(),seen={},dup=[];
+  d.items.forEach(it=>it.teeth.forEach(n=>{
+    if(seen[n])dup.push(n);else seen[n]=1;
+  }));
+  return [...new Set(dup)];
+}
+
+/* ============================================================
+   画面
+   ============================================================ */
+function vNew(){
+  const d=D(); if(!d){startNew();return ''}
+  if(d.kind==='REMOVABLE')return vNewDenture();
+  const bar=stepBar(['診療区分','技工物','詳細','確認'],d.stage);
+
+  if(d.stage===0)return `
+    <h1>新しい技工依頼</h1><p class="sub">診療区分をお選びください</p>${bar}
+    <div class="grid g2">
+      <div class="card" style="cursor:pointer;border-color:${d.cov==='INSURANCE'?'var(--ins)':'var(--border)'}"
+           onclick="pickCov('INSURANCE')"><div class="bd" style="text-align:center;padding:34px 20px">
+        <div style="font-size:32px">🏥</div><h2 style="margin:10px 0"><span class="b ins">保険</span> 保険診療</h2>
+        <p class="note">保険適用の材料から選択します</p></div></div>
+      <div class="card" style="cursor:pointer;border-color:${d.cov==='PRIVATE'?'var(--pri)':'var(--border)'}"
+           onclick="pickCov('PRIVATE')"><div class="bd" style="text-align:center;padding:34px 20px">
+        <div style="font-size:32px">✨</div><h2 style="margin:10px 0"><span class="b pri2">自費</span> 自費診療</h2>
+        <p class="note">材料の制限はありません</p></div></div>
+    </div>
+    <div class="alert info mt" style="font-size:12.5px">
+      <b>保険と自費は分けてお申し込みください。</b>
+      1回のお申し込みには、保険のものだけ、または自費のものだけをまとめられます。
+      同じ患者様で両方が必要な場合は、恐れ入りますが2件に分けてお申し込みください。</div>`;
+
+  /* ★同じ理由のガード。明細ゼロで詳細・確認に入ると varOf() が空になり落ちる */
+  if(d.stage>=1&&!d.cov)d.stage=0;
+  if(d.stage>=2&&!d.items.length)d.stage=1;
+  if(d.stage===1)return itemsStage();
+  if(d.stage===2)return formStage();
+  return confirmStage();
+}
+
+const stepBar=(names,cur)=>`<div class="steps mb">${names.map((s,i)=>
+  `<div class="stp ${i<cur?'dn':(i===cur?'cur':'')}">${s}</div>`).join('')}</div>`;
+
+/* ---------- stage 1：技工物の明細（親子構造の入口） ---------- */
+function itemsStage(){
+  const d=D();
+  const bar=stepBar(['診療区分','技工物','詳細','確認'],1);
+  const dents=DENTURES.filter(x=>x.cov===d.cov);
+  return `
+  <h1>新しい技工依頼</h1>
+  <p class="sub">${covB(d.cov)} ${covLabel(d.cov)}診療 ／ お作りするものを追加してください</p>${bar}
+
+  <div class="card mb"><div class="hdr"><h2>技工物</h2>
+    <span class="sp"></span><span class="note">${d.items.length}件</span></div>
+    <div class="bd">
+      ${d.items.length?d.items.map((it,n)=>{
+        const v=varOf(it);
+        return `<div class="itm">
+          <div class="ino">${n+1}</div>
+          <div style="flex:1">
+            <div class="t">${esc(v.type)}<span class="note" style="margin-left:8px">${esc(v.mat)}</span></div>
+            <div class="d">標準 ${v.days}営業日 ／ ${yen(v.price)}／本${v.rush?'':' ／ 特急対応不可'}</div>
+          </div>
+          <button class="btn sm dgr" onclick="delItem('${it.iid}')">削除</button>
+        </div>`;
+      }).join(''):`<div class="empty" style="padding:22px">
+        まだ追加されていません。<div class="note mt">同じ患者様の複数の技工物を、1回のお申し込みにまとめられます。</div></div>`}
+
+      ${d.adding?addPanel():`<button class="btn block mt" onclick="D().adding=true;render()">
+        ＋ 技工物を追加</button>`}
+    </div></div>
+
+  ${dents.length?`<div class="card mb"><div class="hdr"><h3>義歯（入れ歯）をお作りの場合</h3></div><div class="bd">
+    <p class="note mb">義歯は印象・咬合採得・試適で<b>何度かお預かりとお返しを繰り返します</b>ので、
+      専用の画面でお伺いします。上の技工物と同じお申し込みにまとめることはできません。</p>
+    <button class="btn" onclick="switchToDenture()">義歯の依頼画面へ →</button>
+  </div></div>`:''}
+
+  <div class="row"><button class="btn" onclick="D().stage=0;D().adding=false;render()">戻る</button>
+    <span class="sp"></span>
+    <button class="btn pri" ${d.items.length?'':'disabled'} onclick="toDetail()">次へ</button></div>`;
+}
+
+/* 追加パネル。★他の診療区分の材料も「選べない理由」つきで見せる（BR-49）。
+   隠してしまうと「なぜ出てこないのか」が分からず、電話で聞かれることになる。 */
+function addPanel(){
+  const d=D(),p=d.pick;
+  const types=[...new Set(VARIANTS.filter(v=>v.cov===d.cov).map(v=>v.type))];
+  const mine=p.type?VARIANTS.filter(v=>v.cov===d.cov&&v.type===p.type):[];
+  const other=p.type?VARIANTS.filter(v=>v.cov!==d.cov&&v.type===p.type):[];
+  const oc=d.cov==='INSURANCE'?'PRIVATE':'INSURANCE';
+  return `
+  <div class="addpanel mt">
+    <div class="row mb"><b style="font-size:13px">技工物を追加</b><span class="sp"></span>
+      <button class="btn sm" onclick="D().adding=false;D().pick={type:null,variant:null};render()">やめる</button></div>
+
+    <label class="f"><span class="lb">何をお作りしますか</span>
+      <div class="chips">${types.map(t=>
+        `<button class="chip ${p.type===t?'on':''}" onclick="pickType('${t}')">${t}</button>`).join('')}</div></label>
+
+    ${p.type?`<label class="f" style="margin-bottom:10px"><span class="lb">材料</span>
+      ${mine.map(v=>`<div class="ck ${p.variant===v.id?'on':''}" onclick="D().pick.variant='${v.id}';render()"
+        style="border-color:${p.variant===v.id?'var(--primary)':'var(--border)'};background:${p.variant===v.id?'var(--primary-soft)':'#fff'}">
+        <input type="radio" ${p.variant===v.id?'checked':''} style="accent-color:var(--primary)">
+        <div style="flex:1"><div class="t">${esc(v.mat)}</div>
+          <div class="d">標準 ${v.days}営業日 ／ ${yen(v.price)}〜${v.rush?'':' ／ 特急対応不可'}</div></div></div>`).join('')}
+
+      ${other.length?`<div class="blocked mt">
+        <div class="bh">${covLabel(oc)}の材料（このお申し込みには追加できません）</div>
+        ${other.map(v=>`<div class="ck dis">
+          <input type="radio" disabled>
+          <div style="flex:1"><div class="t">${esc(v.mat)}</div>
+            <div class="d">${yen(v.price)}〜</div></div>
+          <span class="b ${oc==='PRIVATE'?'pri2':'ins'}">${covLabel(oc)}</span></div>`).join('')}
+        <p class="note mt">このお申し込みは<b>${covLabel(d.cov)}</b>です。
+          ${covLabel(oc)}のものは<a href="#" onclick="startNew();return false">別のお申し込み</a>としてお送りください。</p>
+      </div>`:''}
+    </label>`:''}
+
+    <div class="row"><span class="sp"></span>
+      <button class="btn pri sm" ${p.variant?'':'disabled'} onclick="addItem()">この技工物を追加</button></div>
+  </div>`;
+}
+
+function pickCov(c){const d=D();d.cov=c;d.items=[];d.pick={type:null,variant:null};d.adding=true;
+  d.lab=null;d.labManual=false;d.stage=1;render()}
+function pickType(t){const d=D();d.pick.type=t;d.pick.variant=null;
+  if(!d.labManual)d.lab=routeLab(d.cov,t);
+  render()}
+function addItem(){
+  const d=D(),v=VARIANTS.find(x=>x.id===d.pick.variant);
+  const it=newItem();
+  it.type=v.type;it.variant=v.id;
+  d.items.push(it);
+  d.cur=it.iid;
+  d.adding=false;d.pick={type:null,variant:null};d.rush=null;
+  toast(`${v.type}（${v.mat}）を追加しました`);
+}
+function delItem(iid){
+  const d=D();d.items=d.items.filter(i=>i.iid!==iid);
+  if(d.cur===iid)d.cur=d.items.length?d.items[0].iid:null;
+  d.rush=null;render();
+}
+function toDetail(){
+  const d=D();
+  /* 義歯に切り替わっている場合はそちらの流れに任せる */
+  if(d.kind==='REMOVABLE'){d.stage=d.dent?2:1;render();return}
+  if(!d.items.length){toast('技工物を追加してください');return}
+  if(!d.cur)d.cur=d.items[0].iid;
+  d.stage=2;render();
+}
+function switchToDenture(){
+  const d=D();
+  if(d.items.length){
+    S.modal={title:'義歯の依頼に切り替える',
+      body:`<p>すでに追加されている技工物 ${d.items.length}件 は、義歯と同じお申し込みにまとめられません。</p>
+        <p class="note mt">義歯の依頼画面に切り替えると、追加済みの技工物は取り消されます。</p>`,
+      ok:'切り替える',danger:true,fn:()=>{const dd=D();dd.items=[];dd.kind='REMOVABLE';dd.stage=1;closeModal()}};
+    render();return;
+  }
+  d.kind='REMOVABLE';d.stage=1;render();
+}
+
+/* ---------- stage 2：詳細（患者は共通、指示は明細ごと） ---------- */
+function formStage(){
+  const d=D(),it=CUR(),v=varOf(it);
+  const w=draftLead(),ro=draftRush(),chosen=chosenRush();
+  const price=draftPrice();
+  /* 🧑‍🔧 v0.8 ★お届け日は「ご来院日の前日」。最短日ではない（ご回答 #1）。
+     「アポイントベースで、保険は1週間、自費は2週間」＝ 起点は来院日である。
+     ご来院日が最短より前のときは間に合わないことを出し、特急でのみ受ける（原則13）。 */
+  const dv=deliverFor(w.lt.earliest,d.pat.visit);
+  const dueDate=chosen?chosen.date:dv.date;
+  const hints=HINTS[S.user]||[];
+  const bar=stepBar(['診療区分','技工物','詳細','確認'],2);
+  const mins=Math.max(0,cutoffMin()-(TODAY.getHours()*60+TODAY.getMinutes()));
+  const dups=dupTeeth();
+  const others=d.items.filter(x=>x.iid!==it.iid).flatMap(x=>x.teeth);
+
+  return `
+  <h1>新しい技工依頼</h1>
+  <p class="sub">${covB(d.cov)} ${d.items.length}件の技工物</p>${bar}
+  ${hints.length?`<div class="alert info mb">${esc(hints[0])}</div>`:''}
+
+  <div class="grid form2">
+    <div>
+      <div class="card mb"><div class="hdr"><h3>患者情報</h3>
+        <span class="sp"></span><span class="note">この依頼に共通</span></div><div class="bd">
+        <div class="grid g2">
+          <label class="f"><span class="lb">カルテ番号 <span class="req">必須</span></span>
+            <input type="text" value="${esc(d.pat.chart||'')}" oninput="setP('chart',this.value)" placeholder="A-4501"></label>
+          <label class="f"><span class="lb">患者氏名 <span class="req">必須</span></span>
+            <input type="text" value="${esc(d.pat.patient||'')}" oninput="setP('patient',this.value)" placeholder="山田 花子"></label>
+        </div>
+        <div class="grid g2">
+          <label class="f"><span class="lb">患者コード
+            <span class="hint">★同姓同名の取り違えを防ぎます</span></span>
+            <input type="text" value="${esc(d.pat.pno||'')}" oninput="setP('pno',this.value)" placeholder="P-12345"></label>
+          <label class="f"><span class="lb">次回ご来院日 <span class="req">必須</span>
+            <span class="hint">この日の ${LAB_TERMS.beforeVisit}日前にお届けします</span></span>
+            <input type="date" value="${esc(d.pat.visit||'')}" onchange="setP('visit',this.value)"></label>
+        </div>
+        <label class="f" style="margin-bottom:0"><span class="lb">仕様が変わる可能性はありますか
+          <span class="hint">★あらかじめお知らせいただくと、あとで変更しても技工料が発生しません（ご回答 #60）</span></span>
+          <div class="chips">
+            <button class="chip ${d.changeNotice?'':'on'}" onclick="D().changeNotice=false;render()">この内容で確定</button>
+            <button class="chip ${d.changeNotice?'on':''}" onclick="D().changeNotice=true;render()">変更の可能性あり</button>
+          </div></label>
+        ${d.changeNotice?`<div class="alert ok" style="font-size:12.5px;margin-top:-4px">
+          お知らせいただきました。この依頼では、あとから仕様を変更しても
+          <b>それまでの工程の技工料は発生しません。</b></div>`:''}
+      </div></div>
+
+      ${(()=>{const cand=relatedCandidates();
+        if(!cand.length)return '';
+        return `<div class="card mb"><div class="hdr"><h3>同時にお作りするもの</h3>
+          <span class="sp"></span><span class="note">同じ患者様の進行中のご依頼 ${cand.length}件</span></div>
+          <div class="bd">
+          <p class="note mb">★ クラウンとクラスプを同時にお作りする場合など、
+            <b>関連するご依頼があれば紐付けてください。</b>
+            技工所側でも同じ紐付けが見えるようになり、あわせて設計できます（ご回答 #71）。</p>
+          ${cand.map(c=>`<label class="ck ${d.related.includes(c.id)?'on':''}"
+            onclick="toggleRelated('${c.id}')">
+            <input type="checkbox" ${d.related.includes(c.id)?'checked':''}>
+            <div><div class="t">${esc(c.type)}（${esc(c.mat||'—')}）${teethLabel(c.teeth)}</div>
+              <div class="note"><code>${esc(c.no)}</code> ・ ${esc(labById(c.tenant).name)}
+                ・ ${esc(STATUS[c.status].l)}</div></div></label>`).join('')}
+          ${d.related.length?`<div class="alert info mt" style="font-size:12.5px">
+            ★ 紐付けたご依頼のことは<b>特記事項にも書き添えて</b>ください。
+            「${esc(findCase(d.related[0]).type)}と同時装着」のように書いていただくと確実です。</div>`:''}
+        </div></div>`})()}
+
+      ${d.items.length>1?`<div class="itabs mb">${d.items.map((x,n)=>{
+        const xv=varOf(x),bad=!x.teeth.length||(d.cov==='PRIVATE'&&(!x.vals.shade||!x.photos));
+        return `<button class="itab ${x.iid===it.iid?'on':''}" onclick="D().cur='${x.iid}';render()">
+          <span class="n">${n+1}</span>${esc(xv.type)}
+          <span class="note">${esc(xv.mat.length>12?xv.mat.slice(0,12)+'…':xv.mat)}</span>
+          ${bad?'<span class="dot"></span>':''}</button>`;
+      }).join('')}</div>`:''}
+
+      <div class="card mb"><div class="hdr">
+        <h3>${d.items.length>1?`明細 ${d.items.findIndex(x=>x.iid===it.iid)+1}：`:''}${esc(v.type)}</h3>
+        <span class="sp"></span><span class="note">${esc(v.mat)}</span></div>
+        <div class="bd">
+          <div class="row mb"><b style="font-size:13px">部位 <span class="req">必須</span></b>
+            <span class="sp"></span>
+            <span class="note">選択中 ${it.teeth.length?teethLabel(it.teeth):'なし'}（${it.units}本）</span></div>
+          ${toothChart(it.teeth,others)}
+          ${others.length?`<p class="note mt">
+            <span class="tlegend other"></span> は他の明細で選択済みの歯です。</p>`:''}
+          ${dups.length?`<div class="alert warn mt" style="font-size:12.5px">
+            ${teethLabel(dups)} が複数の明細に入っています。
+            支台歯とポンティックのように意図的な場合はそのままお進みください。</div>`:''}
+      </div></div>
+
+      <div class="card mb"><div class="hdr"><h3>技工指示</h3><span class="sp"></span>${covB(d.cov)}
+        <span class="note">${esc(v.type)}</span></div>
+        <div class="bd">
+          <label class="f"><span class="lb">シェード ${d.cov==='PRIVATE'?'<span class="req">必須</span>':''}</span>
+            <div class="chips">${['A1','A2','A3','A3.5','A4','B1','B2','C1','BL2','BL3'].map(s=>
+              `<button class="chip ${it.vals.shade===s?'on':''}" onclick="setV('shade','${s}')" style="padding:5px 11px">${s}</button>`).join('')}</div></label>
+
+          ${d.cov==='PRIVATE'?`
+          <label class="f"><span class="lb">シェードテイキング写真 <span class="req">必須</span></span>
+            <div class="row"><button class="btn sm" onclick="addPhoto()">📷 撮影して添付</button>
+              ${it.photos?`<span class="b done">${it.photos}枚 添付済み</span>`:'<span class="note">未添付</span>'}</div></label>
+          <label class="f"><span class="lb">ステイン・特徴の再現</span>
+            <textarea oninput="setV('stain',this.value)" placeholder="クラック、着色、切端の透明感など">${esc(it.vals.stain||'')}</textarea></label>
+          <label class="f"><span class="lb">試適 <span class="req">必須</span></span>
+            <div class="chips">
+              <button class="chip ${!it.tryIn?'on':''}" onclick="setTryIn(false)">不要</button>
+              <button class="chip ${it.tryIn?'on':''}" onclick="setTryIn(true)">必要（＋${v.tryIn}営業日 ・ ${yen(3000)}）</button>
+            </div></label>`:''}
+
+          <label class="f"><span class="lb">特記事項</span>
+            <textarea oninput="setV('note',this.value)">${esc(it.vals.note||'')}</textarea></label>
+
+          <div style="border-top:1px solid var(--border-2);margin:4px 0 12px"></div>
+          <div class="row" style="margin-bottom:10px">
+            <b style="font-size:13px">詳細の指定</b>
+            <span class="note">貴院の標準設定を反映しています</span>
+            <span class="sp"></span>
+            ${d.items.length>1?`<button class="btn sm" onclick="copySpecs()"
+              title="この明細の詳細指定を、ほかの明細にも同じ内容で入れます">ほかの明細にも反映</button>`:''}
+            <button class="btn sm" onclick="D().techOpen=!D().techOpen;render()">${d.techOpen?'閉じる':'開く'}</button>
+          </div>
+          ${d.techOpen?`<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:14px">
+            ${TECH_FIELDS[d.cov].map(fd=>`
+              <label class="f" style="margin-bottom:11px"><span class="lb">${esc(fd.l)}</span>
+                <div class="chips">${fd.opts.map(o=>
+                  `<button class="chip ${it.vals[fd.c]===o?'on':''}" onclick="setV('${fd.c}','${o}')" style="padding:5px 11px;font-size:13px">${o}</button>`).join('')}</div>
+              </label>`).join('')}
+          </div>`:''}
+
+          <label class="f mt"><span class="lb">お写真</span>
+            <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+              ${Array.from({length:it.photos}).map((_,i)=>`<div class="ph">📷 ${i+1}</div>`).join('')}
+              <div class="ph" style="cursor:pointer" onclick="addPhoto()">＋ 追加</div>
+            </div></label>
+      </div></div>
+
+      <div class="card"><div class="hdr"><h3>資材の送付方法</h3>
+        <span class="sp"></span><span class="note">この依頼に共通</span></div><div class="bd">
+        <div class="chips">
+          <button class="chip ${d.method==='PHYSICAL'?'on':''}" onclick="setMethod('PHYSICAL')">物理搬送（印象・模型）</button>
+          <button class="chip ${d.method==='IOS'?'on':''}" onclick="setMethod('IOS')">IOSデータ</button>
+        </div>
+        ${d.method==='IOS'?`<div class="mt"><button class="btn sm">📁 ファイルを選択</button>
+          <span class="note" style="margin-left:8px">STL / PLY / DCM</span></div>`:''}
+        <p class="note mt">同じ患者様の技工物は同じ模型からお作りします。送付は1回で結構です。</p>
+      </div></div>
+    </div>
+
+    <div class="quote">
+      <div class="qbox mb">
+        <div class="qh">発注先</div>
+        <div class="qb">
+          <div class="row" style="gap:8px">
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">${esc(labById(d.lab).name)}</div>
+              <div class="note">${d.labManual?'手動で変更しました':esc(routeReason(d.cov,d.items[0]?d.items[0].type:null))}</div>
+            </div>
+            <button class="btn sm" onclick="openLabPick()">変更</button>
+          </div>
+          ${d.items.length>1?`<p class="note mt">
+            1件のお申し込みは1つの発注先にまとめてお送りします（BR-35）。</p>`:''}
+        </div>
+      </div>
+
+      <div class="qbox mb">
+        <div class="qh">お届け予定</div>
+        <div class="qb">
+          <div class="due">
+            <div class="dl">${chosen?'特急対応'
+              :dv.mode==='VISIT'?'ご来院日に合わせたお届け'
+              :dv.mode==='TOO_SOON'?'最短でのお届け'
+              :'最短でのお届け'}</div>
+            <div class="dv" style="${chosen?'color:var(--accent)':(dv.mode==='TOO_SOON'?'color:var(--danger)':'')}">${fmtDue(dueDate)}</div>
+            <div class="dd">${d.items.length}件すべて揃ってのお届け</div>
+          </div>
+          ${!chosen&&dv.mode==='VISIT'?`<div class="alert ok" style="font-size:12.5px">
+            ご来院日（${fmtJ(dv.visit)}）の ${LAB_TERMS.beforeVisit}日前にお届けします。<br>
+            最短では ${fmtDue(w.lt.earliest)} ですが、<b>前もって作りすぎないよう</b>ご来院日に合わせています。</div>`:''}
+          ${!chosen&&dv.mode==='TOO_SOON'?`<div class="alert dgr" style="font-size:12.5px">
+            <b>ご来院日（${fmtJ(dv.visit)}）には ${dv.short}日 間に合いません。</b><br>
+            通常の最短は <b>${fmtDue(w.lt.earliest)}</b> です。
+            ${dv.short<=LAB_TERMS.rushMaxDays
+              ?'特急料金でのご対応なら間に合います。下の「特急料金で対応」をご覧ください。'
+              :`特急でも最大 ${LAB_TERMS.rushMaxDays}日 の短縮までです。ご来院日のご調整をお願いします。`}</div>`:''}
+          ${!chosen&&dv.mode==='EARLIEST'?`<div class="alert info" style="font-size:12.5px">
+            次回ご来院日をご入力いただくと、<b>その前日にお届けする日程</b>でお見積りします。</div>`:''}
+          ${d.items.length>1?`<div class="lead">
+            ${d.items.map((x,n)=>{const xl=itemLead(x),xv=varOf(x);
+              const late=x.iid===w.it.iid;
+              return `<div class="li ${late?'late':''}">
+                <span>${n+1}. ${esc(xv.type)}</span>
+                <span>${fmtDue(xl.earliest)}${late?' ← 最も遅い':''}</span></div>`}).join('')}
+            <div class="note" style="margin-top:6px">
+              ★ 一部だけ先にお届けすることはしていません。最も時間のかかるものに揃えます。</div>
+          </div>`:''}
+          <div class="brk">
+            <div class="bi"><span>受付</span><span>${fmtJ(w.lt.breakdown.d0)}</span></div>
+            <div class="bi"><span>資材お預かり</span><span>${fmtJ(w.lt.breakdown.d1)}</span></div>
+            <div class="bi"><span>製作</span><span>${w.lt.breakdown.w}日</span></div>
+            <div class="bi"><span>発送</span><span>${fmtJ(w.lt.breakdown.d2)}</span></div>
+            <div class="bi"><span>お届け</span><span>${fmtJ(w.lt.breakdown.d4)}</span></div>
+            ${w.lt.breakdown.notes.map(n=>`<div style="color:var(--faint)">※ ${esc(n)}</div>`).join('')}
+          </div>
+          ${mins>0?`<div class="cd">本日 ${CUTOFF} までのお申し込みで本日受付になります<br>
+            残り <b>${Math.floor(mins/60)}時間${mins%60}分</b></div>`:
+            `<div class="cd">本日の受付は終了しました。お申し込みは翌営業日の受付になります。</div>`}
+
+          ${/* 🧑‍🔧 v0.8 ★特急を出すのは「ご来院日に間に合っていない」ときだけ。
+                以前は dv.mode を見ずに出していたため、
+                「前もって作りすぎないようご来院日に合わせています」と説明した真下で、
+                その1ヶ月前の日付を＋150%で売る画面になっていた（監査 B-2）。
+                間に合っているものを前倒しする理由は医院側に無い。原則38 に反する。 */''}
+          ${chosen?`<div class="mt">
+            <button class="btn sm block" onclick="setRush(null)">通常納期に戻す</button></div>`
+          :dv.mode==='VISIT'?`<div class="note mt">
+            ご来院日に間に合っているため、特急のお申し込みは必要ありません。</div>`
+          :ro.length?`
+          <div class="mt">
+            <div class="row" style="margin-bottom:8px"><b style="font-size:13px">もっと早くご希望の場合</b></div>
+            <button class="btn wrn block" onclick="openRush()">特急料金で対応</button>
+          </div>`:`<div class="note mt">
+            ${d.kind==='REMOVABLE'
+              ?'義歯は特急の対象外です。ご来院のたびに医院を経由するため、技工所側では日数を縮められません。'
+              :d.items.some(x=>!varOf(x).rush)
+              ?'特急対応を承れない材料が含まれているため、このお申し込みでは特急を承れません。'
+              :'この材料は特急対応を承れません'}</div>`}
+        </div>
+      </div>
+
+      <div class="qbox">
+        <div class="qh">お見積り（概算）</div>
+        <div class="qb">
+          ${price.lines.map(l=>`<div class="pricerow"><span>${esc(l.name)}</span><span>${yen(l.amount)}</span></div>`).join('')}
+          ${price.optLines.map(o=>`<div class="pricerow"><span>${esc(o.name)}</span><span>${yen(o.amount)}</span></div>`).join('')}
+          ${price.rush?`<div class="pricerow rush"><span>特急割増（×${chosen.mult}）</span><span>${yen(price.rush)}</span></div>`:''}
+          <div class="pricerow"><span>消費税</span><span>${yen(price.tax)}</span></div>
+          <div class="pricerow tot"><span>合計</span><span>${yen(price.total)}</span></div>
+          <p class="note mt">技工所の確認により変動する場合があります</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt" style="justify-content:space-between">
+    <button class="btn" onclick="D().stage=1;render()">戻る</button>
+    <div class="row">
+      <button class="btn" onclick="saveDraft()">下書き保存</button>
+      <button class="btn pri lg" ${canNext()?'':'disabled'} onclick="D().stage=3;render()">内容を確認</button>
+    </div>
+  </div>
+  ${!canNext()?`<p class="note mt" style="text-align:right">未入力：${missing().join('、')}</p>`:''}`;
+}
+
+/* ---------- stage 3：確認 ---------- */
+/* 🧑‍🔧 v0.8 確認画面の共通行。固定物と義歯で同じものを出す */
+function confirmCommonRows(){
+  const d=D();
+  return `<dt>患者コード</dt><dd>${d.pat.pno?`<code>${esc(d.pat.pno)}</code>`:'<span class="note">未入力</span>'}</dd>
+    <dt>仕様の変更</dt><dd>${d.changeNotice
+      ?'<span class="b prog">変更の可能性あり</span> <span class="note">あとで変更しても技工料は発生しません</span>'
+      :'<span class="note">この内容で確定</span>'}</dd>
+    ${d.related.length?`<dt>関連するご依頼</dt><dd>${d.related.map(rid=>{
+      const r=findCase(rid);return r?`<code>${esc(r.no)}</code> ${esc(r.type)}`:''}).join('<br>')}</dd>`:''}`;
+}
+/* 🧑‍🔧 v0.8 仕様変更の料金のご案内。★文言は技工所が編集する */
+function changeFeeBox(){
+  const d=D();
+  if(!LAB_TERMS.changeFee)return '';
+  return `<div class="qbox"><div class="qh">仕様のご変更について</div><div class="qb">
+    <p class="note" style="white-space:pre-line;margin:0">${esc(LAB_TERMS.changeFeeText)}</p>
+    ${d.changeNotice?`<div class="alert ok mt" style="font-size:12px">
+      「変更の可能性あり」でお申し込みのため、<b>このご依頼では発生しません。</b></div>`
+    :`<div class="alert info mt" style="font-size:12px">
+      変更の可能性がある場合は、ひとつ前の画面で
+      <b>「変更の可能性あり」</b>をお選びください。</div>`}
+    ${LAB_TERMS.changeFeeAfterMilling?`<p class="note mt">
+      加工に入った後のご変更も承っています。お断りはいたしません。</p>`:''}
+  </div></div>`;
+}
+function confirmStage(){
+  const d=D(),w=draftLead(),chosen=chosenRush(),price=draftPrice();
+  const dv=deliverFor(w.lt.earliest,d.pat.visit);
+  const dueDate=chosen?chosen.date:dv.date;
+  const bar=stepBar(['診療区分','技工物','詳細','確認'],3);
+
+  return `
+  <h1>ご依頼内容の確認</h1>
+  <p class="sub">この内容で <b>${esc(labById(d.lab).name)}</b> へ送信します
+    <a href="#" onclick="openLabPick();return false" style="margin-left:8px;font-size:12.5px">発注先を変更</a></p>${bar}
+  <div class="grid form2">
+    <div>
+      <div class="card mb"><div class="hdr"><h3>患者・共通事項</h3>
+        <span class="sp"></span><button class="btn sm" onclick="D().stage=2;render()">修正</button></div>
+        <div class="bd"><dl class="kv">
+          <dt>発注先</dt><dd>${esc(labById(d.lab).name)}
+            <span class="note">${d.labManual?'（手動で変更）':''}</span></dd>
+          <dt>診療区分</dt><dd>${covB(d.cov)} ${covLabel(d.cov)}</dd>
+          <dt>患者</dt><dd>${esc(d.pat.patient||'')}（${esc(d.pat.chart||'')}）</dd>
+          <dt>次回ご来院日</dt><dd>${esc(d.pat.visit||'—')}</dd>
+          <dt>資材</dt><dd>${d.method==='IOS'?'IOSデータ':'物理搬送'}</dd>
+          ${confirmCommonRows()}
+        </dl></div></div>
+
+      <div class="card mb"><div class="hdr"><h3>技工物 ${d.items.length}件</h3>
+        <span class="sp"></span><button class="btn sm" onclick="D().stage=1;render()">追加・削除</button></div>
+        <div class="bd">
+        ${d.items.map((it,n)=>{const v=varOf(it);return `
+          <div class="cfi">
+            <div class="row mb"><div class="ino">${n+1}</div>
+              <b style="font-size:13.5px">${esc(v.type)}</b>
+              <span class="note">${esc(v.mat)}</span><span class="sp"></span>
+              <button class="btn sm" onclick="D().cur='${it.iid}';D().stage=2;render()">修正</button></div>
+            <dl class="kv sm">
+              <dt>部位</dt><dd>${teethLabel(it.teeth)}（${it.units}本）</dd>
+              <dt>シェード</dt><dd>${esc(it.vals.shade||'—')}</dd>
+              ${d.cov==='PRIVATE'?`<dt>試適</dt><dd>${it.tryIn?'必要':'不要'}</dd>
+                <dt>お写真</dt><dd>${it.photos}枚</dd>`:''}
+              ${TECH_FIELDS[d.cov].filter(f=>it.vals[f.c]).map(f=>
+                `<dt>${esc(f.l)}</dt><dd>${esc(it.vals[f.c])}</dd>`).join('')}
+              ${it.vals.note?`<dt>特記事項</dt><dd>${esc(it.vals.note)}</dd>`:''}
+              <dt>お届け（最短）</dt><dd>${fmtDue(itemLead(it).earliest)}
+                ${it.iid===w.it.iid&&d.items.length>1?'<span class="note">（この明細が最も遅い）</span>':''}</dd>
+            </dl>
+          </div>`}).join('')}
+        </div></div>
+
+      <div class="card"><div class="hdr"><h3>ご送付いただくもの</h3>
+        <span class="sp"></span><span class="note">${matsFor().filter(m=>d.mats[m.k]).length} / ${matsFor().length}</span></div>
+        <div class="bd">
+        <p class="note mb">お送り忘れがないかご確認ください。技工物 ${d.items.length}件は同じ模型からお作りします。</p>
+        ${matsFor().map(m=>`<label class="ck ${d.mats[m.k]?'on':''}">
+          <input type="checkbox" ${d.mats[m.k]?'checked':''} onchange="toggleMat('${m.k}')">
+          <div><div class="t">${esc(m.l)}</div>
+            ${m.hint?`<div class="note">${esc(m.hint)}</div>`:''}</div></label>`).join('')}
+        ${(()=>{const un=matsFor().filter(m=>m.often&&!d.mats[m.k]);
+          return un.length?`<div class="alert warn mt" style="font-size:12.5px">
+            <b>${un.map(m=>esc(m.l)).join('・')}</b> にチェックが付いていません。<br>
+            ★ 現場で不足しがちなのは<b>模型ではなく、一緒にお送りいただく情報</b>です。
+            模型はお忘れになることがほとんどありません（ご回答 #58）。</div>`
+            :`<div class="alert ok mt" style="font-size:12.5px">
+            お忘れになりやすいものにチェックが付いています。</div>`})()}
+        <div class="alert info mt" style="font-size:12.5px">
+          到着後、技工所で内容を確認いたします。不足があった場合はご連絡します。</div>
+      </div></div>
+    </div>
+
+    <div class="quote">
+      <div class="qbox mb"><div class="qh">お届け予定</div><div class="qb">
+        <div class="due"><div class="dl">${chosen?'特急対応'
+          :dv.mode==='VISIT'?'ご来院日に合わせたお届け':'お届け日'}</div>
+          <div class="dv" style="${chosen?'color:var(--accent)':(dv.mode==='TOO_SOON'?'color:var(--danger)':'')}">${fmtDue(dueDate)}</div>
+          <div class="dd">${d.items.length}件すべて揃ってのお届け</div></div>
+        ${chosen?`<div class="alert warn" style="font-size:12.5px">
+          特急対応のお申し込みです。技工所の受諾をもって確定します。</div>`:''}
+        ${!chosen&&dv.mode==='VISIT'?`<div class="alert ok" style="font-size:12.5px">
+          ご来院日（${fmtJ(dv.visit)}）の ${LAB_TERMS.beforeVisit}日前にお届けします。</div>`:''}
+        ${!chosen&&dv.mode==='TOO_SOON'?`<div class="alert dgr" style="font-size:12.5px">
+          ご来院日（${fmtJ(dv.visit)}）には ${dv.short}日 間に合いません。
+          この日程でお送りしてよろしければ、そのままお進みください。</div>`:''}
+      </div></div>
+      <div class="qbox mb"><div class="qh">お見積り（概算）</div><div class="qb">
+        ${price.lines.map(l=>`<div class="pricerow"><span>${esc(l.name)}</span><span>${yen(l.amount)}</span></div>`).join('')}
+        ${price.optLines.map(o=>`<div class="pricerow"><span>${esc(o.name)}</span><span>${yen(o.amount)}</span></div>`).join('')}
+        ${price.rush?`<div class="pricerow rush">
+          <span>特急割増（＋${chosen.pct}%）</span><span>${yen(price.rush)}</span></div>`:''}
+        <div class="pricerow"><span>消費税</span><span>${yen(price.tax)}</span></div>
+        <div class="pricerow tot"><span>合計</span><span>${yen(price.total)}</span></div>
+      </div></div>
+      ${changeFeeBox()}
+    </div>
+  </div>
+
+  <div class="row mt" style="justify-content:space-between">
+    <button class="btn" onclick="D().stage=2;render()">戻る</button>
+    <button class="btn pri lg" onclick="submitCase()">この内容で依頼する</button>
+  </div>`;
+}
+
+/* ============================================================
+   義歯の依頼（🖥 v0.6 で新設・BR-50）
+
+   固定物と同じ画面に収めなかったのは項目数の問題ではなく、
+   「医院と技工所を複数回往復する」という進み方そのものが違うため。
+   ============================================================ */
+function vNewDenture(){
+  const d=D();
+  /* ★段階の整合を保つ。診療区分や義歯の種類が決まっていない状態で
+     詳細・確認に進むと、dentOf() が null になって落ちる。
+     （固定物の一覧から「義歯の依頼画面へ」を押した直後に「次へ」を押すと起きていた） */
+  if(d.stage>=1&&!d.cov)d.stage=0;
+  if(d.stage>=2&&!d.dent)d.stage=1;
+  const bar=stepBar(['診療区分','義歯の種類','詳細','確認'],d.stage);
+
+  if(d.stage===0)return `
+    <h1>義歯（入れ歯）の依頼</h1><p class="sub">診療区分をお選びください</p>${bar}
+    <div class="grid g2">
+      <div class="card" style="cursor:pointer;border-color:${d.cov==='INSURANCE'?'var(--ins)':'var(--border)'}"
+           onclick="pickDentCov('INSURANCE')"><div class="bd" style="text-align:center;padding:34px 20px">
+        <div style="font-size:32px">🏥</div><h2 style="margin:10px 0"><span class="b ins">保険</span> 保険診療</h2></div></div>
+      <div class="card" style="cursor:pointer;border-color:${d.cov==='PRIVATE'?'var(--pri)':'var(--border)'}"
+           onclick="pickDentCov('PRIVATE')"><div class="bd" style="text-align:center;padding:34px 20px">
+        <div style="font-size:32px">✨</div><h2 style="margin:10px 0"><span class="b pri2">自費</span> 自費診療</h2></div></div>
+    </div>
+    <div class="row mt"><button class="btn" onclick="D().kind='FIXED';D().stage=0;render()">
+      ← 通常の技工依頼に戻る</button></div>`;
+
+  if(d.stage===1){
+    const list=DENTURES.filter(x=>x.cov===d.cov);
+    return `
+    <h1>義歯（入れ歯）の依頼</h1>
+    <p class="sub">${covB(d.cov)} ${covLabel(d.cov)}診療 ／ 種類をお選びください</p>${bar}
+    <div class="card mb"><div class="bd">
+      ${list.map(dn=>`<div class="ck ${d.dent===dn.id?'on':''}" onclick="pickDent('${dn.id}')"
+        style="border-color:${d.dent===dn.id?'var(--primary)':'var(--border)'};background:${d.dent===dn.id?'var(--primary-soft)':'#fff'}">
+        <input type="radio" ${d.dent===dn.id?'checked':''} style="accent-color:var(--primary)">
+        <div style="flex:1"><div class="t">${esc(dn.name)}</div>
+          <div class="d">お預かりとお返しを <b>${dn.stages.length}回</b>
+            ／ ${yen(dn.price)}〜</div>
+          <div class="note" style="margin-top:4px">${dn.stages.map(s=>esc(s.name)).join(' → ')}</div>
+        </div></div>`).join('')}
+    </div></div>
+    ${d.dent?dentTimelineCard(true):''}
+    <div class="row"><button class="btn" onclick="D().stage=0;render()">戻る</button>
+      <span class="sp"></span>
+      <button class="btn pri" ${d.dent?'':'disabled'} onclick="D().stage=2;render()">次へ</button></div>`;
+  }
+
+  if(d.stage===2)return dentFormStage();
+  return dentConfirmStage();
+}
+
+function dentTimelineCard(compact){
+  const sch=dentSchedule(),dn=dentOf();
+  if(!dn)return '';
+  return `
+  <div class="card mb"><div class="hdr"><h3>お預かりとお返しの流れ</h3>
+    <span class="sp"></span><span class="note">${sch.length}回</span></div>
+    <div class="bd">
+      <p class="note mb">義歯は途中で何度かお返しし、そのつど患者様にご来院いただきます。
+        下の日程は、本日お申し込みいただいた場合の目安です。</p>
+      <div class="alert info mb" style="font-size:12.5px">
+        ★ 各回の日数は<b>メタルを扱うかどうか</b>で決まります。
+        メタルを扱わない回は <b>${LAB_TERMS.leadBase.INSURANCE}日</b>、
+        扱う回は <b>${LAB_TERMS.leadBase.INSURANCE+LAB_TERMS.leadMetalExtra}日</b> です。
+        ${(()=>{const m=sch.filter(s=>s.metal);return m.length
+          ? `この種類では <b>${m.map(s=>esc(s.name)).join('・')}</b> がメタルを扱う回です。`
+          : 'この種類にメタルを扱う回はありません。'})()}</div>
+      <div class="dtl">
+        ${sch.map(s=>`<div class="dsi ${s.ret?'':'fin'}">
+          <div class="dn">${s.no}</div>
+          <div style="flex:1">
+            <div class="t">${esc(s.name)}
+              ${s.ret?'<span class="b prog">お返しします</span>':'<span class="b done">完成・納品</span>'}</div>
+            <div class="d">技工所での作業 ${s.days}日
+              ${s.metal?'<span class="b wait">メタルを扱うため2週間</span>':''}
+              ${compact?'':`／ 医院着 <b>${fmtDue(s.deliver)}</b>`}</div>
+            ${compact?`<div class="note">医院着の目安 ${fmtDue(s.deliver)}</div>`:''}
+          </div>
+        </div>`).join('')}
+      </div>
+      <div class="alert info mt" style="font-size:12.5px">
+        全部で <b>${sch.length}回</b> のお預かりになります。
+        最終のお届けの目安は <b>${fmtDue(sch[sch.length-1].deliver)}</b> です。
+        ご来院の間隔によって前後します。
+        ${dn.single?'<br>★ この品目は<b>1回で完成</b>します。義歯本体は別のお申し込みになります。':''}</div>
+    </div></div>`;
+}
+
+function dentFormStage(){
+  const d=D(),dn=dentOf(),sch=dentSchedule(),price=draftPrice();
+  const bar=stepBar(['診療区分','義歯の種類','詳細','確認'],2);
+  return `
+  <h1>義歯（入れ歯）の依頼</h1>
+  <p class="sub">${covB(d.cov)} ${esc(dn.name)}</p>${bar}
+  <div class="grid form2">
+    <div>
+      <div class="card mb"><div class="hdr"><h3>患者情報</h3></div><div class="bd">
+        <div class="grid g2">
+          <label class="f"><span class="lb">カルテ番号 <span class="req">必須</span></span>
+            <input type="text" value="${esc(d.pat.chart||'')}" oninput="setP('chart',this.value)" placeholder="A-4501"></label>
+          <label class="f"><span class="lb">患者氏名 <span class="req">必須</span></span>
+            <input type="text" value="${esc(d.pat.patient||'')}" oninput="setP('patient',this.value)" placeholder="山田 花子"></label>
+        </div>
+        <label class="f" style="margin-bottom:0"><span class="lb">次回ご来院日 <span class="req">必須</span>
+          <span class="hint">1回目のお返しをこの日の前日にお届けします</span></span>
+          <input type="date" value="${esc(d.pat.visit||'')}" onchange="setP('visit',this.value)"></label>
+      </div></div>
+
+      <div class="card mb"><div class="hdr"><h3>欠損部位 <span class="req">必須</span></h3>
+        <span class="sp"></span><span class="note">${d.dteeth.length?teethLabel(d.dteeth):'未選択'}（${d.dteeth.length}歯）</span></div>
+        <div class="bd">
+          <p class="note mb">失われている歯を選んでください。残っている歯は選ばないでください。</p>
+          ${toothChart(d.dteeth,[],'dent')}
+      </div></div>
+
+      <div class="card mb"><div class="hdr"><h3>義歯の指示</h3></div><div class="bd">
+        ${DENT_FIELDS.map(fd=>`
+          <label class="f"><span class="lb">${esc(fd.l)} ${fd.req?'<span class="req">必須</span>':''}</span>
+            <div class="chips">${fd.opts.map(o=>
+              `<button class="chip ${d.dvals[fd.c]===o?'on':''}" onclick="setDV('${fd.c}','${o}')" style="padding:5px 11px;font-size:13px">${o}</button>`).join('')}</div>
+          </label>`).join('')}
+        <label class="f"><span class="lb">特記事項</span>
+          <textarea oninput="setDV('note',this.value)"
+            placeholder="クラスプをかける歯、患者様のご希望、これまでの義歯でお困りだった点など">${esc(d.dvals.note||'')}</textarea></label>
+        <label class="f" style="margin-bottom:0"><span class="lb">お写真</span>
+          <div class="row"><button class="btn sm" onclick="D().dphotos=(D().dphotos||0)+1;render()">📷 添付</button>
+            ${D().dphotos?`<span class="b done">${D().dphotos}枚</span>`:'<span class="note">未添付</span>'}</div></label>
+      </div></div>
+
+      ${dentTimelineCard(false)}
+    </div>
+
+    <div class="quote">
+      <div class="qbox mb"><div class="qh">発注先</div><div class="qb">
+        <div class="row" style="gap:8px">
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">${esc(labById(d.lab).name)}</div>
+            <div class="note">${d.labManual?'手動で変更しました':'義歯の既定の発注先'}</div></div>
+          <button class="btn sm" onclick="openLabPick()">変更</button></div>
+      </div></div>
+      <div class="qbox mb"><div class="qh">1回目のお届け</div><div class="qb">
+        <div class="due"><div class="dl">${esc(sch[0].name)}</div>
+          <div class="dv">${fmtDue(sch[0].deliver)}</div>
+          <div class="dd">全 ${sch.length}回のうち 1回目</div></div>
+        <div class="brk">
+          ${sch.map(s=>`<div class="bi"><span>${s.no}. ${esc(s.name)}
+            ${s.metal?'<span class="b wait" style="font-size:10px">メタル</span>':''}</span>
+            <span>${fmtDue(s.deliver)}</span></div>`).join('')}
+        </div>
+        <div class="cd">義歯は特急対応を承っておりません。<br>
+          お預かりとお返しを繰り返すため、ご来院の間隔が日程を決めます。</div>
+      </div></div>
+      <div class="qbox"><div class="qh">お見積り（概算）</div><div class="qb">
+        ${price.lines.map(l=>`<div class="pricerow"><span>${esc(l.name)}</span><span>${yen(l.amount)}</span></div>`).join('')}
+        <div class="pricerow"><span>消費税</span><span>${yen(price.tax)}</span></div>
+        <div class="pricerow tot"><span>合計</span><span>${yen(price.total)}</span></div>
+        <p class="note mt">お預かりの回数が増えた場合も、この金額に含まれます。</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="row mt" style="justify-content:space-between">
+    <button class="btn" onclick="D().stage=1;render()">戻る</button>
+    <div class="row"><button class="btn" onclick="saveDraft()">下書き保存</button>
+      <button class="btn pri lg" ${canNext()?'':'disabled'} onclick="D().stage=3;render()">内容を確認</button></div>
+  </div>
+  ${!canNext()?`<p class="note mt" style="text-align:right">未入力：${missing().join('、')}</p>`:''}`;
+}
+
+function dentConfirmStage(){
+  const d=D(),dn=dentOf(),sch=dentSchedule(),price=draftPrice();
+  const bar=stepBar(['診療区分','義歯の種類','詳細','確認'],3);
+  return `
+  <h1>ご依頼内容の確認</h1>
+  <p class="sub">この内容で <b>${esc(labById(d.lab).name)}</b> へ送信します</p>${bar}
+  <div class="grid form2">
+    <div>
+      <div class="card mb"><div class="hdr"><h3>ご依頼内容</h3>
+        <span class="sp"></span><button class="btn sm" onclick="D().stage=2;render()">修正</button></div>
+        <div class="bd"><dl class="kv">
+          <dt>発注先</dt><dd>${esc(labById(d.lab).name)}</dd>
+          <dt>診療区分</dt><dd>${covB(d.cov)} ${covLabel(d.cov)}</dd>
+          <dt>義歯の種類</dt><dd>${esc(dn.name)}</dd>
+          <dt>患者</dt><dd>${esc(d.pat.patient||'')}（${esc(d.pat.chart||'')}）</dd>
+          <dt>次回ご来院日</dt><dd>${esc(d.pat.visit||'—')}</dd>
+          ${confirmCommonRows()}
+          <dt>欠損部位</dt><dd>${teethLabel(d.dteeth)}（${d.dteeth.length}歯）</dd>
+          ${DENT_FIELDS.filter(f=>d.dvals[f.c]).map(f=>`<dt>${esc(f.l)}</dt><dd>${esc(d.dvals[f.c])}</dd>`).join('')}
+          ${d.dvals.note?`<dt>特記事項</dt><dd>${esc(d.dvals.note)}</dd>`:''}
+          <dt>お預かり回数</dt><dd>${sch.length}回</dd>
+        </dl></div></div>
+      ${dentTimelineCard(false)}
+      <div class="card"><div class="hdr"><h3>ご送付いただくもの</h3></div><div class="bd">
+        ${matsFor().map(m=>`<label class="ck ${d.mats[m.k]?'on':''}">
+          <input type="checkbox" ${d.mats[m.k]?'checked':''} onchange="toggleMat('${m.k}')">
+          <div><div class="t">${esc(m.l)}</div>
+            ${m.hint?`<div class="note">${esc(m.hint)}</div>`:''}</div></label>`).join('')}
+      </div></div>
+    </div>
+    <div class="quote">
+      <div class="qbox mb"><div class="qh">最終のお届け</div><div class="qb">
+        <div class="due"><div class="dl">完成予定</div>
+          <div class="dv">${fmtDue(sch[sch.length-1].deliver)}</div>
+          <div class="dd">全 ${sch.length}回のお預かりを経て</div></div>
+        ${sch.some(s=>s.metal)?`<div class="alert warn" style="font-size:12px">
+          ★ メタルを扱う回（${sch.filter(s=>s.metal).map(s=>esc(s.name)).join('・')}）は
+          ${LAB_TERMS.leadBase.INSURANCE+LAB_TERMS.leadMetalExtra}日いただきます。</div>`:''}
+      </div></div>
+      <div class="qbox mb"><div class="qh">お見積り（概算）</div><div class="qb">
+        ${price.lines.map(l=>`<div class="pricerow"><span>${esc(l.name)}</span><span>${yen(l.amount)}</span></div>`).join('')}
+        <div class="pricerow"><span>消費税</span><span>${yen(price.tax)}</span></div>
+        <div class="pricerow tot"><span>合計</span><span>${yen(price.total)}</span></div>
+      </div></div>
+      ${changeFeeBox()}
+    </div>
+  </div>
+  <div class="row mt" style="justify-content:space-between">
+    <button class="btn" onclick="D().stage=2;render()">戻る</button>
+    <button class="btn pri lg" onclick="submitCase()">この内容で依頼する</button>
+  </div>`;
+}
+
+function pickDentCov(c){const d=D();d.cov=c;d.dent=null;d.dvals={};d.dteeth=[];
+  d.lab=routeLab(c,'局部床義歯');d.labManual=false;d.stage=1;render()}
+function pickDent(id){D().dent=id;render()}
+function setDV(k,v){D().dvals[k]=v;render()}
+
+/* ---------- 共通の入力ハンドラ ---------- */
+function setP(k,v){D().pat[k]=v;render()}
+function setV(k,v){const it=CUR();if(it){it.vals[k]=v;render()}}
+function setTryIn(b){const it=CUR();if(it){it.tryIn=b;D().rush=null;render()}}
+function setMethod(m){D().method=m;D().rush=null;render()}
+function setRush(n){D().rush=n;S.modal=null;render()}
+function addPhoto(){const it=CUR();if(it){it.photos++;render()}}
+function toggleMat(k){D().mats[k]=!D().mats[k];render()}
+/* 義歯は欠損部位、固定物は明細ごとの部位。同じチャートを使い回す */
+function toggleTooth(n,scope){
+  const d=D();
+  if(scope==='dent'){
+    const a=d.dteeth,i=a.indexOf(n);i<0?a.push(n):a.splice(i,1);render();return;
+  }
+  const it=CUR();if(!it)return;
+  const i=it.teeth.indexOf(n);
+  i<0?it.teeth.push(n):it.teeth.splice(i,1);
+  it.units=Math.max(1,it.teeth.length);
+  d.rush=null;render();
+}
+/* 明細が複数あるとき、詳細の指定を同じ内容で入れたいことが多い。
+   毎回入力させるのは「アバウトな指示でよい」という前提に反する。 */
+function copySpecs(){
+  const d=D(),src=CUR();if(!src)return;
+  const keys=TECH_FIELDS[d.cov].map(f=>f.c);
+  d.items.forEach(it=>{if(it.iid!==src.iid)keys.forEach(k=>{it.vals[k]=src.vals[k]})});
+  toast(`詳細の指定をほかの ${d.items.length-1}件 にも反映しました`);
+}
+
+function openLabPick(){
+  const d=D(),cands=activeLabs().filter(l=>l.handles.includes(d.cov));
+  const t=d.kind==='REMOVABLE'?'局部床義歯':(d.items[0]?d.items[0].type:null);
+  const auto=routeLab(d.cov,t);
+  S.modal={title:'発注先の変更',body:`
+    <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px">
+      ${esc(covLabel(d.cov))}${t?` ・ ${esc(t)}`:''} を扱える取引先です。</p>
+    ${cands.map(l=>`<div class="rushopt ${d.lab===l.id?'on':''}" onclick="setLab('${l.id}')">
+      <div><div class="rd">${esc(l.name)}</div>
+        <div class="note"><code>${esc(l.code)}</code>
+          ${l.id===auto?` ・ ${esc(routeReason(d.cov,t))}`:''}</div></div>
+      ${d.lab===l.id?'<div class="rp"><span class="b prog">選択中</span></div>':''}</div>`).join('')}
+    ${d.labManual?`<p class="note mt">
+      <a href="#" onclick="D().labManual=false;D().lab='${auto}';S.modal=null;render();return false">既定の発注先に戻す</a></p>`:''}
+    <p class="note mt">1件のお申し込みは1つの発注先にまとめてお送りします（BR-35）。<br>
+      既定の割り当ては「取引先技工所」の設定で変更できます。</p>`,ok:null};
+  render();
+}
+function setLab(id){const d=D();
+  const t=d.kind==='REMOVABLE'?'局部床義歯':(d.items[0]?d.items[0].type:null);
+  d.lab=id;d.labManual=(id!==routeLab(d.cov,t));S.modal=null;render()}
+
+/* 🧑‍🔧 v0.8 特急（ご回答 #9・#10・#86）
+
+   ★段階を 20 / 50 / 100 / 150% にした。上限は4日短縮。
+   ★<b>定価との差額を必ず出す</b>。合計だけを出すと「いくら上がったのか」が分からず、
+     電話での問い合わせに戻ってしまう。 */
+function openRush(){
+  const d=D(),w=draftLead(),ro=draftRush();
+  const norm=(()=>{const s=D().rush;D().rush=null;const x=draftPrice().total;D().rush=s;return x})();
+  const dv=deliverFor(w.lt.earliest,d.pat.visit);
+  S.modal={title:'特急料金で対応',body:`
+    ${dv.mode==='VISIT'?`<div class="alert ok mb" style="font-size:12.5px">
+      ご来院日（${fmtJ(dv.visit)}）には<b>通常の日程で間に合います。</b>特急のお申し込みは必要ありません。<br>
+      それより前にお受け取りになりたい場合のみ、下からお選びください。</div>`:''}
+    ${dv.mode==='TOO_SOON'?`<div class="alert dgr mb" style="font-size:12.5px">
+      ご来院日（${fmtJ(dv.visit)}）に間に合わせるには <b>${dv.short}日</b> 縮める必要があります。
+      ${dv.short<=LAB_TERMS.rushMaxDays
+        ?`下の <b>${dv.short}日短縮</b> 以上をお選びください。`
+        :`特急でも最大 ${LAB_TERMS.rushMaxDays}日 までです。ご来院日のご調整をお願いします。`}</div>`:''}
+    <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px">
+      通常の最短お届けは <b style="color:var(--text)">${fmtDue(w.lt.earliest)}</b>（${yen(norm)}）です。
+      割増料金にて、下記の日程で承れます。最大 <b>${LAB_TERMS.rushMaxDays}日</b> まで繰り上げられます。
+      ${d.items.length>1?'<br>技工物 '+d.items.length+'件すべてを繰り上げます。':''}</p>
+    ${ro.length?ro.map(r=>{
+      const save=D().rush;D().rush=r.days;const p=draftPrice();D().rush=save;
+      return `<div class="rushopt ${r.ok?'':'dis'}" ${r.ok?`onclick="setRush(${r.days})"`:''}>
+        <div><div class="rd">${fmtDue(r.date)}</div>
+          <div class="note">${esc(r.label)} ・ 割増 <b>＋${r.pct}%</b>${r.ok?'':' ・ '+esc(r.why||'')+'承れません'}</div></div>
+        <div class="rp"><b>${yen(p.total)}</b>
+          ${LAB_TERMS.rushShowDiff?`<div class="note" style="color:var(--accent)">
+            通常より ＋${yen(p.total-norm)}</div>`:''}</div>
+      </div>`}).join('')
+    :`<div class="alert warn" style="font-size:12.5px">
+      ${d.kind==='REMOVABLE'
+        ?'義歯は特急の対象外です。ご来院のたびに医院を経由するため、技工所側では日数を縮められません。'
+        :'この内容には特急をご用意していません。'}</div>`}
+    <p class="note mt">特急のお申し込みは、技工所の受諾をもって確定します。
+      割増率は取引先ごとの設定です（現在：${RUSH_TIERS.filter(t=>t.days<=LAB_TERMS.rushMaxDays)
+        .map(t=>`${t.days}日＝＋${t.pct}%`).join(' ／ ')}）。</p>`,ok:null};
+  render();
+}
+
+function toothChart(sel,others,scope){
+  const q=(f,t,r)=>{let a=[];for(let i=f;i<=t;i++)a.push(i);if(r)a.reverse();return a};
+  const oth=others||[];
+  const t=n=>`<button class="tooth ${sel.includes(n)?'on':(oth.includes(n)?'other':'')}"
+    onclick="toggleTooth(${n}${scope?`,'${scope}'`:''})">${n%10}</button>`;
+  return `<div class="tc">
+    <div class="lbl">上顎</div>
+    <div class="mid"><div><div class="q">${q(11,18,true).map(t).join('')}</div><div class="lbl">右上</div></div>
+      <div><div class="q">${q(21,28).map(t).join('')}</div><div class="lbl">左上</div></div></div>
+    <div style="height:8px"></div>
+    <div class="mid"><div><div class="q">${q(41,48,true).map(t).join('')}</div><div class="lbl">右下</div></div>
+      <div><div class="q">${q(31,38).map(t).join('')}</div><div class="lbl">左下</div></div></div>
+    <div class="lbl">下顎</div></div>`;
+}
+
+function submitCase(){
+  /* ★ S.draft を null にした後に chosenRush() を呼ぶと落ちる。先に取り出しておく */
+  const d=D(),price=draftPrice(),rush=chosenRush();
+  const id='c'+(CASES.length+1);
+  const no=labById(d.lab).pre+'-2026-000'+(150+CASES.length);
+  let due,items,head;
+  if(d.kind==='REMOVABLE'){
+    const dn=dentOf(),sch=dentSchedule();
+    due=fmt(sch[sch.length-1].deliver);
+    items=[{no:1,type:dn.name,mat:d.dvals.arch||'—',teeth:d.dteeth,units:d.dteeth.length,
+      shade:d.dvals.toothShade||'—',amount:price.base}];
+    head=dn.name;
+    var stages=sch.map(s=>({no:s.no,name:s.name,deliver:fmt(s.deliver),ret:s.ret,
+      status:s.no===1?'IN_LAB':'PENDING'}));
+  }else{
+    const w=draftLead();
+    const dv=deliverFor(w.lt.earliest,d.pat.visit);
+    due=fmt(rush?rush.date:dv.date);
+    items=d.items.map((it,n)=>{const v=varOf(it);
+      return {no:n+1,type:v.type,mat:v.mat,teeth:it.teeth,units:it.units,
+        shade:it.vals.shade||'—',tryIn:it.tryIn,amount:v.price*it.units};});
+    head=d.items.length>1?`${varOf(d.items[0]).type} ほか${d.items.length-1}件`:varOf(d.items[0]).type;
+  }
+  CASES.unshift({id,no,tenant:d.lab,kind:d.kind,
+    patient:d.pat.patient,chart:d.pat.chart,pno:d.pat.pno||null,cov:d.cov,
+    type:head,mat:items[0].mat,teeth:items.flatMap(i=>i.teeth),
+    shade:items[0].shade,due,items,stages:d.kind==='REMOVABLE'?stages:null,
+    status:'SUBMITTED',step:0,creator:S.user,amount:price.total,
+    isRush:!!rush,
+    /* 🧑‍🔧 v0.8 患者コード・変更の事前申告・関連するご依頼 */
+    changeNotice:!!d.changeNotice,
+    related:(d.related||[]).slice(),
+    timeline:[{t:'たった今',who:U().name,
+      tx:d.kind==='REMOVABLE'?`義歯の依頼を送信しました（お預かり ${stages.length}回）`
+        :`依頼を送信しました（技工物 ${items.length}件）`,k:'hi'}]});
+  /* ★関連は双方向に張る。片方からしか見えないと、もう一方の画面で気付けない */
+  (d.related||[]).forEach(rid=>{const r=findCase(rid);
+    if(r){r.related=(r.related||[]);
+      if(!r.related.includes(id))r.related.push(id);
+      r.timeline.push({t:'たった今',who:U().name,tx:`関連するご依頼（${no}）を紐付けました`,k:''})}});
+  S.draft=null;
+  toast(rush?'特急でのご依頼を送信しました':'依頼を送信しました');
+  go('case',id);
+}
+
+/* ============================================================
+   一覧・詳細・承認・判断・検収・請求
+   ============================================================ */
+function vCases(){
+  const cs=myCases();
+  return `
+  <div class="row mb" style="align-items:flex-start;gap:16px">
+    <div style="flex:1;min-width:220px">
+      <h1>依頼一覧</h1><p class="sub" style="margin:0">${esc(filterLabel())} ／ ${cs.length}件</p>
+    </div>
+    <button class="btn pri lg" onclick="startNew()">＋ 新しい技工依頼</button>
+  </div>
+  <div class="card mb"><div class="bd row">
+    <input type="text" placeholder="患者名・カルテ番号・ケース番号" style="flex:1;min-width:200px">
+    <select style="width:auto" onchange="S.labFilter=this.value;render()">
+      <option value="ALL" ${S.labFilter==='ALL'?'selected':''}>すべての発注先</option>
+      ${activeLabs().map(l=>`<option value="${l.id}" ${S.labFilter===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}
+    </select>
+    <select style="width:auto"><option>すべての区分</option><option>保険</option><option>自費</option></select>
+    <select style="width:auto"><option>すべての状況</option><option>要対応</option><option>製作中</option><option>納品完了</option></select>
+  </div></div>
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>ケース番号</th><th>患者</th><th>区分</th><th>技工物</th><th>部位</th><th>発注先</th>
+      <th>進捗</th><th>状況</th><th>納期</th><th></th></tr></thead>
+    <tbody>${cs.map(c=>`<tr class="clk" onclick="go('case','${c.id}')">
+      <td><code>${esc(c.no)}</code>${c.remakeOf?' <span class="b dgr">再製作</span>':''}</td>
+      <td><b>${esc(c.patient)}</b><div class="note">${esc(c.chart)}${c.pno?' ／ '+esc(c.pno):''}</div></td>
+      <td>${covB(c.cov)}</td>
+      <td>${esc(c.type)}
+        ${c.items&&c.items.length>1?`<span class="b prog">${c.items.length}件</span>`:''}
+        ${c.kind==='REMOVABLE'?'<span class="b pri2">義歯</span>':''}
+        ${c.related&&c.related.length?`<span class="b prog" title="関連するご依頼があります">関連${c.related.length}</span>`:''}</td>
+      <td>${teethLabel(c.teeth)}</td>
+      <td class="note">${esc(labById(c.tenant).name)}</td>
+      <td>${ext3Bar(c)}</td>
+      <td>${badge(c)}</td>
+      <td style="white-space:nowrap">${fmtDueStr(c.due)}${c.isRush?' <span class="b wait">特急</span>':''}</td>
+      <td>${needsMe(c)?'<span class="b wait">要対応</span>':''}</td></tr>`).join('')
+      ||'<tr><td colspan="10" class="empty">該当する案件はありません</td></tr>'}</tbody>
+  </table></div></div>`;
+}
+
+function vCase(){
+  const c=findCase(S.param); if(!c)return '<div class="empty">案件が見つかりません</div>';
+  const locked=c.step>=3;
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('cases')">一覧を見る</button>
+    <span class="sp"></span>${covB(c.cov)}${badge(c)}</div>
+  <h1>${esc(c.patient)} 様 ／ ${esc(c.type)}</h1>
+  <p class="sub"><code>${esc(c.no)}</code> ・ ${esc(c.chart)}${c.pno?` ・ 患者コード <code>${esc(c.pno)}</code>`:''}
+    ・ ${teethLabel(c.teeth)} ・ 発注先 <b>${esc(labById(c.tenant).name)}</b></p>
+
+  ${c.remakeOf?(()=>{const o=findCase(c.remakeOf);const f=FAULT_OPTIONS.find(x=>x.k===c.fault);
+    return `<div class="alert dgr mb">
+      <b>再製作のご依頼です。</b>
+      ${o?`元のご依頼：<a href="#" onclick="go('case','${o.id}');return false"><code>${esc(o.no)}</code></a> ／ `:''}
+      申告いただいた責任の所在：<b>${esc(f?f.l:'—')}</b>
+      <div class="note mt">技工所側でも原因区分を登録します。
+        双方の見方が異なった場合は、記録を残したうえでご相談になります（未決 #68）。</div></div>`})():''}
+
+  <div class="card mb"><div class="bd">
+    <div class="steps">${EXT3.map((s,i)=>{
+      const cur=ext3(c.step);
+      return `<div class="stp ${i<cur?'dn':(i===cur?'cur':'')}">${s}</div>`}).join('')}</div>
+    <p class="note mt" style="margin-bottom:0">
+      ★ 進捗は<b>技工所からのお知らせに合わせて</b>切り替わります。
+      工程の細かい動きはそのつどは反映されません。</p>
+    ${locked?`<div class="alert ${LAB_TERMS.changeFeeAfterMilling?'warn':'dgr'} mt">
+      ${LAB_TERMS.changeFeeAfterMilling
+        ?`<b>加工工程に入っています。</b>仕様のご変更は承れますが、
+          <b>それまでに進んだ工程の技工料が発生します。</b>
+          <div class="row mt"><button class="btn wrn sm" onclick="openSpecChange('${c.id}')">仕様の変更を依頼する</button>
+            <span class="note">お見積りをご確認いただいてからの確定になります</span></div>`
+        :`加工工程に入っているため、仕様の変更は承れません。
+          お急ぎのご事情がある場合はお電話でご相談ください。`}</div>`
+      :`<div class="alert info mt" style="font-size:12.5px">
+        仕様のご変更は、いまの段階では<b>追加の費用なく</b>承れます。
+        <div class="row mt"><button class="btn sm" onclick="openSpecChange('${c.id}')">仕様の変更を依頼する</button></div></div>`}
+  </div></div>
+
+  ${c.status==='AWAITING_APPROVAL'?`<div class="alert warn mb row">
+    <div style="flex:1"><b>仕様のご提案が届いています</b></div>
+    <button class="btn wrn" onclick="go('approve','${c.id}')">確認する</button></div>`:''}
+  ${c.status==='ACTION_REQUIRED'?`<div class="alert dgr mb row">
+    <div style="flex:1"><b>スキャンの所見についてご判断が必要です</b></div>
+    <button class="btn dgr" onclick="go('issue','${c.id}')">確認する</button></div>`:''}
+  ${c.status==='SHIPPED'?`<div class="alert info mb row">
+    <div style="flex:1"><b>発送済みです。お届け物のご確認をお願いします</b></div>
+    <button class="btn pri" onclick="go('accept','${c.id}')">検収する</button></div>`:''}
+  ${['CONFIRMED','MATERIALS_PENDING'].includes(c.status)?`<div class="alert warn mb row">
+    <div style="flex:1"><b>資材のご発送をお願いします</b></div>
+    <button class="btn wrn" onclick="go('ship','${c.id}')">発送を登録</button></div>`:''}
+
+  <div class="grid g2">
+    <div class="card"><div class="hdr"><h3>ご依頼内容</h3>
+      ${c.items&&c.items.length>1?`<span class="sp"></span><span class="note">技工物 ${c.items.length}件</span>`:''}</div>
+      <div class="bd">
+      <dl class="kv">
+        <dt>診療区分</dt><dd>${covB(c.cov)}</dd>
+        ${c.items&&c.items.length?'':`<dt>技工物</dt><dd>${esc(c.type)}</dd>
+        <dt>材料</dt><dd>${esc(c.mat||'—')}</dd>
+        <dt>部位</dt><dd>${teethLabel(c.teeth)}</dd>
+        <dt>シェード</dt><dd>${esc(c.shade)}</dd>`}
+        <dt>納期</dt><dd><b>${fmtDueStr(c.due)}</b>${c.isRush?' <span class="b wait">特急</span>':''}</dd>
+        <dt>金額</dt><dd>${c.amount?yen(c.amount):'—'}</dd>
+        <dt>作成者</dt><dd>${esc((USERS.find(u=>u.id===c.creator)||{}).name||'—')}</dd>
+        ${c.changeNotice?`<dt>受注時の申告</dt><dd><span class="b prog">変更の可能性あり</span>
+          <span class="note">この場合、仕様変更に伴う技工料は発生しません</span></dd>`:''}
+      </dl>
+
+      ${c.related&&c.related.length?`<div class="alert info mt" style="font-size:12.5px">
+        <b>関連するご依頼</b>
+        <div class="mt">${c.related.map(rid=>{const r=findCase(rid);
+          return r?`<a href="#" onclick="go('case','${r.id}');return false" style="display:block">
+            <code>${esc(r.no)}</code> ${esc(r.type)}（${esc(r.mat||'—')}）</a>`:''}).join('')}</div>
+        <div class="note mt">同時にお作りするものとして紐付けています。
+          技工所側でも同じ紐付けが見えています。</div></div>`:''}
+
+      ${c.items&&c.items.length?`<div class="mt">
+        ${c.items.map(it=>`<div class="cfi">
+          <div class="row mb"><div class="ino">${it.no}</div>
+            <b style="font-size:13.5px">${esc(it.type)}</b>
+            <span class="note">${esc(it.mat)}</span></div>
+          <dl class="kv sm">
+            <dt>部位</dt><dd>${it.teeth&&it.teeth.length?teethLabel(it.teeth):'—'}（${it.units}）</dd>
+            <dt>シェード</dt><dd>${esc(it.shade)}</dd>
+            ${it.tryIn?'<dt>試適</dt><dd>必要</dd>':''}
+            <dt>金額</dt><dd>${yen(it.amount)}</dd>
+          </dl></div>`).join('')}
+        ${c.items.length>1?`<p class="note mt">
+          ★ ${c.items.length}件は同じ模型からお作りするため、揃ってからのお届けになります。</p>`:''}
+      </div>`:''}
+
+      ${c.stages?`<div class="mt">
+        <div class="row mb"><b style="font-size:13px">お預かりとお返しの流れ</b>
+          <span class="sp"></span><span class="note">全${c.stages.length}回</span></div>
+        <div class="dtl">
+          ${c.stages.map(s=>`<div class="dsi ${s.ret?'':'fin'}">
+            <div class="dn">${s.no}</div>
+            <div style="flex:1"><div class="t">${esc(s.name)}
+              ${s.status==='IN_LAB'?'<span class="b prog">技工所で製作中</span>':
+                s.status==='DONE'?'<span class="b done">完了</span>':'<span class="b gray">これから</span>'}</div>
+              <div class="d">医院着の目安 ${esc(s.deliver)}
+                ${s.ret?'／ ご来院のうえお預かりを続けます':'／ これで完成です'}</div></div>
+          </div>`).join('')}
+        </div></div>`:''}
+      <div class="row mt"><button class="btn sm" onclick="printOrder('${c.id}')">技工指示書</button>
+        <button class="btn sm" onclick="openAsk('${c.id}')">技工所に問い合わせ</button></div>
+    </div></div>
+
+    <div class="card"><div class="hdr"><h3>やり取りの記録</h3></div><div class="bd">
+      <div class="tl">${c.timeline.map(e=>`<div class="tli ${e.k}">
+        <div class="tm">${esc(e.t)}</div>
+        <div class="tx"><span class="who">${esc(e.who)}</span> ${esc(e.tx)}</div></div>`).join('')}</div>
+    </div></div>
+  </div>`;
+}
+
+function vApprove(){
+  const c=findCase(S.param); if(!c||!c.proposal)return '<div class="empty">—</div>';
+  const p=c.proposal,can=U().canApprove;
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('case','${c.id}')">案件を見る</button></div>
+  <h1>仕様のご提案（第${p.rev}版）</h1>
+  <p class="sub">${esc(c.no)} ・ ${esc(c.patient)}様 ・ ${teethLabel(c.teeth)} ・ ${covB(c.cov)}
+    <span style="margin-left:8px">${esc(p.by)}　${esc(p.at)}</span></p>
+
+  <div class="card mb"><div class="hdr"><h2>変更のご提案</h2></div><div class="bd">
+    <div class="diff">${p.diffs.map(x=>`<div class="r">
+      <div class="fn">${esc(x.f)}　<span class="b ${x.kind==='変更'?'wait':'prog'}">${x.kind}</span></div>
+      <div class="bf">${esc(x.before)}</div>
+      <div class="af">${esc(x.after)}</div>
+      <div class="rs"><b>理由：</b>${esc(x.reason)}</div></div>`).join('')}</div>
+    <h3 class="mt">そのまま</h3>
+    <dl class="kv">${p.keep.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+  </div></div>
+
+  <div class="card mb"><div class="hdr"><h3>お見積り・納期</h3></div><div class="bd">
+    <div class="row"><div style="flex:1">金額</div><b style="font-size:19px">${yen(p.amount)}</b><span class="note">（税込）</span></div>
+    <div class="row mt"><div style="flex:1">納期</div><b>${esc(p.due)}</b></div>
+  </div></div>
+
+  ${can?`<div class="row" style="justify-content:space-between">
+    <button class="btn" onclick="openRevise('${c.id}')">修正を依頼する</button>
+    <button class="btn pri lg" onclick="doApprove('${c.id}')">この内容で承認する</button>
+  </div>`:`<div class="alert warn">
+    <b>承認権限がありません</b><br>${esc(U().name)} さんは内容の確認まで行えます。承認は院長・ドクターにご依頼ください。
+    <div class="mt"><button class="btn" onclick="openAskApprove('${c.id}','approve')">承認を依頼する</button></div></div>`}`;
+}
+function doApprove(id){const c=findCase(id);c.status='CONFIRMED';c.step=2;c.mat='ゴールドクラウン 14K';c.shade='A3';
+  c.timeline.push({t:'たった今',who:U().name,tx:'仕様を承認しました → 受注確定',k:'ap'});
+  toast('承認しました');go('case',id)}
+function openRevise(id){S.modal={title:'修正のご依頼',body:`
+  <p>技工所へのご要望をご記入ください。</p><textarea placeholder="例：18Kでお願いできますか？"></textarea>`,
+  ok:'送信する',fn:()=>{const c=findCase(id);c.status='IN_CLARIFICATION';
+    c.timeline.push({t:'たった今',who:U().name,tx:'修正を依頼しました',k:'wn'});
+    S.modal=null;toast('修正依頼を送信しました');go('case',id)}};render()}
+
+function vIssue(){
+  const c=findCase(S.param); if(!c||!c.issue)return '<div class="empty">—</div>';
+  const i=c.issue,can=U().canApprove;
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('case','${c.id}')">案件を見る</button></div>
+  <h1>ご判断のお願い</h1>
+  <p class="sub">${esc(c.no)} ・ ${esc(c.patient)}様 ・ ${teethLabel(c.teeth)}</p>
+  <div class="card mb" style="border-color:#f0c0bd">
+    <div class="hdr" style="background:var(--danger-soft);border-radius:10px 10px 0 0">
+      <h2 style="color:#8c1d18">技工所からのご報告</h2>
+      <span class="sp"></span><span class="note">${esc(i.by)}　${esc(i.at)}</span></div>
+    <div class="bd">
+      <div class="grid" style="grid-template-columns:1fr 1fr;max-width:420px">
+        <div class="ph">頬側マージン</div><div class="ph">遠心側</div></div>
+      <p class="mt" style="white-space:pre-line">${esc(i.desc)}</p>
+      <div class="alert dgr mt"><b>想定されるリスク</b><br>${esc(i.risk)}</div>
+    </div></div>
+  ${can?`<div class="card"><div class="hdr"><h2>ご判断</h2></div><div class="bd">
+    <div class="grid g2">
+      <button class="btn lg" style="height:100%;text-align:left;padding:18px" onclick="doReturn('${c.id}')">
+        <div style="font-size:16px;font-weight:700">差し戻す</div>
+        <div class="note" style="margin-top:5px">再印象をお願いします</div></button>
+      <button class="btn lg" style="height:100%;text-align:left;padding:18px;border-color:var(--accent);color:var(--accent)"
+        onclick="openProceed('${c.id}')">
+        <div style="font-size:16px;font-weight:700">このまま進める</div>
+        <div class="note" style="margin-top:5px">現状のデータで作製を依頼します</div></button>
+    </div>
+    <label class="f mt"><span class="lb">コメント（任意）</span><textarea></textarea></label>
+  </div></div>`:`<div class="alert warn"><b>判断権限がありません</b>
+    <div class="mt"><button class="btn" onclick="openAskApprove('${c.id}','issue')">判断を依頼する</button></div></div>`}`;
+}
+function openProceed(id){
+  S.modal={title:'確認',danger:true,body:`
+    <div class="alert dgr mb"><b>不明瞭な状態のまま作製いたします</b><br>
+      適合不良や再製作が発生する可能性があります。この場合の再製作費用の扱いについては、取引条件に準じます。</div>
+    <label class="ck"><input type="checkbox" id="riskInput"
+      onchange="document.getElementById('okBtn').disabled=!this.checked">
+      <div><div class="t">上記のリスクを理解した上で、作製を依頼します</div></div></label>
+    <dl class="kv mt"><dt>判断者</dt><dd>${esc(U().name)}（${esc(U().role)}）</dd>
+      <dt>日時</dt><dd>2026-08-11 10:32</dd></dl>`,
+    ok:'続行を確定する',okDisabled:true,
+    fn:()=>{const c=findCase(id);c.status='IN_PRODUCTION';c.step=3;
+      c.timeline.push({t:'たった今',who:U().name,tx:'「このまま進める」と判断しました',k:'wn'});
+      S.modal=null;toast('判断を記録しました');go('case',id)}};
+  render();
+}
+function doReturn(id){const c=findCase(id);c.status='RETURNED';c.step=2;
+  c.timeline.push({t:'たった今',who:U().name,tx:'差し戻しを選択しました',k:'wn'});
+  toast('差し戻しました');go('case',id)}
+
+function vShip(){
+  const c=findCase(S.param);
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('case','${c.id}')">案件を見る</button></div>
+  <h1>資材の発送登録</h1><p class="sub">${esc(c.no)} ・ ${esc(c.patient)}様</p>
+  <div class="card"><div class="bd">
+    <label class="f"><span class="lb">発送日 <span class="req">必須</span></span><input type="date" value="2026-08-11"></label>
+    <label class="f"><span class="lb">配送業者</span><select><option>ヤマト運輸</option><option>佐川急便</option><option>日本郵便</option><option>自社便</option></select></label>
+    <label class="f"><span class="lb">送り状番号</span><input type="text" placeholder="4821-9930-1122"></label>
+    <button class="btn pri block mt" onclick="doShip('${c.id}')">発送を登録する</button>
+  </div></div>`;
+}
+function doShip(id){const c=findCase(id);c.status='MATERIALS_PENDING';
+  c.timeline.push({t:'たった今',who:U().name,tx:'資材を発送しました',k:''});
+  toast('発送を登録しました');go('case',id)}
+
+function vAccept(){
+  const c=findCase(S.param);
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('case','${c.id}')">案件を見る</button></div>
+  <h1>お届け物のご確認</h1><p class="sub">${esc(c.no)} ・ ${esc(c.patient)}様 ・ ${esc(c.type)}</p>
+  <div class="card mb"><div class="bd"><dl class="kv">
+    <dt>発送日</dt><dd>2026-08-07 17:00</dd>
+    <dt>お届け予定</dt><dd>2026-08-08</dd>
+    <dt>追跡番号</dt><dd><code>4821-9931-8877</code></dd>
+    <dt>納品書</dt><dd><a href="#" onclick="printDelivery('${c.id}');return false">納品書PDF</a></dd></dl>
+  </div></div>
+  ${U().canApprove?`<div class="card"><div class="hdr"><h2>ご確認</h2></div><div class="bd">
+    <div class="grid g2">
+      <button class="btn pri lg" style="height:100%;padding:20px" onclick="doAccept('${c.id}')">
+        <div style="font-size:16px;font-weight:700">問題ありません</div>
+        <div style="font-size:12px;opacity:.85;margin-top:5px">納品完了となります</div></button>
+      <button class="btn dgr lg" style="height:100%;padding:20px" onclick="openTrouble('${c.id}')">
+        <div style="font-size:16px;font-weight:700">不具合を報告する</div>
+        <div class="note" style="margin-top:5px">再製作の手配をいたします</div></button>
+    </div></div></div>`:`<div class="alert warn">検収の権限がありません。院長・ドクターにご依頼ください。</div>`}`;
+}
+function doAccept(id){const c=findCase(id);c.status='DELIVERED';c.step=5;
+  c.timeline.push({t:'たった今',who:U().name,tx:'検収しました → 納品完了',k:'ap'});
+  toast('検収しました');go('case',id)}
+
+/* 医院が受け取る請求。★技工所ごとに分かれる（BR-36） */
+let CL_INVOICES=[
+  {id:'ci1',month:'2026年8月分',lab:'l1',no:null,n:4,ins:42100,pri:26200,rush:0,status:'OPEN'},
+  {id:'ci2',month:'2026年8月分',lab:'l2',no:null,n:1,ins:0,pri:16000,rush:0,status:'OPEN'},
+  {id:'ci3',month:'2026年7月分',lab:'l1',no:'INV-2026-07-014',n:8,ins:58000,pri:54400,rush:6800,
+   status:'PAID',issuedOn:'2026-08-01',dueOn:'2026-08-31',paidOn:'2026-08-25'},
+  {id:'ci4',month:'2026年6月分',lab:'l1',no:'INV-2026-06-014',n:6,ins:41000,pri:38000,rush:0,
+   status:'PAID',issuedOn:'2026-07-01',dueOn:'2026-07-31',paidOn:'2026-07-28'}
+];
+const ciSub=i=>i.ins+i.pri+i.rush;
+const ciTotal=i=>ciSub(i)+Math.round(ciSub(i)*0.1);
+const CI_STATUS={OPEN:{l:'締め前',c:'gray'},ISSUED:{l:'お支払い前',c:'wait'},PAID:{l:'入金済',c:'done'}};
+
+function vInvoices(){
+  const byLab={};
+  CL_INVOICES.forEach(i=>{(byLab[i.lab]||=[]).push(i)});
+  return `
+  <div class="row mb" style="align-items:flex-start">
+    <div style="flex:1;min-width:240px"><h1>ご請求</h1>
+      <p class="sub" style="margin:0">請求は<b>技工所ごとに別々</b>に発行されます。締め日・支払サイトも取引先ごとの設定です。</p></div>
+    <button class="btn" onclick="csvInvoices()">CSV出力</button>
+  </div>
+
+  <div class="grid g${Math.min(3,Object.keys(byLab).length)||1} mb">
+    ${Object.keys(byLab).map(id=>{
+      const open=byLab[id].filter(i=>i.status!=='PAID');
+      return `<div class="card stat">
+        <div class="l">${esc(labById(id).name)}</div>
+        <div class="n">${yen(open.reduce((s,i)=>s+ciTotal(i),0))}</div>
+        <div class="note">${open.length?'締め前・お支払い前の合計':'未請求はありません'}</div></div>`;
+    }).join('')}
+  </div>
+
+  <div class="card mb"><div class="tw"><table>
+    <thead><tr><th>請求月</th><th>発注先</th><th>請求書番号</th><th class="num">件数</th>
+      <th class="num">保険</th><th class="num">自費</th><th class="num">特急割増</th>
+      <th class="num">合計（税込）</th><th>状況</th><th></th></tr></thead>
+    <tbody>${CL_INVOICES.map(i=>`<tr class="${i.no?'clk':''}" ${i.no?`onclick="openClInvoice('${i.id}')"`:''}>
+      <td>${esc(i.month)}</td><td>${esc(labById(i.lab).name)}</td>
+      <td>${i.no?`<code>${esc(i.no)}</code>`:'<span class="note">集計中</span>'}</td>
+      <td class="num">${i.n}</td>
+      <td class="num">${i.ins?yen(i.ins):'—'}</td>
+      <td class="num">${i.pri?yen(i.pri):'—'}</td>
+      <td class="num">${i.rush?yen(i.rush):'¥0'}</td>
+      <td class="num"><b>${yen(ciTotal(i))}</b></td>
+      <td><span class="b ${CI_STATUS[i.status].c}">${CI_STATUS[i.status].l}</span></td>
+      <td onclick="event.stopPropagation()">${i.no
+        ?`<button class="btn sm" onclick="printClInvoice('${i.id}')">PDF</button>`
+        :'<span class="note">—</span>'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="bd"><div class="alert info" style="font-size:12.5px">
+      複数の技工所と取引されている場合、<b>お支払い先も技工所ごと</b>になります。
+      当システムの運営会社がご請求することはありません。</div></div></div>
+  <div class="grid g2">
+    <div class="card"><div class="hdr"><h3>お支払い方法</h3></div><div class="bd">
+      <div class="row"><div style="flex:1"><b>銀行振込</b><div class="note">毎月末締め／翌月末払い</div></div><span class="b done">現在の設定</span></div>
+      <div class="row mt"><div style="flex:1"><b>クレジットカード</b>
+        <div class="note">締め日に自動決済（Phase 2 で提供予定）</div></div>
+        <button class="btn sm" onclick="openCard()">登録する</button></div></div></div>
+    <div class="card"><div class="hdr"><h3>ご発注の実績</h3></div><div class="bd">
+      <div class="row"><div style="flex:1">今年度の件数</div><b>47件</b></div>
+      <div class="row mt"><div style="flex:1">うち保険</div><b>31件（66%）</b></div>
+      <div class="row mt"><div style="flex:1">うち自費</div><b>16件（34%）</b></div>
+      <div class="row mt"><div style="flex:1">年間合計</div><b>¥812,400</b></div></div></div>
+  </div>`;
+}
+
+function clInvoiceHtml(i){
+  const l=labById(i.lab);
+  return `
+  <div class="inv">
+    <div class="ih"><div>
+      <div class="ttl">請 求 書</div>
+      <div style="margin-top:16px" class="to">${esc(CLINIC.name)} 御中</div>
+      <div style="margin-top:14px">下記のとおりご請求申し上げます。</div>
+      <div class="total">ご請求金額　${yen(ciTotal(i))}</div>
+      <div style="font-size:11px">お支払期限　${esc(i.dueOn||'—')}</div>
+    </div><div class="meta">
+      請求書番号　${esc(i.no||'（集計中）')}<br>
+      発行日　${esc(i.issuedOn||'—')}<br>
+      対象期間　${esc(i.month)}</div></div>
+    <table>
+      <thead><tr><th style="width:58%">内容</th><th style="width:14%">件数</th><th style="width:28%">金額</th></tr></thead>
+      <tbody>
+        ${i.ins?`<tr><td>保険技工</td><td style="text-align:right">—</td>
+          <td style="text-align:right">${yen(i.ins)}</td></tr>`:''}
+        ${i.pri?`<tr><td>自費技工</td><td style="text-align:right">—</td>
+          <td style="text-align:right">${yen(i.pri)}</td></tr>`:''}
+        ${i.rush?`<tr><td>特急割増</td><td style="text-align:right">—</td>
+          <td style="text-align:right">${yen(i.rush)}</td></tr>`:''}
+        <tr><td colspan="2" style="text-align:right">小計（10%対象・${i.n}件）</td>
+          <td style="text-align:right">${yen(ciSub(i))}</td></tr>
+        <tr><td colspan="2" style="text-align:right">消費税（10%）</td>
+          <td style="text-align:right">${yen(ciTotal(i)-ciSub(i))}</td></tr>
+        <tr><td colspan="2" style="text-align:right;font-weight:700">合計</td>
+          <td style="text-align:right;font-weight:700">${yen(ciTotal(i))}</td></tr>
+      </tbody></table>
+    <div class="from"><b>${esc(l.name)}</b>（技工所コード ${esc(l.code)}）<br>
+      お振込先は請求書送付時のご案内をご確認ください。</div>
+  </div>`;
+}
+function openClInvoice(id){
+  const i=CL_INVOICES.find(x=>x.id===id);
+  S.modal={title:`${i.no}（${esc(labById(i.lab).name)}）`,wide:true,
+    body:clInvoiceHtml(i),ok:null,
+    foot:`<button class="btn" onclick="printClInvoice('${id}')">PDF / 印刷</button>`};
+  render();
+}
+function printClInvoice(id){
+  const i=CL_INVOICES.find(x=>x.id===id);
+  DL.printNode(clInvoiceHtml(i),`${i.no||i.month}_${labById(i.lab).name}`);
+}
+function csvInvoices(){
+  DL.csv.export('ご請求_20260815.csv',
+    [{k:'month',l:'請求月'},{k:'lab',l:'発注先'},{k:'no',l:'請求書番号'},{k:'n',l:'件数'},
+     {k:'ins',l:'保険'},{k:'pri',l:'自費'},{k:'rush',l:'特急割増'},{k:'total',l:'合計（税込）'},{k:'status',l:'状況'}],
+    CL_INVOICES.map(i=>({month:i.month,lab:labById(i.lab).name,no:i.no||'',n:i.n,
+      ins:i.ins,pri:i.pri,rush:i.rush,total:ciTotal(i),status:CI_STATUS[i.status].l})));
+  toast('ご請求の一覧を書き出しました');
+}
+function openCard(){
+  S.modal={title:'クレジットカードのご登録',body:`
+    <div class="alert info mb" style="font-size:12.5px">
+      カード情報は当システムを通過しません。決済事業者の画面で直接ご入力いただきます。</div>
+    <p>お支払い先は<b>技工所ごと</b>です。どの技工所へのお支払いに使うかをお選びください。</p>
+    <label class="f mt"><span class="lb">対象の技工所</span>
+      <select id="cdLab">${activeLabs().map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('')}</select></label>
+    <div class="alert warn" style="font-size:12.5px">
+      カード払いは <b>Phase 2</b> で提供予定です。ご希望を登録しておくと、開始時にご案内します。</div>`,
+    ok:'希望を登録する',fn:()=>{
+      const l=labById(document.getElementById('cdLab').value);
+      closeModal();toast(`${l.name} へのカード払いのご希望を登録しました`);
+    }};
+  render();
+}
+
+/* 技工指示書の印刷（医院の控え） */
+function printOrder(id){
+  const c=findCase(id),l=labById(c.lab);
+  DL.printNode(`
+    <div class="inv" style="max-width:760px">
+      <div class="ih"><div>
+        <div class="ttl">技 工 指 示 書</div>
+        <div style="margin-top:14px;font-size:13px"><b>${esc(CLINIC.name)}</b> → ${esc(l.name)}</div>
+      </div><div class="meta">ケース番号　${esc(c.no)}<br>発行日　2026-08-15<br>
+        区分　${c.cov==='INSURANCE'?'保険':'自費'}${c.isRush?'（特急）':''}</div></div>
+      <table><tbody>
+        <tr><th style="width:22%">患者</th><td>${esc(c.patient)} 様</td></tr>
+        <tr><th>技工物</th><td>${esc(c.type)} ／ ${esc(c.mat||'—')}</td></tr>
+        <tr><th>部位</th><td>${teethLabel(c.teeth)}</td></tr>
+        <tr><th>シェード</th><td>${esc(c.shade||'—')}</td></tr>
+        <tr><th>納期（医院着）</th><td>${esc(c.due)}${esc(LAB_TERMS.dueSuffix)}</td></tr>
+        <tr><th>金額</th><td>${c.amount?yen(c.amount):'—'}</td></tr>
+        <tr><th>ご担当</th><td>${esc((USERS.find(u=>u.id===c.creator)||{}).name||'—')}</td></tr>
+      </tbody></table>
+      <div class="from">${esc(CLINIC.name)}　${esc(CLINIC.addr)}　TEL ${esc(CLINIC.tel)}<br>
+        医院コード ${esc(CLINIC.code)}</div>
+    </div>`,`技工指示書_${c.no}`);
+}
+/* 技工所への問い合わせ。承認はここではできない */
+function openAsk(id){
+  const c=findCase(id),l=labById(c.lab);
+  S.modal={title:`${l.name} に問い合わせ`,body:`
+    <p class="note mb">${esc(c.no)} ・ ${esc(c.patient)}様</p>
+    ${(c.msgs||[]).map(m=>`<div style="padding:7px 10px;border-radius:9px;margin-bottom:6px;font-size:13px;
+      background:${m.side==='CLINIC'?'var(--primary-soft)':'var(--surface-2)'};
+      border:1px solid ${m.side==='CLINIC'?'#b8dcd7':'var(--border-2)'}">
+      <div class="note">${esc(m.who)} ・ ${esc(m.at)}</div>${esc(m.text)}</div>`).join('')}
+    <label class="f" style="margin-bottom:0"><span class="lb">メッセージ</span>
+      <textarea id="askIn" placeholder="シェードについてご相談があります"></textarea></label>
+    <p class="note">お急ぎの場合はお電話ください（${esc(l.tel||'06-6xxx-xxxx')}）。</p>`,
+    ok:'送信する',fn:()=>{
+      const t=document.getElementById('askIn').value.trim();
+      if(!t){toast('メッセージをご入力ください');return}
+      (c.msgs||(c.msgs=[])).push({at:'たった今',who:U().name,side:'CLINIC',text:t});
+      c.timeline.push({t:'たった今',who:U().name,tx:'技工所へ問い合わせを送信しました',k:''});
+      closeModal();toast('送信しました');
+    }};
+  render();
+}
+/* 承認権限のない人が、承認できる人に依頼する */
+function openAskApprove(id,kind){
+  const c=findCase(id);
+  const approvers=USERS.filter(u=>u.canApprove&&u.status==='ACTIVE'&&u.id!==S.user);
+  S.modal={title:kind==='approve'?'ご承認を依頼する':'ご判断を依頼する',body:`
+    <p class="note mb">${esc(c.no)} ・ ${esc(c.patient)}様</p>
+    <label class="f"><span class="lb">依頼先</span>
+      <select id="apTo">${approvers.map(u=>
+        `<option value="${u.id}">${esc(u.name)}（${esc(u.role)}）</option>`).join('')}</select></label>
+    <label class="f" style="margin-bottom:0"><span class="lb">ひとこと（任意）</span>
+      <input type="text" id="apMsg" placeholder="ご確認をお願いいたします"></label>
+    <div class="alert info mt" style="font-size:12.5px">
+      通知が届きます。${kind==='approve'?'ご承認':'ご判断'}はご本人がこの画面から行う必要があります。</div>`,
+    ok:'依頼する',fn:()=>{
+      const u=USERS.find(x=>x.id===document.getElementById('apTo').value);
+      c.timeline.push({t:'たった今',who:U().name,
+        tx:`${u.name} に${kind==='approve'?'承認':'判断'}を依頼しました`,k:''});
+      closeModal();toast(`${u.name} に依頼しました`);
+    }};
+  render();
+}
+/* 不具合の報告 → 再製作の起点。原因区分は技工所側で登録する */
+/* ============================================================
+   🧑‍🔧 v0.8 再製作・修正のご依頼（ご回答 #29・#30）
+
+   > 「再製に関してどういった経緯であっても、前回の指示書を添付するということはしてほしい。
+   >   どちらの責任であっても、把握はしておきたい」
+   > 「責任の所在を先生が考える責任の所在っていうところをチェック入れるところを
+   >   作ってくれるとありがたいです。そこを必須項目にしてチェックを入れないと送れない
+   >   という形にしたい」
+
+   ★変えた点3つ
+     1. 前回の指示書を<b>自動で添付する。外せない</b>
+     2. <b>責任の所在の申告を必須</b>にする。選ばないと送信できない
+     3. 「修正」と「再製作」を<b>別のものとして扱う</b>
+        （「修正と再生の線引きをしっかりしないといけない」ご回答 #59）
+
+   ★これで未決 #55（再製作の利用料が二重に立つ）が解ける。
+     医院が「技工所起因」と申告した案件は、運営への利用料を立てない。
+   ★残る論点：責任の所在が両者で食い違った場合（新規未決 #68）。
+   ============================================================ */
+function openTrouble(id){
+  const c=findCase(id);
+  if(!S.tb||S.tb.id!==id)S.tb={id,kind:'適合が悪い',want:'REMAKE',fault:null,photo:0};
+  const t=S.tb;
+  S.modal={title:'不具合のご報告',wide:true,body:`
+    <p class="note mb">${esc(c.no)} ・ ${esc(c.patient)}様
+      ${c.pno?`・ 患者コード ${esc(c.pno)}`:''} ・ ${esc(c.type)}（${esc(c.mat||'—')}）</p>
+
+    ${t.fault?`<div class="alert ok mb" style="font-size:12.5px">
+      責任の所在をご申告いただきました（<b>${esc((FAULT_OPTIONS.find(f=>f.k===t.fault)||{}).l)}</b>）。
+      <a href="#" onclick="document.getElementById('faultBox').scrollIntoView({block:'center'});return false"
+        style="margin-left:6px">変更する</a></div>`
+    :`<div class="alert dgr mb" style="font-size:12.5px">
+      ★ このご報告には<b>責任の所在のご申告が必要です</b>（下の方にあります）。
+      どちらの責任であっても、原因を把握しておくために必要な項目です。
+      <a href="#" onclick="document.getElementById('faultBox').scrollIntoView({block:'center'});return false"
+        style="margin-left:6px">その項目へ</a></div>`}
+
+    <label class="f"><span class="lb">どのような不具合でしょうか <span class="req">必須</span></span>
+      <div class="chips">${['適合が悪い','高い（咬合）','コンタクトが強い/弱い','色が合わない','形態','破折','その他'].map(k=>
+        `<button class="chip ${t.kind===k?'on':''}" onclick="S.tb.kind='${k}';openTrouble('${id}')">${k}</button>`).join('')}
+      </div></label>
+
+    <label class="f"><span class="lb">ご希望 <span class="req">必須</span></span>
+      <div class="chips">
+        <button class="chip ${t.want==='REMAKE'?'on':''}" onclick="S.tb.want='REMAKE';openTrouble('${id}')">
+          再製作（作り直し）</button>
+        <button class="chip ${t.want==='FIX'?'on':''}" onclick="S.tb.want='FIX';openTrouble('${id}')">
+          修正（お預かりして調整）</button>
+        <button class="chip ${t.want==='ASK'?'on':''}" onclick="S.tb.want='ASK';openTrouble('${id}')">
+          まず相談したい</button>
+      </div></label>
+    <div class="alert info" style="font-size:12.5px">
+      ★ <b>「修正」と「再製作」は別のものとして扱います。</b>
+      修正は現物をお預かりして調整するもの、再製作は新しくお作りするものです。
+      ${t.want==='REMAKE'?'再製作では<b>新しいご依頼が作られます</b>。'
+        :t.want==='FIX'?'修正では<b>同じご依頼のまま</b>お預かりの記録が付きます。'
+        :'ご相談では案件は作られません。技工所とのやり取りだけが記録されます。'}</div>
+
+    <label class="f"><span class="lb">詳しい状況 <span class="req">必須</span></span>
+      <textarea id="tbText" placeholder="装着時に近心のコンタクトが強く、隣接歯に接触しています">${esc(t.text||'')}</textarea></label>
+
+    <label class="f"><span class="lb">お写真<span class="hint">あると原因の特定が早くなります</span></span>
+      <div class="row"><button class="btn sm" onclick="addTroublePhoto('${id}')">写真を追加</button>
+        <span class="note">${t.photo?`${t.photo}枚を添付しました`:'未添付'}</span></div></label>
+
+    <div class="card mb" style="border-color:#b8dcd7"><div class="hdr" style="background:var(--primary-soft)">
+      <h3 style="color:#0b544e">前回の技工指示書</h3><span class="b prog">自動で添付されます</span></div>
+      <div class="bd">
+        <dl class="kv sm">
+          <dt>ケース番号</dt><dd><code>${esc(c.no)}</code></dd>
+          <dt>技工物</dt><dd>${esc(c.type)} ／ ${esc(c.mat||'—')}</dd>
+          <dt>部位</dt><dd>${teethLabel(c.teeth)}</dd>
+          <dt>シェード</dt><dd>${esc(c.shade||'—')}</dd>
+          <dt>納品</dt><dd>${fmtDueStr(c.due)}</dd>
+        </dl>
+        <div class="row"><button class="btn sm" onclick="printOrder('${id}')">指示書を確認する</button>
+          <span class="note">★ この添付は外せません。原因を追うために必要です</span></div>
+      </div></div>
+
+    <div class="card mb" id="faultBox" style="border-color:${t.fault?'var(--border)':'var(--danger)'}">
+      <div class="hdr"><h3>責任の所在についてのご申告</h3>
+        <span class="req">必須</span>
+        ${t.fault?'<span class="sp"></span><span class="b done">選択済み</span>':''}</div>
+      <div class="bd">
+        <p class="note mb">現時点で<b>先生がお考えになる</b>原因をお選びください。
+          確定ではありません。技工所側でも原因区分を登録し、双方の記録として残ります。</p>
+        ${FAULT_OPTIONS.map(f=>`<label class="ck ${t.fault===f.k?'on':''}"
+          onclick="S.tb.fault='${f.k}';openTrouble('${id}')">
+          <input type="radio" ${t.fault===f.k?'checked':''}>
+          <div><div class="t">${esc(f.l)}</div><div class="note">${esc(f.note)}</div></div></label>`).join('')}
+        ${t.fault?'':`<div class="alert dgr mt" style="font-size:12.5px">
+          ★ <b>ここをお選びいただかないと送信できません。</b>
+          どちらの責任であっても、原因を把握しておくために必要な項目です。</div>`}
+        ${t.fault==='LAB'?`<div class="alert info mt" style="font-size:12.5px">
+          技工所起因としてご申告いただいた場合、再製作の費用は原則として技工所の負担になります。
+          ${LAB_TERMS.rushExcludeKind!=='ALL'?'特急でのお作り直しをご希望の場合、割増も技工所が負担します。':''}</div>`:''}
+        ${t.fault==='CLINIC'?`<div class="alert warn mt" style="font-size:12.5px">
+          当院起因としてご申告いただいた場合、再製作は通常の技工料でのご請求になります。</div>`:''}
+      </div></div>
+
+    <div class="alert warn" style="font-size:12.5px">
+      ご報告いただくと${t.want==='REMAKE'?'<b>再製作のご依頼が作られ</b>':'技工所に通知され'}、
+      前回の指示書とご申告の内容が技工所に届きます。
+      費用のご負担については、原因の確認後に取引条件に沿ってご相談となります。</div>`,
+    ok:'報告する',danger:true,fn:()=>{
+      const el=document.getElementById('tbText');
+      const txt=(el&&el.value||'').trim();
+      if(el)S.tb.text=txt;
+      if(!txt){toast('状況をご入力ください');render();return}
+      if(!S.tb.fault){
+        toast('責任の所在をお選びください（必須です）');
+        openTrouble(id);
+        /* ★下にある必須項目まで自動で送る。押しても何も起きないように見えるのを防ぐ */
+        const box=document.getElementById('faultBox');
+        if(box)box.scrollIntoView({block:'center',behavior:'smooth'});
+        return;
+      }
+      const f=FAULT_OPTIONS.find(x=>x.k===S.tb.fault);
+      const wantL={REMAKE:'再製作',FIX:'修正',ASK:'ご相談'}[S.tb.want];
+      c.timeline.push({t:'たった今',who:U().name,
+        tx:`不具合を報告しました（${S.tb.kind}／ご希望：${wantL}／責任の所在：${f.l}）`,k:'wn'});
+      if(S.tb.want==='REMAKE'){
+        /* ★再製作は新しい依頼として作る。前回の指示書と申告を引き継ぐ */
+        const n={id:'c'+(CASES.length+1),no:c.no+'-R1',tenant:c.tenant,
+          patient:c.patient,chart:c.chart,pno:c.pno,cov:c.cov,type:c.type,mat:c.mat,
+          teeth:c.teeth.slice(),shade:c.shade,due:c.due,
+          status:'SUBMITTED',step:0,creator:S.user,amount:0,
+          remakeOf:c.id,fault:S.tb.fault,remakeKind:S.tb.kind,
+          timeline:[{t:'たった今',who:U().name,
+            tx:`再製作のご依頼（元：${c.no}／責任の所在：${f.l}）`,k:'wn'}]};
+        CASES.unshift(n);
+        c.status='REMAKE';
+        c.related=(c.related||[]).concat([n.id]);
+        S.tb=null;closeModal();
+        toast('再製作のご依頼を作成しました。前回の指示書を添付済みです');
+        go('case',n.id);return;
+      }
+      c.status=S.tb.want==='FIX'?'REMAKE':c.status;
+      S.tb=null;closeModal();
+      toast('報告しました。技工所より折り返しご連絡いたします');go('case',id);
+    }};
+  render();
+}
+/* ============================================================
+   🧑‍🔧 v0.8 仕様の変更のご依頼（ご回答 #25・#60）
+
+   ★v0.7 は「変更受付ラインまでは無料／それ以降は受け付けない」の二択だった。
+     実務は「受け付けるが、それまでの工程の料金は請求する」。
+
+     > 「スキャンからやり直さないといけなくなる場合は、それまでの料金は発生する
+     >   という形を取りたい」
+     > 「その時点で『もしかしたらデザイン変更があるかも』などの旨がある場合は、
+     >   料金は発生させなくてもよいです」
+
+   ★文言は技工所が編集する（LAB_TERMS.changeFeeText）。
+     ここは医院との関係に直接効くので、こちらで決め打ちにしない。
+   ============================================================ */
+function openSpecChange(id){
+  const c=findCase(id);
+  const after=c.step>=3;
+  const exempt=LAB_TERMS.changeFeeExemptOnNotice&&c.changeNotice;
+  const fee=after&&LAB_TERMS.changeFee&&!exempt;
+  S.modal={title:'仕様の変更のご依頼',wide:true,body:`
+    <p class="note mb">${esc(c.no)} ・ ${esc(c.patient)}様 ・ ${esc(c.type)}（${esc(c.mat||'—')}）</p>
+    <div class="alert ${fee?'warn':'info'} mb" style="font-size:12.5px;white-space:pre-line">${esc(LAB_TERMS.changeFeeText)}</div>
+    ${exempt?`<div class="alert ok mb" style="font-size:12.5px">
+      ご発注時に<b>「変更の可能性あり」</b>とお知らせいただいているため、
+      このご依頼では追加の技工料は発生しません。</div>`:''}
+    ${fee?`<div class="card mb"><div class="hdr"><h3>発生する見込みの技工料</h3></div><div class="bd">
+      <p class="note mb">やり直しになる範囲までの工程分です。金額は技工所からのご提示をもってお決まりになります。</p>
+      <dl class="kv sm">
+        <dt>現在の進み</dt><dd>${esc(EXT3[ext3(c.step)])}（内部工程：加工以降）</dd>
+        <dt>やり直しの範囲</dt><dd>スキャン以降のすべて</dd>
+        <dt>見込みの技工料</dt><dd><b>${yen(Math.round((c.amount||0)*0.5))}</b>
+          <span class="note">（概算・技工所のご提示で確定します）</span></dd>
+      </dl></div></div>`:''}
+    <label class="f"><span class="lb">変更したい内容 <span class="req">必須</span></span>
+      <textarea id="scText" placeholder="シェードを A3 から A3.5 に変更したいです"></textarea></label>
+    <label class="f" style="margin-bottom:0"><span class="lb">今後さらに変更の可能性がありますか
+      <span class="hint">あらかじめお知らせいただくと、次回以降の変更で技工料が発生しません</span></span>
+      <div class="chips" id="scNotice">
+        <button class="chip ${c.changeNotice?'on':''}" onclick="[...document.querySelectorAll('#scNotice .chip')]
+          .forEach(x=>x.classList.remove('on'));this.classList.add('on')">変更の可能性あり</button>
+        <button class="chip ${c.changeNotice?'':'on'}" onclick="[...document.querySelectorAll('#scNotice .chip')]
+          .forEach(x=>x.classList.remove('on'));this.classList.add('on')">これで確定</button>
+      </div></label>`,
+    ok:'変更を依頼する',fn:()=>{
+      const t=(document.getElementById('scText')||{}).value||'';
+      if(!t.trim()){toast('変更したい内容をご入力ください');return}
+      const on=document.querySelector('#scNotice .chip.on');
+      c.changeNotice=!!(on&&on.textContent.indexOf('あり')>=0);
+      c.timeline.push({t:'たった今',who:U().name,
+        tx:`仕様の変更を依頼しました${fee?'（技工料が発生する見込み）':'（追加費用なし）'}`,k:'wn'});
+      closeModal();
+      toast(fee?'依頼しました。技工所よりお見積りをご提示します':'依頼しました。技工所が内容を確認します');
+      render();
+    }};
+  render();
+}
+
+function printDelivery(id){
+  const c=findCase(id),l=labById(c.lab);
+  DL.printNode(`
+    <div class="inv" style="max-width:700px">
+      <div class="ih"><div><div class="ttl">納 品 書</div>
+        <div style="margin-top:16px" class="to">${esc(CLINIC.name)} 御中</div></div>
+        <div class="meta">ケース番号　${esc(c.no)}<br>納品日　${esc(c.due)}<br>
+          追跡番号　4821-9931-8877</div></div>
+      <table><thead><tr><th style="width:60%">品目</th><th>数量</th><th>備考</th></tr></thead>
+        <tbody><tr><td>${esc(c.type)}（${esc(c.mat||'—')}）${teethLabel(c.teeth)}</td>
+          <td style="text-align:center">1</td><td>${c.isRush?'特急':'—'}</td></tr></tbody></table>
+      <div class="from"><b>${esc(l.name)}</b>（技工所コード ${esc(l.code)}）<br>
+        ご確認のうえ、システムより検収の操作をお願いいたします。</div>
+    </div>`,`納品書_${c.no}`);
+}
+function addTroublePhoto(id){
+  if(S.tb)S.tb.photo=(S.tb.photo||0)+1;
+  /* テキストを保持してから描き直す（入力が消えないように） */
+  const el=document.getElementById('tbText');
+  if(el&&S.tb)S.tb.text=el.value;
+  if(id)openTrouble(id); else render();
+}
+function openLine(){
+  S.modal={title:'LINE連携',body:`
+    <p>LINEアプリで下のコードを読み取ると、${esc(U().name)} さん宛の通知が LINE に届くようになります。</p>
+    <div style="display:grid;place-items:center;padding:16px">
+      <div style="width:150px;height:150px;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 0/16px 16px;
+        border:8px solid #fff;box-shadow:0 0 0 1px var(--border)"></div></div>
+    <div class="alert info" style="font-size:12.5px">
+      LINE は<b>お知らせ専用</b>です。ご承認・ご判断・検収はこの画面から操作していただきます。</div>`,ok:null};
+  render();
+}
+
+/* ============================================================
+   取引先技工所（A-4）
+   紐付けは技工所側から申請し、医院が承認する。医院から技工所を「新規登録」はできない。
+   医院コードで名寄せするので、2社目の技工所が同じ医院を二重登録することもできない（A-7）。
+   ============================================================ */
+/* ============================================================
+   🧑‍🔧 v0.8 取引先技工所（ご回答 #77・#78 で BR-33 を改訂）
+
+   > 「ここは双方から申請ができるような運用でいいと思います」
+   > 「（医院管理者を必須にすることについて）ハードルが増えるのはあまり好ましくない」
+
+   ★v0.7 は「技工所側からの申請を医院が承認する」の一方向で、
+     承認は医院管理者のみだった。両方を緩める。
+   ★ただし<b>技工所コードの完全一致</b>でしか申請できない（BR-32 の精神を守る）。
+     部分一致を許すと技工所の一覧が列挙できてしまう。
+   ============================================================ */
+/* 承認できる人。★医院管理者に限らない。承認権限（canApprove）があればよい */
+const canApproveLink=()=>U().role==='医院管理者'||!!U().canApprove;
+function vLabs(){
+  const isAdmin=canApproveLink();
+  const act=LABS.filter(l=>l.status==='ACTIVE');
+  const pend=LABS.filter(l=>l.status==='PENDING');
+  const req=LABS.filter(l=>l.status==='REQUESTED');
+  /* ★「停止中」に出すのは一度取引した技工所だけ（since がある）。
+     未取引の技工所を並べると技工所の一覧を列挙できてしまう（BR-32 の精神） */
+  const off=LABS.filter(l=>l.status==='INACTIVE'&&l.since);
+  const covLabel=c=>c==='PRIVATE'?'自費':'保険';
+
+  return `
+  <div class="row mb" style="align-items:flex-start;gap:16px">
+    <div style="flex:1;min-width:220px">
+      <h1>取引先技工所</h1>
+      <p class="sub" style="margin:0">発注先の一覧と、どの内容をどこへ出すかの既定を設定します</p>
+    </div>
+    <button class="btn pri" onclick="openLabRequest()">＋ 技工所に取引を申請する</button>
+  </div>
+
+  <div class="card mb"><div class="bd">
+    <dl class="kv">
+      <dt>医院名</dt><dd><b>${esc(CLINIC.name)}</b></dd>
+      <dt>医院コード</dt><dd><code>${esc(CLINIC.code)}</code>
+        <span class="note">システム全体で一意。技工所はこのコードで貴院を特定します</span></dd>
+    </dl>
+    <div class="alert info mt" style="font-size:12.5px">
+      取引の開始は<b>どちらからでも申請できます。</b>
+      技工所からの申請を貴院が承認する形でも、貴院から技工所コードを指定して申請する形でも構いません。<br>
+      ★ 技工所を「新規に登録」することはできません。すでに登録されている技工所を
+      <b>技工所コードの完全一致</b>で指定していただく形になります。
+      同じ医院・同じ技工所が二重に登録されるのを防ぐためです。<br>
+      ★ 承認は<b>承認権限をお持ちの方</b>が行えます（医院管理者に限りません）。
+    </div>
+  </div></div>
+
+  ${req.length?`
+  <div class="card mb"><div class="hdr"><h2>こちらから申請中</h2><span class="b wait">${req.length}件</span></div>
+    <div class="bd">
+      ${req.map(l=>`<div class="row" style="padding:10px 0;border-bottom:1px solid var(--border-2)">
+        <div style="flex:1"><b>${esc(l.name)}</b>
+          <div class="note"><code>${esc(l.code)}</code> ・ ${esc(l.since||'—')} に申請</div></div>
+        <span class="b wait">技工所の承認をお待ちです</span>
+        <button class="btn sm" onclick="cancelLabRequest('${l.id}')">取り下げる</button>
+      </div>`).join('')}
+      <p class="note mt">★ 申請中の技工所からは、貴院の案件データには到達できません（BR-34）。
+        承認されるまでは、医院コードと医院名以外はお見せしていません。</p>
+    </div></div>`:''}
+
+  ${pend.length?`
+  <div class="card mb" style="border-color:#b8dcd7">
+    <div class="hdr" style="background:var(--primary-soft);border-radius:10px 10px 0 0">
+      <h2 style="color:#0b544e">取引開始の申請</h2><span class="b prog">${pend.length}件</span></div>
+    <div class="bd">
+      ${pend.map(l=>`<div class="row" style="padding:10px 0;border-bottom:1px solid var(--border-2)">
+        <div style="flex:1"><b>${esc(l.name)}</b>
+          <div class="note"><code>${esc(l.code)}</code> ・ ${esc(l.note)}</div></div>
+        ${isAdmin?`<button class="btn" onclick="rejectLink('${l.id}')">却下</button>
+        <button class="btn pri" onclick="approveLink('${l.id}')">承認する</button>`
+        :'<span class="note">承認権限をお持ちの方が承認できます</span>'}
+      </div>`).join('')}
+    </div></div>`:''}
+
+  <div class="card mb"><div class="hdr"><h2>取引中の技工所</h2><span class="b done">${act.length}件</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>技工所</th><th>技工所コード</th><th>対応区分</th><th>当日受付</th><th>取引開始</th><th>既定</th><th></th></tr></thead>
+      <tbody>${act.map(l=>`<tr>
+        <td><b>${esc(l.name)}</b><div class="note">${esc(l.note)}</div></td>
+        <td><code>${esc(l.code)}</code></td>
+        <td>${l.handles.map(h=>h==='INSURANCE'?'<span class="b ins">保険</span>':'<span class="b pri2">自費</span>').join(' ')}</td>
+        <td class="note">${l.cutoff?l.cutoff+' まで':'—'}</td>
+        <td class="note">${esc(l.since||'—')}</td>
+        <td>${ROUTING.fallback===l.id?'<span class="b prog">既定の発注先</span>':
+          (isAdmin?`<button class="btn sm" onclick="setFallback('${l.id}')">既定にする</button>`:'')}</td>
+        <td>${isAdmin?`<button class="btn sm" onclick="openLabStop('${l.id}')">取引を停止</button>`:''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>
+
+  <div class="card mb"><div class="hdr"><h2>内容別の既定発注先</h2><span class="sp"></span>
+    <span class="note">上から順に、最初に一致した行の発注先が使われます</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>診療区分</th><th>技工物種別</th><th>発注先</th><th></th></tr></thead>
+      <tbody>${ROUTING.rules.map((r,i)=>`<tr>
+        <td>${r.cov==='INSURANCE'?'<span class="b ins">保険</span>':'<span class="b pri2">自費</span>'}</td>
+        <td>${r.type?esc(r.type):'<span class="note">すべて</span>'}</td>
+        <td>${isAdmin?`<select style="width:auto" onchange="setRuleLab(${i},this.value)">
+            ${act.filter(l=>l.handles.includes(r.cov)).map(l=>
+              `<option value="${l.id}" ${r.lab===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}
+          </select>`:esc(labById(r.lab).name)}</td>
+        <td>${isAdmin?`<button class="btn sm" onclick="delRule(${i})">削除</button>`:''}</td>
+      </tr>`).join('')}
+      <tr><td colspan="4" class="note">
+        いずれにも一致しない場合は「${esc(labById(ROUTING.fallback).name)}」（既定の発注先）へ出します</td></tr>
+      </tbody>
+    </table></div>
+    ${isAdmin?`<div class="bd" style="border-top:1px solid var(--border-2)">
+      <button class="btn sm" onclick="openAddRule()">＋ ルールを追加</button>
+      <span class="note" style="margin-left:8px">新規依頼画面では、この既定を出したうえで変更できます</span>
+    </div>`:''}
+  </div>
+
+  ${off.length?`<div class="card"><div class="hdr"><h3>停止中</h3></div><div class="bd">
+    ${off.map(l=>`<div class="row" style="padding:7px 0">
+      <div style="flex:1"><b>${esc(l.name)}</b><div class="note"><code>${esc(l.code)}</code></div></div>
+      <span class="b gray">停止中</span>
+      ${isAdmin?`<button class="btn sm" onclick="resumeLab('${l.id}')">取引を再開</button>`:''}
+    </div>`).join('')}</div></div>`:''}`;
+}
+
+/* ★技工所コードの完全一致でのみ申請できる。部分一致は許さない（BR-32 の精神）。
+   一覧を列挙できてしまうと、どこがどの技工所と取引しているかが推測できるため。 */
+function openLabRequest(){
+  S.modal={title:'技工所に取引を申請する',body:`
+    <p class="note mb">技工所から教えていただいた<b>技工所コード</b>をご入力ください。
+      コードは<b>完全一致</b>でのみ検索できます（一覧から選ぶことはできません）。</p>
+    <label class="f"><span class="lb">技工所コード <span class="req">必須</span></span>
+      <input type="text" id="lrCode" placeholder="LAB-0001" autocomplete="off"></label>
+    <label class="f" style="margin-bottom:0"><span class="lb">ひとことメッセージ
+      <span class="hint">技工所側の画面に表示されます</span></span>
+      <input type="text" id="lrMemo" placeholder="自費のジルコニアをお願いしたく、ご連絡いたしました"></label>
+    <div class="alert info mt" style="font-size:12.5px">
+      申請すると、技工所側に貴院の<b>医院名と医院コードだけ</b>が通知されます。
+      承認されるまで、案件・患者様の情報は一切お見せしていません（BR-34）。<br>
+      ★ どちらから申請しても、成立には<b>双方の同意</b>が必要です。</div>`,
+    ok:'申請する',fn:()=>{
+      const code=((document.getElementById('lrCode')||{}).value||'').trim();
+      if(!code){toast('技工所コードをご入力ください');return}
+      const hit=LABS.find(l=>l.code===code);
+      if(!hit){toast('その技工所コードは見つかりませんでした。コードをご確認ください');return}
+      if(hit.status==='ACTIVE'){toast(`${hit.name} とはすでに取引中です`);return}
+      if(hit.status==='REQUESTED'){toast(`${hit.name} には申請中です`);return}
+      if(hit.status==='PENDING'){
+        toast(`${hit.name} からすでに申請が届いています。下の「承認する」をお使いください`);
+        closeModal();render();return;
+      }
+      hit.status='REQUESTED';hit.since='2026-08-11';
+      closeModal();toast(`${hit.name} に取引を申請しました。技工所の承認をお待ちください`);render();
+    }};
+  render();
+}
+function cancelLabRequest(id){
+  const l=labById(id);
+  S.modal={title:'申請を取り下げる',body:`<p><b>${esc(l.name)}</b> への取引の申請を取り下げます。</p>
+    <p class="note">あらためて申請することもできます。</p>`,
+    ok:'取り下げる',danger:true,fn:()=>{
+      l.status='INACTIVE';l.since=null;closeModal();
+      toast('申請を取り下げました');render()}};
+  render();
+}
+function approveLink(id){const l=labById(id);l.status='ACTIVE';l.since='2026-08-11';
+  l.handles=['INSURANCE','PRIVATE'];l.cutoff='16:30';l.note='取引を開始しました';
+  toast(`${l.name} との取引を開始しました`);render()}
+function rejectLink(id){const l=labById(id);
+  S.modal={title:'申請を却下',body:`<p>${esc(l.name)} からの取引開始の申請を却下します。</p>
+    <p class="note">却下しても、技工所側から再度申請することは可能です。</p>`,
+    ok:'却下する',fn:()=>{LABS.splice(LABS.indexOf(l),1);S.modal=null;toast('申請を却下しました');render()}};
+  render()}
+function setFallback(id){ROUTING.fallback=id;toast(`既定の発注先を ${labById(id).name} にしました`);render()}
+function setRuleLab(i,id){ROUTING.rules[i].lab=id;toast('既定を変更しました');render()}
+function delRule(i){ROUTING.rules.splice(i,1);toast('ルールを削除しました');render()}
+function openAddRule(){
+  const types=[...new Set(VARIANTS.map(v=>v.type))];
+  S.modal={title:'ルールを追加',body:`
+    <label class="f"><span class="lb">診療区分</span>
+      <select id="nrCov"><option value="INSURANCE">保険</option><option value="PRIVATE">自費</option></select></label>
+    <label class="f"><span class="lb">技工物種別</span>
+      <select id="nrType"><option value="">すべて</option>
+        ${types.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select></label>
+    <label class="f" style="margin-bottom:0"><span class="lb">発注先</span>
+      <select id="nrLab">${activeLabs().map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('')}</select></label>`,
+    ok:'追加する',fn:()=>{
+      ROUTING.rules.unshift({cov:document.getElementById('nrCov').value,
+        type:document.getElementById('nrType').value||null,
+        lab:document.getElementById('nrLab').value});
+      S.modal=null;toast('ルールを追加しました');render()}};
+  render()}
+function openLabStop(id){const l=labById(id);
+  S.modal={title:'取引を停止',body:`
+    <div class="alert warn mb"><b>${esc(l.name)} への新規発注を停止します</b><br>
+      進行中の案件はそのまま継続します。停止後も履歴と請求は参照できます。</div>
+    ${ROUTING.fallback===id?'<div class="alert dgr">この技工所は既定の発注先です。停止すると別の技工所を既定に設定する必要があります。</div>':''}`,
+    ok:'停止する',fn:()=>{l.status='INACTIVE';
+      if(ROUTING.fallback===id){const n=activeLabs()[0];if(n)ROUTING.fallback=n.id}
+      ROUTING.rules=ROUTING.rules.filter(r=>r.lab!==id);
+      S.modal=null;toast('取引を停止しました');render()}};
+  render()}
+function resumeLab(id){const l=labById(id);l.status='ACTIVE';toast('取引を再開しました');render()}
+
+/* ============================================================
+   スタッフ管理（A-3）
+   ============================================================ */
+function vStaff(){
+  const isAdmin=U().role==='医院管理者';
+  return `
+  <h1>スタッフ管理</h1>
+  <p class="sub">${esc(CLINIC.name)} のユーザーと権限を管理します</p>
+
+  ${isAdmin?'':`<div class="alert warn mb">
+    <b>閲覧のみ可能です</b><br>ユーザーの追加・権限の変更は医院管理者のみが行えます。</div>`}
+
+  <div class="card mb"><div class="hdr"><h2>ユーザー</h2><span class="sp"></span>
+    ${isAdmin?`<button class="btn pri" onclick="openInvite()">＋ スタッフを招待</button>`:''}</div>
+    <div class="tw"><table>
+      <thead><tr><th>氏名</th><th>メールアドレス</th><th>権限</th><th>承認権限</th><th>状態</th><th>最終ログイン</th><th></th></tr></thead>
+      <tbody>${USERS.map(u=>`<tr>
+        <td><b>${esc(u.name)}</b>${u.id===S.user?' <span class="b prog">自分</span>':''}</td>
+        <td class="note">${esc(u.email)}</td>
+        <td>${isAdmin&&u.id!==S.user?`<select style="width:auto" onchange="setRole('${u.id}',this.value)">
+            ${ROLES.map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}</select>`
+          :esc(u.role)}</td>
+        <td>${u.role==='医院スタッフ'
+          ? (isAdmin?`<label class="row" style="gap:6px;cursor:pointer">
+              <input type="checkbox" ${u.canApprove?'checked':''} onchange="toggleApprove('${u.id}')"
+                style="width:16px;height:16px;accent-color:var(--primary)">
+              <span class="note">${u.canApprove?'あり':'なし'}</span></label>`
+            :`<span class="note">${u.canApprove?'あり':'なし'}</span>`)
+          : '<span class="b done">あり</span><div class="note">この権限では常に承認可</div>'}</td>
+        <td><span class="b ${USTATUS[u.status].c}">${USTATUS[u.status].l}</span></td>
+        <td class="note">${esc(u.last)}</td>
+        <td>${isAdmin&&u.id!==S.user?
+          (u.status==='DISABLED'?`<button class="btn sm" onclick="setUserStatus('${u.id}','ACTIVE')">有効にする</button>`
+           :`<button class="btn sm" onclick="openDisable('${u.id}')">無効にする</button>`):''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>
+
+  <div class="card"><div class="hdr"><h3>権限の内容</h3></div><div class="bd">
+    <div class="tw"><table>
+      <thead><tr><th>できること</th><th>医院管理者</th><th>ドクター</th><th>医院スタッフ</th></tr></thead>
+      <tbody>
+        <tr><td>依頼の作成・下書き保存</td><td>○</td><td>○</td><td>○</td></tr>
+        <tr><td>資材の発送登録</td><td>○</td><td>○</td><td>○</td></tr>
+        <tr><td><b>仕様の承認（受注確定）</b></td><td>○</td><td>○</td><td>承認権限フラグ次第</td></tr>
+        <tr><td><b>リスクを伴う判断</b></td><td>○</td><td>○</td><td>承認権限フラグ次第</td></tr>
+        <tr><td><b>検収</b></td><td>○</td><td>○</td><td>承認権限フラグ次第</td></tr>
+        <tr><td>取引先技工所の設定</td><td>○</td><td>—</td><td>—</td></tr>
+        <tr><td>スタッフの招待・権限変更</td><td>○</td><td>—</td><td>—</td></tr>
+        <tr><td>請求の閲覧</td><td>○</td><td>○</td><td>—</td></tr>
+      </tbody></table></div>
+    <div class="alert info mt" style="font-size:12.5px">
+      承認・判断・検収はシステムの画面からのみ行えます。LINEやSMSの返信で承認したことにはなりません。
+      誰がいつ承認したかを記録として残すためです。</div>
+  </div></div>`;
+}
+
+function openInvite(){
+  S.modal={title:'スタッフを招待',body:`
+    <label class="f"><span class="lb">氏名 <span class="req">必須</span></span>
+      <input type="text" id="ivName" placeholder="中村 彩"></label>
+    <label class="f"><span class="lb">メールアドレス <span class="req">必須</span></span>
+      <input type="text" id="ivMail" placeholder="nakamura@example.jp"></label>
+    <label class="f"><span class="lb">権限</span>
+      <select id="ivRole">${ROLES.map(r=>`<option ${r==='医院スタッフ'?'selected':''}>${r}</option>`).join('')}</select></label>
+    <label class="ck" style="margin-bottom:0"><input type="checkbox" id="ivAppr">
+      <div><div class="t">承認権限を付与する</div>
+        <div class="d">仕様の承認・リスク判断・検収ができるようになります</div></div></label>`,
+    ok:'招待を送る',fn:()=>{
+      const n=document.getElementById('ivName').value.trim();
+      const m=document.getElementById('ivMail').value.trim();
+      if(!n||!m){toast('氏名とメールアドレスをご入力ください');return}
+      const r=document.getElementById('ivRole').value;
+      USERS.push({id:'u'+(USERS.length+1),name:n,role:r,
+        canApprove:r!=='医院スタッフ'||document.getElementById('ivAppr').checked,
+        email:m,status:'INVITED',last:'—'});
+      S.modal=null;toast(`${n} さんに招待メールを送りました`);render()}};
+  render()}
+function setRole(id,r){const u=USERS.find(x=>x.id===id);u.role=r;
+  if(r!=='医院スタッフ')u.canApprove=true;
+  toast(`${u.name} さんの権限を ${r} にしました`);render()}
+function toggleApprove(id){const u=USERS.find(x=>x.id===id);u.canApprove=!u.canApprove;
+  toast(`${u.name} さんの承認権限を${u.canApprove?'付与':'解除'}しました`);render()}
+function openDisable(id){const u=USERS.find(x=>x.id===id);
+  S.modal={title:'ユーザーを無効にする',body:`
+    <div class="alert warn mb"><b>${esc(u.name)} さんはログインできなくなります</b><br>
+      これまでの承認や操作の記録は残ります。記録を消すことはできません。</div>
+    <p class="note">担当していた進行中の案件は、そのまま貴院の案件として残ります。</p>`,
+    ok:'無効にする',fn:()=>{u.status='DISABLED';S.modal=null;
+      if(S.user===id)S.user=loginUsers()[0].id;
+      toast(`${u.name} さんを無効にしました`);render()}};
+  render()}
+function setUserStatus(id,st){const u=USERS.find(x=>x.id===id);u.status=st;
+  toast(`${u.name} さんを${st==='ACTIVE'?'有効に':'無効に'}しました`);render()}
+
+/* ============================================================
+   設定（医院側）
+
+   医院にもロゴとテーマカラーを持たせる。複数の技工所と取引しても
+   画面は1つなので、色は「自院の色」であって技工所の色ではない。
+   ============================================================ */
+const BRAND_SCOPE='clinic:'+CLINIC.code;
+let BRAND=DL.brand.load(BRAND_SCOPE,CLINIC.name);
+if(!BRAND.mark||BRAND.mark==='＋')BRAND.mark='歯';
+function applyBrand(){
+  DL.brand.apply(BRAND);
+  const el=document.getElementById('brandLogo');
+  if(el)el.innerHTML=DL.brand.logoHtml(BRAND)+
+    `<span><span id="brand">${esc(BRAND.name||CLINIC.name)}</span>
+      <span class="note" style="font-weight:400;margin-left:6px">医院コード
+        <code id="clinicCode">${esc(CLINIC.code)}</code></span></span>`;
+  document.title=(BRAND.name||CLINIC.name)+' 技工依頼';
+}
+const SETNAV=[['branding','表示設定'],['clinic','医院情報'],['notify','通知'],['defaults','依頼の既定値']];
+function vSettings(){
+  const isAdmin=U().role==='医院管理者';
+  const cur=S.sub||'branding';
+  return `
+  <h1>設定</h1><p class="sub">${esc(CLINIC.name)}</p>
+  ${isAdmin?'':'<div class="alert warn mb"><b>閲覧のみ可能です</b><br>変更は医院管理者のみが行えます。</div>'}
+  <div class="grid" style="grid-template-columns:200px 1fr;gap:14px">
+    <div class="setnav">${SETNAV.map(([k,l])=>
+      `<a class="${cur===k?'on':''}" onclick="go('settings',null,'${k}')">${l}</a>`).join('')}</div>
+    <div>${({branding:setBranding,clinic:setClinicInfo,notify:setNotify,defaults:setDefaults}[cur]||setBranding)()}</div>
+  </div>`;
+}
+function setBranding(){
+  const b=BRAND,isAdmin=U().role==='医院管理者';
+  const contrast=DL.color.contrast(b.color,'#ffffff');
+  return `
+  <div class="card"><div class="hdr"><h2>ロゴ・テーマカラー</h2><span class="sp"></span>
+    ${isAdmin?`<button class="btn sm" onclick="resetBrand()">既定に戻す</button>`:''}</div><div class="bd">
+    <p class="note mb">貴院の画面の見た目を変更します。技工所側の画面には影響しません。</p>
+    <div class="grid g2">
+      <div>
+        <label class="f"><span class="lb">表示名</span>
+          <input type="text" value="${esc(b.name||CLINIC.name)}" ${isAdmin?'':'disabled'}
+            oninput="setB2('name',this.value)"></label>
+        <div class="lb" style="font-size:12.5px;font-weight:600;margin-bottom:5px">テーマカラー</div>
+        <div class="chips mb">${DL.brand.PRESETS.map(p=>`
+          <button class="chip ${b.color===p.color?'on':''}" ${isAdmin?'':'disabled'}
+            onclick="setB2('color','${p.color}')">
+            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;
+              background:${p.color};margin-right:5px;vertical-align:-1px"></span>${esc(p.name)}</button>`).join('')}</div>
+        <label class="f"><span class="lb">自由に指定</span>
+          <div class="row"><input type="color" value="${esc(b.color)}" style="width:54px;height:34px;padding:2px"
+            ${isAdmin?'':'disabled'} oninput="setB2('color',this.value)">
+            <input type="text" value="${esc(b.color)}" style="flex:1" ${isAdmin?'':'disabled'}
+              oninput="setB2('color',this.value)"></div></label>
+        ${contrast<4.5?`<div class="alert warn" style="font-size:11.5px">
+          白文字とのコントラストが ${contrast.toFixed(1)}:1 です。文字が読みにくくなる可能性があります。</div>`:''}
+      </div>
+      <div>
+        <div class="lb" style="font-size:12.5px;font-weight:600;margin-bottom:5px">ロゴ</div>
+        <div class="chips mb">
+          <button class="chip ${b.logoType==='mark'?'on':''}" onclick="setB2('logoType','mark')">文字</button>
+          <button class="chip ${b.logoType==='emoji'?'on':''}" onclick="setB2('logoType','emoji')">絵文字</button>
+          <button class="chip ${b.logoType==='image'?'on':''}" onclick="setB2('logoType','image')">画像</button>
+        </div>
+        ${b.logoType==='mark'?`
+          <label class="f"><span class="lb">文字（1〜2字）</span>
+            <input type="text" maxlength="2" value="${esc(b.mark)}" oninput="setB2('mark',this.value)"></label>`
+        :b.logoType==='emoji'?`
+          <label class="f"><span class="lb">絵文字</span>
+            <input type="text" maxlength="2" value="${esc(b.emoji)}" oninput="setB2('emoji',this.value)"></label>
+          <div class="chips">${['🦷','🏥','🌸','🌿','✨','😊'].map(e=>
+            `<button class="chip" onclick="setB2('emoji','${e}')">${e}</button>`).join('')}</div>`
+        :`<div class="row mb"><button class="btn sm" onclick="pickLogo()">画像を選ぶ</button>
+            ${b.image?`<button class="btn sm dgr" onclick="setB2('image',null)">削除</button>`:''}
+            <span class="note">PNG / JPG</span></div>
+          ${b.image?`<img src="${esc(b.image)}" style="max-width:130px;max-height:64px;border:1px solid var(--border);
+            border-radius:8px;padding:6px;background:#fff">`:'<div class="note">未設定</div>'}`}
+        <div class="lb mt" style="font-size:12.5px;font-weight:600;margin-bottom:5px">プレビュー</div>
+        ${DL.brand.previewHtml(b)}
+      </div>
+    </div>
+  </div></div>`;
+}
+function setB2(k,v){
+  if(U().role!=='医院管理者'){toast('変更は医院管理者のみが行えます');return}
+  BRAND[k]=v;DL.brand.save(BRAND_SCOPE,BRAND);applyBrand();render();
+}
+function resetBrand(){
+  DL.brand.reset(BRAND_SCOPE);BRAND=DL.brand.load(BRAND_SCOPE,CLINIC.name);BRAND.mark='歯';
+  applyBrand();toast('既定に戻しました');render();
+}
+function pickLogo(){
+  DL.brand.pickImage(url=>{
+    if(!url){toast('画像を読み込めませんでした');return}
+    BRAND.image=url;BRAND.logoType='image';
+    DL.brand.save(BRAND_SCOPE,BRAND);applyBrand();render();
+  });
+}
+function setClinicInfo(){
+  const isAdmin=U().role==='医院管理者';
+  return `
+  <div class="card"><div class="hdr"><h2>医院情報</h2></div><div class="bd">
+    <div class="alert info mb" style="font-size:12.5px">
+      医院コードは<b>システム全体で一意</b>です。技工所はこのコードで貴院を特定するため、変更できません。</div>
+    <div class="grid g2">
+      <label class="f"><span class="lb">医院名</span>
+        <input type="text" value="${esc(CLINIC.name)}" ${isAdmin?'':'disabled'}
+          onchange="CLINIC.name=this.value;applyBrand();toast('保存しました');render()"></label>
+      <label class="f"><span class="lb">医院コード</span>
+        <input type="text" value="${esc(CLINIC.code)}" disabled></label>
+      <label class="f"><span class="lb">電話番号</span>
+        <input type="text" value="${esc(CLINIC.tel)}" ${isAdmin?'':'disabled'}
+          onchange="CLINIC.tel=this.value;toast('保存しました')"></label>
+      <label class="f"><span class="lb">代表者</span>
+        <input type="text" value="${esc(CLINIC.founder)}" ${isAdmin?'':'disabled'}
+          onchange="CLINIC.founder=this.value;toast('保存しました')"></label>
+    </div>
+    <label class="f" style="margin-bottom:0"><span class="lb">所在地</span>
+      <input type="text" value="${esc(CLINIC.addr)}" ${isAdmin?'':'disabled'}
+        onchange="CLINIC.addr=this.value;toast('保存しました')"></label>
+  </div></div>`;
+}
+function setNotify(){
+  return `
+  <div class="card mb"><div class="hdr"><h2>通知の受け取り方</h2></div><div class="bd">
+    <p class="note mb">依頼の進捗や、ご判断が必要になったときのお知らせ方法です。</p>
+    ${[['提案が届いたとき',true],['ご判断が必要なとき',true],['発送されたとき',true],
+       ['資材の不足があったとき',true],['ご請求の発行',false]].map(([l,on],i)=>`
+      <div class="row" style="padding:8px 0;border-bottom:1px solid var(--border-2)">
+        <div style="flex:1">${l}</div>
+        <label class="row" style="gap:5px;cursor:pointer"><input type="checkbox" ${on?'checked':''}
+          style="width:16px;height:16px;accent-color:var(--primary)"> <span class="note">メール</span></label>
+        <label class="row" style="gap:5px;cursor:pointer"><input type="checkbox" ${i<3?'checked':''}
+          style="width:16px;height:16px;accent-color:var(--primary)"> <span class="note">LINE</span></label>
+      </div>`).join('')}
+    <div class="alert info mt" style="font-size:12.5px">
+      LINE・SMS は<b>お知らせ専用</b>です。ご承認・ご判断・検収はこの画面から操作していただきます。
+      いつ誰が判断したかを記録として残すためです。</div>
+  </div></div>
+  <div class="card"><div class="hdr"><h3>LINE連携</h3></div><div class="bd">
+    <div class="row"><div style="flex:1"><b>${esc(U().name)} さん</b>
+      <div class="note">連携すると、ご担当の依頼の通知が LINE に届きます</div></div>
+      <button class="btn" onclick="openLine()">連携する</button></div>
+  </div></div>`;
+}
+function setDefaults(){
+  return `
+  <div class="card"><div class="hdr"><h2>依頼の既定値</h2></div><div class="bd">
+    <p class="note mb">新規依頼の入力画面で、最初から選ばれている状態にする項目です。
+      毎回同じ内容を選んでいる場合は、ここで既定にしておくと入力が減ります。</p>
+    <div class="grid g2">
+      <label class="f"><span class="lb">既定のシェード</span>
+        <select><option>指定しない</option><option selected>A3</option><option>A3.5</option><option>A2</option></select></label>
+      <label class="f"><span class="lb">咬合の考え方</span>
+        <select><option selected>やや低め（標準）</option><option>ぴったり</option><option>指示に従う</option></select></label>
+      <label class="f"><span class="lb">マージン形態</span>
+        <select><option selected>技工所にお任せ</option><option>シャンファー</option><option>ショルダー</option></select></label>
+      <label class="f"><span class="lb">コンタクトの強さ</span>
+        <select><option selected>標準</option><option>やや強め</option><option>やや弱め</option></select></label>
+    </div>
+    <div class="alert info" style="font-size:12.5px">
+      既定値を設定すると、新規依頼画面では「テクニカル項目」が最初から開いた状態で表示されます。
+      個別の依頼で変更することもできます。</div>
+  </div></div>`;
+}
+
+/* ============================================================
+   下書き
+   ============================================================ */
+let DRAFTS=[];
+function saveDraft(){
+  const d=D();
+  /* 🖥 v0.6：明細が複数になったので、下書きの見出しも件数で表す */
+  let label='（技工物未選択）';
+  if(d.kind==='REMOVABLE'){
+    const dn=dentOf();
+    if(dn)label=`${dn.name}（義歯・お預かり${dn.stages.length}回）`;
+  }else if(d.items.length){
+    const v=varOf(d.items[0]);
+    label=d.items.length>1?`${v.type} ほか${d.items.length-1}件`:`${v.type} ／ ${v.mat}`;
+  }
+  DRAFTS.unshift({id:'dr'+Date.now(),at:'2026-08-15 10:40',by:U().name,
+    patient:d.pat.patient||'（患者名未入力）',label,
+    cov:d.cov,data:JSON.parse(JSON.stringify(d))});
+  toast('下書きを保存しました。［依頼一覧 › 下書き］から再開できます');
+  render();
+}
+function vDrafts(){
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('cases')">依頼一覧</button></div>
+  <h1>下書き</h1>
+  <p class="sub">送信前の依頼です。${DRAFTS.length}件</p>
+  ${DRAFTS.length?`<div class="card"><div class="tw"><table>
+    <thead><tr><th>患者</th><th>内容</th><th>区分</th><th>保存日時</th><th>作成者</th><th></th></tr></thead>
+    <tbody>${DRAFTS.map(d=>`<tr>
+      <td><b>${esc(d.patient)}</b></td><td>${esc(d.label)}</td>
+      <td>${d.cov?covB(d.cov):'—'}</td>
+      <td class="note">${esc(d.at)}</td><td class="note">${esc(d.by)}</td>
+      <td><button class="btn sm pri" onclick="resumeDraft('${d.id}')">再開する</button>
+        <button class="btn sm dgr" onclick="delDraft('${d.id}')">削除</button></td></tr>`).join('')}</tbody>
+  </table></div></div>`
+  :`<div class="card"><div class="empty">下書きはありません。
+    <div class="note mt">依頼の入力途中で「下書き保存」を押すと、ここに保存されます。</div></div></div>`}`;
+}
+function resumeDraft(id){
+  const d=DRAFTS.find(x=>x.id===id);
+  S.draft=JSON.parse(JSON.stringify(d.data));
+  DRAFTS=DRAFTS.filter(x=>x.id!==id);
+  go('new');toast('下書きを読み込みました');
+}
+function delDraft(id){
+  S.modal={title:'下書きを削除',body:'<p>この下書きを削除します。よろしいですか。</p>',
+    ok:'削除する',danger:true,fn:()=>{DRAFTS=DRAFTS.filter(x=>x.id!==id);closeModal();toast('削除しました')}};
+  render();
+}
+
+/* ============================================================
+   共通
+   ============================================================ */
+function showNotif(){
+  S.modal={title:'通知',body:`
+    <div class="actrow" onclick="S.modal=null;go('approve','c1')">
+      <div class="ic" style="background:var(--accent-soft);color:var(--accent)">✓</div>
+      <div style="flex:1"><div class="ttl">仕様のご提案が届きました</div>
+        <div class="meta">山田 花子様 クラウン ／ 5分前</div></div></div>
+    <div class="actrow" onclick="S.modal=null;go('issue','c2')">
+      <div class="ic" style="background:var(--danger-soft);color:var(--danger)">!</div>
+      <div style="flex:1"><div class="ttl">スキャン所見のご判断が必要です</div>
+        <div class="meta">佐藤 健一様 ／ 2時間前</div></div></div>
+    <div class="actrow" onclick="S.modal=null;go('accept','c3')">
+      <div class="ic" style="background:var(--primary-soft);color:var(--primary)">📦</div>
+      <div style="flex:1"><div class="ttl">発送しました</div>
+        <div class="meta">鈴木 一郎様 ／ 昨日</div></div></div>`,ok:null};
+  render();
+}
+/* ★以前は (${m.fn})() と関数を文字列にして呼んでいたため、モーダルを開いた側の
+   変数を参照する確定ボタンが動かなかった。S.modal.fn を直接呼びクロージャを保つ。 */
+function closeModal(){S.modal=null;render()}
+function renderModal(){
+  if(!S.modal)return '';
+  const m=S.modal;
+  return `<div class="mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal ${m.wide?'wide':''}"><div class="mh">${esc(m.title)}</div><div class="mb">${m.body}</div>
+      <div class="mf">${m.foot||''}
+      <button class="btn" onclick="closeModal()">${m.ok?'キャンセル':'閉じる'}</button>
+      ${m.ok?`<button class="btn ${m.danger?'wrn':'pri'}" id="okBtn" ${m.okDisabled?'disabled':''}
+        onclick="S.modal.fn()">${esc(m.ok)}</button>`:''}</div></div></div>`;
+}
+
+const TABS=[['dashboard','ホーム'],['new','新規依頼'],['cases','依頼一覧'],
+  ['labs','取引先技工所'],['staff','スタッフ'],['invoices','ご請求'],['settings','設定']];
+/* 詳細画面に入ってもどのタブにいたかが分かるように、親タブへ寄せる */
+const TAB_PARENT={case:'cases',approve:'cases',issue:'cases',ship:'cases',accept:'cases',drafts:'cases'};
+
+function render(){
+  const bEl=document.getElementById('brand');
+  if(bEl)bEl.textContent=BRAND.name||CLINIC.name;
+  const cEl=document.getElementById('clinicCode');
+  if(cEl)cEl.textContent=CLINIC.code;
+  document.getElementById('userPill').innerHTML=`${esc(U().name)} <span class="note">${esc(U().role)}</span>`;
+  const cur=TAB_PARENT[S.route]||S.route;
+  document.getElementById('tabs').innerHTML=TABS.map(([r,l])=>
+    `<button class="${cur===r?'on':''}"
+      onclick="${r==='new'?'startNew()':`go('${r}')`}">${l}</button>`).join('');
+  const V={dashboard:vDashboard,new:vNew,cases:vCases,case:vCase,approve:vApprove,
+    issue:vIssue,ship:vShip,accept:vAccept,invoices:vInvoices,labs:vLabs,staff:vStaff,
+    settings:vSettings,drafts:vDrafts};
+  document.getElementById('app').innerHTML=(V[S.route]||vDashboard)();
+  document.getElementById('overlay').innerHTML=renderModal()+(S.toast?`<div class="toast">${esc(S.toast)}</div>`:'');
+}
+
+const us=document.getElementById('userSel');
+us.innerHTML=loginUsers().map(u=>`<option value="${u.id}">${u.name}（${u.role}）</option>`).join('');
+us.onchange=e=>{S.user=e.target.value;render()};
+applyBrand();
+const ts=document.getElementById('tenantSel');
+ts.innerHTML=`<option value="ALL">すべての発注先</option>`+
+  activeLabs().map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+ts.onchange=e=>{S.labFilter=e.target.value;S.route='dashboard';S.hist=[];render()};
+render();
+</script>
+</body>
+</html>
