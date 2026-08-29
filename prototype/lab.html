@@ -2260,6 +2260,29 @@ function vCase(){
     </div>`:''}
   </div></div>
 
+  ${isPaperCase(c)?`
+  <div class="card mb"><div class="hdr"><h3>紙の指示書から入力した内容</h3>
+    <span class="b gray">紙</span><span class="sp"></span>
+    <span class="note">医院側に画面が無いため、ここが唯一の記録です</span></div>
+    <div class="bd"><dl class="kv">
+      <dt>カルテ番号</dt><dd>${esc(c.chart||'—')}</dd>
+      <dt>次回ご来院日</dt><dd>${esc(c.visit||'（記載なし）')}</dd>
+      <dt>シェード</dt><dd>${c.shade?esc(c.shade):'<span class="note">（紙に記載なし）</span>'}</dd>
+      <dt>同梱物</dt><dd>${(c.mats&&c.mats.length)
+        ? c.mats.map(k=>{const m=paperMats(variantOf(c)).find(x=>x.k===k);return esc(m?m.l:k)}).join('、')
+        : '<span class="note">（チェックなし）</span>'}</dd>
+      ${paperTech(variantOf(c)).map(f=>`<dt>${esc(f.l)}</dt><dd>${
+        c.tech&&c.tech[f.c] ? esc(c.tech[f.c])
+        : '<span class="note">（紙に記載なし）</span>'}</dd>`).join('')}
+      <dt>特記事項</dt><dd>${c.note?esc(c.note):'<span class="note">—</span>'}</dd>
+    </dl>
+    <div class="alert warn mt" style="font-size:12.5px">
+      ★<b>「紙に記載なし」は、空欄だったという記録です。</b>既定値で埋めていません。
+      判断が要るときは<b>医院にお問い合わせください。</b>勝手に決めると、
+      あとで「そういう指示だった」ことになってしまいます。
+    </div>
+  </div></div>`:''}
+
   <div class="card mb"><div class="hdr"><h3>受け渡し</h3>
     <span class="sp"></span><span class="note">${esc(cl.name)}（${esc(cl.dist||'—')}）</span></div>
     <div class="bd">
@@ -2621,6 +2644,50 @@ function acRegister(){
 }
 
 /* ============================================================
+   紙の指示書に書かれている項目（医院側の入力画面と同じ粒度で受ける）
+   ------------------------------------------------------------
+   ★紙の指示書には、医院側の画面と同じことが書かれている。
+     入力欄が足りないと、書いてあるのに写せないものが出る。
+
+   ★ただし医院側とひとつだけ扱いを変える。
+     医院側は既定値で埋めてよいが、紙は「書いていない」こと自体が情報である。
+     勝手に既定値を入れると、後から「そういう指示があった」ことになってしまう。
+     → **「紙に記載なし」を選べるようにし、未記入のまま保存できるようにする。**
+       これは責任証跡（このシステムの本質）に直結する。
+   ============================================================ */
+const NOTE_NONE='（紙に記載なし）';
+
+/* 同梱物。★紙で来ても物は届く。何が入っていたかの記録は欠品の判断に使う */
+const PAPER_MATS={
+  INSURANCE:[
+    {k:'SHADEPHOTO',l:'お口の中のお写真'},{k:'DOCS',l:'その他の資料'},
+    {k:'IMPRESSION',l:'印象（型取り）'},{k:'OPPOSING',l:'対合模型'},{k:'BITE',l:'バイト（咬合採得）'}],
+  PRIVATE:[
+    {k:'SHADEPHOTO',l:'シェード写真'},{k:'DOCS',l:'その他の資料'},
+    {k:'IMPRESSION',l:'印象（型取り）'},{k:'OPPOSING',l:'対合模型'},{k:'BITE',l:'バイト（咬合採得）'}],
+  REMOVABLE:[
+    {k:'SHADEPHOTO',l:'お口の中のお写真'},{k:'DOCS',l:'その他の資料'},
+    {k:'IMPRESSION',l:'印象（型取り）'},{k:'OPPOSING',l:'対合模型'},{k:'BITE',l:'バイト（咬合採得）'},
+    {k:'OLDDENTURE',l:'現在お使いの義歯'}],
+};
+/* テクニカル項目。★医院側と同じ選択肢に「紙に記載なし」を足したもの */
+const PAPER_TECH={
+  INSURANCE:[
+    {c:'occl',  l:'咬合の指示',   opts:['標準','やや低め','やや高め']},
+    {c:'margin',l:'マージン形態', opts:['シャンファー','ショルダー','ナイフエッジ']},
+    {c:'cont',  l:'コンタクト',   opts:['弱め','標準','強め']}],
+  PRIVATE:[
+    {c:'grade', l:'材料の詳細規格', opts:['技工所にお任せ','高透過グレード','高強度グレード','14K','16K','18K']},
+    {c:'occl',  l:'咬合の指示',     opts:['標準','やや低め','やや高め']},
+    {c:'margin',l:'マージン形態',   opts:['シャンファー','ショルダー','ナイフエッジ']},
+    {c:'cont',  l:'コンタクト',     opts:['弱め','標準','強め']},
+    {c:'pontic',l:'ポンティック基底面形態', opts:['該当なし','離底型','偏側型','船底型']},
+    {c:'warranty',l:'保証書の発行', opts:['不要','希望する']}],
+};
+const paperMats = v => PAPER_MATS[v.kind==='REMOVABLE'?'REMOVABLE':v.cov] || PAPER_MATS.INSURANCE;
+const paperTech = v => PAPER_TECH[v.cov] || PAPER_TECH.INSURANCE;
+
+/* ============================================================
    紙の依頼を入力する画面（FR-PP）
    ------------------------------------------------------------
    ★入力したら、システム経由の依頼とまったく同じ案件になる。
@@ -2657,11 +2724,22 @@ const legOff=(c,leg)=>{
 function startPaper(){
   S.pp={clinic:PAPER_CLINICS[0]?.id||'', newClinic:false,
         nm:'', dr:'', tel:'', dist:'', nwIn:'SHIP', nwOut:'SHIP',
-        patient:'', pno:'', variant:VARIANTS[0].id, units:1, teeth:'46', shade:'A3',
+        patient:'', chart:'', pno:'', visit:'',
+        variant:VARIANTS[0].id, units:1, teeth:'46', shade:'',
+        mats:{}, tech:{}, changeNotice:false,
         due:fmt(addDays(TODAY,7)), hvIn:'', hvOut:'', note:''};
   go('paper');
 }
-const ppSet=(k,v)=>{S.pp[k]=v; render()};
+const ppSet=(k,v)=>{
+  S.pp[k]=v;
+  /* ★来院日が入ったら、納期をその前日に寄せる。
+     早く作りすぎない（原則38）。最短日に間に合っても来院日の前日に届ける */
+  if(k==='visit'&&v) S.pp.due=fmt(addDays(new Date(v+'T00:00:00+09:00'),-1));
+  render();
+};
+const ppMat=(k,on)=>{S.pp.mats[k]=on; render()};
+/* ★空文字は「紙に記載なし」。既定値で埋めない（責任証跡） */
+const ppTech=(k,v)=>{ if(v) S.pp.tech[k]=v; else delete S.pp.tech[k]; render()};
 
 function vPaper(){
   if(isStaff())return noPerm();
@@ -2721,27 +2799,80 @@ function vPaper(){
       ${cl&&cl.memo?`<p class="note mt">${esc(cl.memo)}</p>`:''}`}
   </div></div>
 
-  <div class="card mb"><div class="hd"><b>患者と技工物</b></div><div class="bd">
+  <div class="alert warn mb">
+    ★<b>紙に書いていない項目は、空欄のままにしてください。</b>
+    勝手に埋めると「そういう指示があった」ことになってしまいます。
+    選択式の項目には <b>${NOTE_NONE}</b> を用意してあります。
+  </div>
+
+  <div class="card mb"><div class="hd"><b>患者</b></div><div class="bd">
     <div class="grid g2">
-      <label class="f"><span class="lb">患者名</span>
+      <label class="f"><span class="lb">患者名 <span style="color:var(--danger);font-size:10.5px;font-weight:700">必須</span></span>
         <input type="text" value="${esc(a.patient)}" oninput="S.pp.patient=this.value" placeholder="例：山田 花子"></label>
+      <label class="f"><span class="lb">カルテ番号 <span class="note">医院の番号</span></span>
+        <input type="text" value="${esc(a.chart)}" oninput="S.pp.chart=this.value" placeholder="A-4501"></label>
       <label class="f"><span class="lb">患者コード <span class="note">医院の管理番号</span></span>
         <input type="text" value="${esc(a.pno)}" oninput="S.pp.pno=this.value" placeholder="P-12345"></label>
+      <label class="f"><span class="lb">次回ご来院日
+        <span class="note">★納期の起点になります</span></span>
+        <input type="date" value="${esc(a.visit)}" oninput="ppSet('visit',this.value)"></label>
+    </div>
+    <p class="note mt">
+      ★<b>納期は来院日から逆算します</b>（BR-60）。来院日が分かれば、そこから引き渡し日を出せます。
+      ${a.visit?`次回ご来院日の前日 <b>${esc(fmt(addDays(new Date(a.visit+'T00:00:00+09:00'),-1)))}</b> にお届けする形になります。`
+               :'<b>分からなければ空欄のままで構いません。</b>その場合は下の納期を直接入れてください。'}
+    </p>
+  </div></div>
+
+  <div class="card mb"><div class="hd"><b>技工物</b></div><div class="bd">
+    <div class="grid g2">
       <label class="f"><span class="lb">技工物</span>
         <select onchange="ppSet('variant',this.value)">
           ${VARIANTS.map(x=>`<option value="${x.id}" ${a.variant===x.id?'selected':''}>
             ${x.cov==='INSURANCE'?'[保険]':'[自費]'} ${esc(x.type)} / ${esc(x.mat)}</option>`).join('')}</select></label>
       <label class="f"><span class="lb">本数</span>
         <input type="number" min="1" value="${a.units}" oninput="S.pp.units=Math.max(1,+this.value||1)"></label>
-      <label class="f"><span class="lb">部位 <span class="note">歯式</span></span>
-        <input type="text" value="${esc(a.teeth)}" oninput="S.pp.teeth=this.value" placeholder="46"></label>
-      <label class="f"><span class="lb">シェード</span>
+      <label class="f"><span class="lb">部位 <span class="note">歯式。複数なら「46,47」のように</span></span>
+        <input type="text" value="${esc(a.teeth)}" oninput="S.pp.teeth=this.value" placeholder="46,47"></label>
+      <label class="f"><span class="lb">シェード <span class="note">記載がなければ空欄</span></span>
         <input type="text" value="${esc(a.shade)}" oninput="S.pp.shade=this.value" placeholder="A3"></label>
     </div>
     <p class="note mt">
       技工料の目安 <b>${yen(v.price*a.units)}</b>（${esc(v.type)}／${esc(v.mat)} × ${a.units}本）。
       標準の所要は ${v.days}日です。
     </p>
+  </div></div>
+
+  <div class="card mb"><div class="hd"><b>同梱物</b>
+    <span class="sp"></span><span class="note">★届いた物にチェック</span></div><div class="bd">
+    <p class="note mb">
+      <b>実際に届いたものにチェックしてください。</b>
+      欠品があったときに「何が入っていたか」が判断の材料になります。
+    </p>
+    <div class="grid g2">
+      ${paperMats(v).map(m=>`
+        <label class="ck row" style="gap:8px;align-items:center;cursor:pointer">
+          <input type="checkbox" style="width:16px;height:16px" ${a.mats[m.k]?'checked':''}
+            onchange="ppMat('${m.k}',this.checked)">
+          <span style="font-size:13.5px">${esc(m.l)}</span></label>`).join('')}
+    </div>
+  </div></div>
+
+  <div class="card mb"><div class="hd"><b>技工指示</b>
+    <span class="sp"></span><span class="note">紙に書かれているものだけ</span></div><div class="bd">
+    <div class="grid g2">
+      ${paperTech(v).map(f=>`
+        <label class="f"><span class="lb">${esc(f.l)}</span>
+          <select onchange="ppTech('${f.c}',this.value)">
+            <option value="">${NOTE_NONE}</option>
+            ${f.opts.map(o=>`<option value="${esc(o)}" ${a.tech[f.c]===o?'selected':''}>${esc(o)}</option>`).join('')}
+          </select></label>`).join('')}
+    </div>
+    <label class="ck row mt" style="gap:8px;align-items:flex-start;cursor:pointer">
+      <input type="checkbox" style="width:16px;height:16px;margin-top:3px" ${a.changeNotice?'checked':''}
+        onchange="ppSet('changeNotice',this.checked)">
+      <span style="font-size:13px"><b>仕様が変わる可能性があると聞いている</b>
+        <div class="note">申告があれば、あとで仕様変更になっても技工料をいただきません（BR-68）</div></span></label>
   </div></div>
 
   <div class="card mb"><div class="hd"><b>納期と受け渡し</b></div><div class="bd">
@@ -2797,16 +2928,27 @@ function savePaper(){
   CASES.unshift({
     id:'kp'+Date.now(), no:'NKTN-2026-P'+String(no).padStart(3,'0'),
     clinic:cid, paper:true,                       /* ★紙由来の印 */
-    patient:a.patient.trim(), chart:'—', pno:a.pno.trim()||'—',
+    patient:a.patient.trim(), chart:a.chart.trim()||'—', pno:a.pno.trim()||'—',
+    visit:a.visit||null,
     cov:v.cov,type:v.type,mat:v.mat,variant:v.id,units:a.units,
-    teeth:[parseInt(a.teeth,10)||46], shade:a.shade||'A3',
+    /* 「46,47」のような入力を配列にする */
+    teeth:(()=>{const t=a.teeth.split(/[^0-9]+/).filter(Boolean).map(Number).filter(n=>n>=11&&n<=48);
+             return t.length?t:[46]})(),
+    shade:a.shade.trim()||null,                 /* ★空欄は null。'A3' で埋めない */
+    mats:Object.keys(a.mats).filter(k=>a.mats[k]),
+    tech:{...a.tech},                           /* ★書いてある項目だけが入る */
     due:a.due, ship:fmt(addDays(new Date(a.due+'T00:00:00+09:00'),-1)),
     hvIn, hvOut, hvInReason:null, hvOutReason:null,
     step:0, assign:[], items:1,
     diff:v.diff+(a.units>1?a.units*2:0)+(v.cov==='PRIVATE'?5:0),
-    tray:null, isRush:false, amount:v.price*a.units, changeNotice:false, prio:null,
+    tray:null, isRush:false, amount:v.price*a.units, changeNotice:!!a.changeNotice, prio:null,
     note:a.note.trim(),
-    tl:[{t:nowJ(),w:ME().name,x:'紙の依頼を入力しました（'+esc(cl.name)+'）',k:'hi'}]
+    tl:[{t:nowJ(),w:ME().name,
+      x:'紙の依頼を入力しました（'+esc(cl.name)+'）'+
+        (paperTech(v).some(f=>!a.tech[f.c])
+          ? '　※紙に記載が無かった項目：'+paperTech(v).filter(f=>!a.tech[f.c]).map(f=>f.l).join('・')
+          : ''),
+      k:'hi'}]
   });
   S.pp=null;
   toast(`登録しました — ${cl.name} / ${a.patient}様`);
