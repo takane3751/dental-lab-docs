@@ -934,6 +934,15 @@ const SCALES={
   L:{k:'L',l:'大型ラボ',  wip:280,staff:6, clinics:9, mo:'約1,000件',memo:'ご回答の月間1,000件に合わせています'}
 };
 let SCALE='S';
+/* ★システム経由の医院にも往路・復路の既定を持たせる。
+   距離は技工所ごとに違うので、これは「医院 ⇄ この技工所」の関係の属性である（BR-94）。
+   ★宣言位置を genCases() より前にすること。後ろに置くと TDZ で落ちる
+     （genCases() が CLINIC_HV を読むため。lab.html で実際に踏んだ）。 */
+const CLINIC_HV={cl1:{inDef:'SHIP',outDef:'DELIVER',dist:'1.2km'},
+                 cl2:{inDef:'SHIP',outDef:'SHIP',   dist:'23km'},
+                 cl3:{inDef:'PICKUP',outDef:'DELIVER',dist:'0.6km'}};
+CLINICS.forEach(c=>Object.assign(c, CLINIC_HV[c.id]||{inDef:'SHIP',outDef:'SHIP',dist:'—'}));
+
 let CASES=[];
 function genCases(){
   CASES=[];
@@ -965,6 +974,10 @@ function genCases(){
         due, ship:fmt(addDays(new Date(due+'T00:00:00+09:00'),-1)),  /* ★発送日（ご回答 #45） */
         step:si,assign:asg, items:multi,
         diff:v.diff+(units>1?units*2:0)+(v.cov==='PRIVATE'?5:0),
+        /* 📱 受け渡しは往路・復路で別。既定は医院ごと（BR-94） */
+        hvIn:(CLINIC_HV[cl.id]||{}).inDef||'SHIP',
+        hvOut:(CLINIC_HV[cl.id]||{}).outDef||'SHIP',
+        hvInReason:null, hvOutReason:null,
         tray:si>=2?'T-'+String(ri(1,CFG.trayCount)).padStart(3,'0'):null,
         isRush:rnd()<.06, amount:v.price*units,
         changeNotice:rnd()<0.18,   /* 🧑‍🔧 受注時に「変更の可能性あり」の申告（ご回答 #25） */
@@ -1385,11 +1398,14 @@ const isAcc=()=>ME().role==='LAB_ACCOUNTANT';
    ============================================================ */
 let PAPER_CLINICS=[
   {id:'pc1',name:'川西歯科',      dr:'川西 亮',  tel:'06-6xxx-1111',paper:true,
-   handoverDef:'PICKUP', memo:'徒歩5分。いつも取りに行っている', score:{total:0},notes:[],users:[]},
+   inDef:'PICKUP', outDef:'DELIVER', dist:'0.8km',
+   memo:'徒歩5分。印象は取りに行き、完成品も持っていく', score:{total:0},notes:[],users:[]},
   {id:'pc2',name:'たかはし歯科',  dr:'高橋 誠',  tel:'072-xxx-2222',paper:true,
-   handoverDef:'SHIP',   memo:'FAXで依頼が来る',                  score:{total:0},notes:[],users:[]},
+   inDef:'SHIP',   outDef:'SHIP',    dist:'18km',
+   memo:'FAXで依頼が来る',                                score:{total:0},notes:[],users:[]},
 ];
 const paperOf = id => PAPER_CLINICS.find(c=>c.id===id);
+
 
 /* ★43箇所から呼ばれる。ここを拡張すれば紙の医院も全画面でそのまま名前が出る。
    紙の医院はスコアも利用者も持たないので、空の形を持たせて参照側を壊さない。 */
@@ -2244,6 +2260,30 @@ function vCase(){
     </div>`:''}
   </div></div>
 
+  <div class="card mb"><div class="hdr"><h3>受け渡し</h3>
+    <span class="sp"></span><span class="note">${esc(cl.name)}（${esc(cl.dist||'—')}）</span></div>
+    <div class="bd">
+      <div class="grid g2">
+        ${['in','out'].map(leg=>{
+          const val=leg==='in'?c.hvIn:c.hvOut;
+          const rsn=leg==='in'?c.hvInReason:c.hvOutReason;
+          const off=legOff(c,leg);
+          return `<div style="border:1px solid var(--border-2);border-radius:9px;padding:11px 13px">
+            <div class="note">${LEG_JA[leg]}</div>
+            <div style="font-size:15px;font-weight:700;margin-top:2px">${legLabel(leg,val)}
+              ${off?'<span class="b wait">既定外</span>':''}</div>
+            ${rsn?`<div class="note mt">理由：${esc(rsn)}</div>`:''}
+            ${!isAcc()&&!isStaff()?`<button class="btn sm mt" onclick="openHv('${c.id}','${leg}')">変更する</button>`:''}
+          </div>`;}).join('')}
+      </div>
+      <p class="note mt">
+        ★<b>納期がギリギリのときは、あとから切り替えられます。</b>
+        往路を「取りに行く」にすると医院からの発送を待たず、
+        復路を「届けに行く」にすると配送日数がかかりません。
+        <b>既定と違う方法にしたときは理由が残ります。</b>
+      </p>
+    </div></div>
+
   <div class="grid g21">
     <div>
       <div class="card mb"><div class="hdr"><h3>技工指示</h3><span class="sp"></span>${covB(c.cov)}</div>
@@ -2460,8 +2500,8 @@ function vClinics(){
         return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--border-2)">
           <div style="flex:1">
             <b>${esc(c.name)}</b> <span class="b gray">紙</span>
-            <div class="note">${esc(c.dr||'—')} ／ ${esc(c.tel||'—')} ／
-              既定の受け渡し：${HANDOVER_JA[c.handoverDef]||'—'} ／ 案件 ${n}件</div>
+            <div class="note">${esc(c.dr||'—')} ／ ${esc(c.tel||'—')} ／ ${esc(c.dist||'—')} ／ 案件 ${n}件<br>
+              往路 ${legLabel('in',c.inDef)} ／ 復路 ${legLabel('out',c.outDef)}</div>
           </div>
           <button class="btn sm" onclick="linkPaper('${c.id}')">システムの医院に紐づける</button>
         </div>`}).join('')}
@@ -2498,7 +2538,8 @@ let LINK_REQS=[];   /* この技工所が出している紐付け申請 */
 
 function startAddClinic(){
   S.ac={step:0,by:'code',q:'',results:null,sel:null,msg:'',
-        nw:{name:'',tel:'',addr:'',dr:''},dupWarn:null};
+        nw:{name:'',tel:'',addr:'',dr:'',email:'',mode:'SYSTEM',
+            inDef:'SHIP',outDef:'SHIP',dist:''},dupWarn:null};
   go('addclinic');
 }
 function acSet(k,v){S.ac[k]=v;render()}
@@ -2554,13 +2595,28 @@ function acRegister(){
   if(S.ac.dupWarn&&S.ac.dupWarn.length&&!S.ac.dupAck){
     toast('重複の可能性があります。確認のチェックを入れてください');return;
   }
+  const hv={inDef:n.inDef||'SHIP',outDef:n.outDef||'SHIP',dist:(n.dist||'').trim()||'—'};
+
+  /* ★紙で取引する医院は、システム全体の医院マスタに登録しない（BR-93・BR-32）。
+     医院コードも発行せず、招待も送らない。使わない相手にアカウントを配らない。 */
+  if(n.mode==='PAPER'){
+    const id='pc'+(PAPER_CLINICS.length+1)+'_'+Date.now().toString().slice(-4);
+    PAPER_CLINICS.push({id,name:n.name.trim(),dr:n.dr||'—',tel:n.tel.trim(),paper:true,
+      ...hv,memo:'',score:{total:0},notes:[],users:[]});
+    S.ac=null;
+    toast(`${n.name} を紙の医院として登録しました（医院コードなし・招待は送っていません）`);
+    go('clinics');return;
+  }
+
+  if(!(n.email||'').trim()){toast('招待の送り先メールアドレスを入れてください');return}
   const code='CL-2026-'+String(500+GLOBAL_CLINICS.length).padStart(5,'0');
   GLOBAL_CLINICS.push({code,name:n.name.trim(),addr:n.addr||'—',
     tel:n.tel.replace(/[^0-9]/g,''),linked:true});
   CLINICS.push({id:'cl'+(CLINICS.length+1),code,name:n.name.trim(),dr:n.dr||'—',
-    reg:'2026-08-12',score:{total:null,orders:0,enough:false},notes:[],users:[]});
+    email:n.email.trim(),reg:'2026-08-12',...hv,
+    score:{total:null,orders:0,enough:false},notes:[],users:[]});
   S.ac=null;
-  toast(`${n.name} を登録しました（医院コード ${code}）。招待メールを送りました`);
+  toast(`${n.name} を登録しました（医院コード ${code}）。${n.email} へ招待を送りました`);
   go('clinics');
 }
 
@@ -2572,13 +2628,37 @@ function acRegister(){
    ★違うのは2つだけ：医院が簡易レコードであることと、医院側に画面が無いこと。
      承認のラリーは起きない（相手がシステムにいない）ので、受注済みとして入る。
    ============================================================ */
-const HANDOVER_JA={SHIP:'発送',PICKUP:'直接お預かり',DELIVER:'直接お届け'};
+/* ============================================================
+   受け渡しは「往路」と「復路」で別々に決める（BR-94・v0.9.1 で改訂）
+   ------------------------------------------------------------
+   ★1つの軸に3値（発送／お預かり／お届け）でまとめていたのは誤りだった。
+     往路と復路は別の移動であり、選べる値も違う。
+
+     往路（医院 → 技工所）：印象・模型が来る
+       通常は医院が発送する。★納期がギリギリのとき、発送すると翌日着になるため、
+       近距離なら技工所が取りに行く。
+     復路（技工所 → 医院）：完成品を届ける
+       通常は技工所が発送する。★同じ理由で、近距離なら直接持っていく。
+
+   ★どちらも「普段の決め方」と「その回だけの変更」の2階層。
+     変更するのは技工所側で、理由を残す。
+   ============================================================ */
+const INBOUND_JA ={SHIP:'医院が発送',   PICKUP :'技工所が取りに行く'};
+const OUTBOUND_JA={SHIP:'技工所が発送', DELIVER:'技工所が届けに行く'};
+const LEG_JA={in:'往路（印象・模型）', out:'復路（完成品）'};
+const legLabel=(leg,v)=>(leg==='in'?INBOUND_JA:OUTBOUND_JA)[v]||'—';
+/* 既定から外れているか。外れているなら理由が要る */
+const legOff=(c,leg)=>{
+  const cl=clinicOf(c.clinic);
+  const def=leg==='in'?(cl.inDef||'SHIP'):(cl.outDef||'SHIP');
+  return (leg==='in'?c.hvIn:c.hvOut)!==def;
+};
 
 function startPaper(){
   S.pp={clinic:PAPER_CLINICS[0]?.id||'', newClinic:false,
-        nm:'', dr:'', tel:'', hv:'PICKUP',
+        nm:'', dr:'', tel:'', dist:'', nwIn:'SHIP', nwOut:'SHIP',
         patient:'', pno:'', variant:VARIANTS[0].id, units:1, teeth:'46', shade:'A3',
-        due:fmt(addDays(TODAY,7)), handover:'', note:''};
+        due:fmt(addDays(TODAY,7)), hvIn:'', hvOut:'', note:''};
   go('paper');
 }
 const ppSet=(k,v)=>{S.pp[k]=v; render()};
@@ -2588,7 +2668,8 @@ function vPaper(){
   const a=S.pp; if(!a){startPaper();return ''}
   const v=VARIANTS.find(x=>x.id===a.variant)||VARIANTS[0];
   const cl=a.newClinic?null:paperOf(a.clinic);
-  const hv=a.handover||(cl?cl.handoverDef:a.hv);
+  const hvIn =a.hvIn ||(cl?cl.inDef :a.nwIn );
+  const hvOut=a.hvOut||(cl?cl.outDef:a.nwOut);
 
   return `
   <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('cases')">案件一覧</button></div>
@@ -2620,15 +2701,23 @@ function vPaper(){
           <input type="text" value="${esc(a.dr)}" oninput="S.pp.dr=this.value" placeholder="例：川西 亮"></label>
         <label class="f"><span class="lb">電話番号</span>
           <input type="text" value="${esc(a.tel)}" oninput="S.pp.tel=this.value" placeholder="06-xxxx-xxxx"></label>
-        <label class="f"><span class="lb">普段の受け渡し</span>
-          <select onchange="ppSet('hv',this.value)">
-            ${Object.entries(HANDOVER_JA).map(([k,l])=>
-              `<option value="${k}" ${a.hv===k?'selected':''}>${l}</option>`).join('')}</select></label>
+        <label class="f"><span class="lb">距離の目安 <span class="hint">取りに行けるか判断する材料</span></span>
+          <input type="text" value="${esc(a.dist)}" oninput="S.pp.dist=this.value" placeholder="例：1.2km"></label>
+      </div>
+      <div class="grid g2 mt">
+        <label class="f"><span class="lb">普段の往路 <span class="hint">印象・模型が来る</span></span>
+          <select onchange="ppSet('nwIn',this.value)">
+            ${Object.entries(INBOUND_JA).map(([k,l])=>
+              `<option value="${k}" ${a.nwIn===k?'selected':''}>${l}</option>`).join('')}</select></label>
+        <label class="f"><span class="lb">普段の復路 <span class="hint">完成品を届ける</span></span>
+          <select onchange="ppSet('nwOut',this.value)">
+            ${Object.entries(OUTBOUND_JA).map(([k,l])=>
+              `<option value="${k}" ${a.nwOut===k?'selected':''}>${l}</option>`).join('')}</select></label>
       </div>`
     :`<label class="f" style="margin-bottom:0"><span class="lb">医院</span>
         <select onchange="ppSet('clinic',this.value)">
           ${PAPER_CLINICS.map(c=>`<option value="${c.id}" ${a.clinic===c.id?'selected':''}>
-            ${esc(c.name)}（${HANDOVER_JA[c.handoverDef]}）</option>`).join('')}</select></label>
+            ${esc(c.name)}（${esc(c.dist||'—')}）</option>`).join('')}</select></label>
       ${cl&&cl.memo?`<p class="note mt">${esc(cl.memo)}</p>`:''}`}
   </div></div>
 
@@ -2659,17 +2748,24 @@ function vPaper(){
     <div class="grid g2">
       <label class="f"><span class="lb">納期 <span class="note">医院に届く日</span></span>
         <input type="date" value="${esc(a.due)}" oninput="S.pp.due=this.value"></label>
-      <label class="f"><span class="lb">受け渡しの方法</span>
-        <select onchange="ppSet('handover',this.value)">
-          ${Object.entries(HANDOVER_JA).map(([k,l])=>
-            `<option value="${k}" ${hv===k?'selected':''}>${l}${cl&&cl.handoverDef===k?'（この医院の既定）':''}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">往路 <span class="hint">印象・模型をどう受け取るか</span></span>
+        <select onchange="ppSet('hvIn',this.value)">
+          ${Object.entries(INBOUND_JA).map(([k,l])=>
+            `<option value="${k}" ${hvIn===k?'selected':''}>${l}${cl&&cl.inDef===k?'（既定）':''}</option>`).join('')}</select></label>
+    </div>
+    <div class="grid g2 mt">
+      <label class="f"><span class="lb">復路 <span class="hint">完成品をどう届けるか</span></span>
+        <select onchange="ppSet('hvOut',this.value)">
+          ${Object.entries(OUTBOUND_JA).map(([k,l])=>
+            `<option value="${k}" ${hvOut===k?'selected':''}>${l}${cl&&cl.outDef===k?'（既定）':''}</option>`).join('')}</select></label>
     </div>
     <label class="f mt"><span class="lb">指示の内容</span>
       <textarea rows="3" oninput="S.pp.note=this.value"
         placeholder="紙の指示書に書かれている内容を写してください">${esc(a.note)}</textarea></label>
     <p class="note mt">
-      発送予定は納期の前日（${esc(fmt(addDays(new Date(a.due+'T00:00:00+09:00'),-1)))}）で入ります。
-      ${hv!=='SHIP'?'<b>直接の受け渡しなので、配送は発生しません。</b>':''}
+      引き渡し予定は納期の前日（${esc(fmt(addDays(new Date(a.due+'T00:00:00+09:00'),-1)))}）で入ります。
+      ${hvOut==='DELIVER'?'<b>復路は直接お届けなので、配送日数がかかりません。</b>':''}
+      ${hvIn==='PICKUP'?'<b>往路はこちらが取りに行きます。</b>医院からの発送を待ちません。':''}
     </p>
   </div></div>
 
@@ -2689,11 +2785,13 @@ function savePaper(){
   if(a.newClinic){
     cid='pc'+(PAPER_CLINICS.length+1)+'_'+Date.now().toString().slice(-4);
     PAPER_CLINICS.push({id:cid,name:a.nm.trim(),dr:a.dr.trim(),tel:a.tel.trim(),paper:true,
-      handoverDef:a.hv,memo:'',score:{total:0},notes:[],users:[]});
+      inDef:a.nwIn,outDef:a.nwOut,dist:a.dist.trim(),memo:'',
+      score:{total:0},notes:[],users:[]});
   }
   const cl=paperOf(cid);
   const v=VARIANTS.find(x=>x.id===a.variant)||VARIANTS[0];
-  const hv=a.handover||cl.handoverDef;
+  const hvIn =a.hvIn ||cl.inDef;
+  const hvOut=a.hvOut||cl.outDef;
   const no=200+CASES.length+1;
 
   CASES.unshift({
@@ -2703,7 +2801,7 @@ function savePaper(){
     cov:v.cov,type:v.type,mat:v.mat,variant:v.id,units:a.units,
     teeth:[parseInt(a.teeth,10)||46], shade:a.shade||'A3',
     due:a.due, ship:fmt(addDays(new Date(a.due+'T00:00:00+09:00'),-1)),
-    handover:hv,
+    hvIn, hvOut, hvInReason:null, hvOutReason:null,
     step:0, assign:[], items:1,
     diff:v.diff+(a.units>1?a.units*2:0)+(v.cov==='PRIVATE'?5:0),
     tray:null, isRush:false, amount:v.price*a.units, changeNotice:false, prio:null,
@@ -2716,6 +2814,76 @@ function savePaper(){
 }
 /* 履歴の時刻。デモの「今日」を使う */
 function nowJ(){const d=new Date();return `${DL.TODAY.slice(5).replace('-','/')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+
+/* ============================================================
+   受け渡しの途中変更（FR-HD-007・008）
+   ------------------------------------------------------------
+   ★普段は発送の医院でも、納期がギリギリなら技工所の判断で切り替わる。
+     往路：発送だと翌日着になるので、近ければ取りに行く
+     復路：発送だと翌日着になるので、近ければ持っていく
+   ★どちらも「あとから」変わる。案件の途中で変更できなければ使えない。
+   ★既定から外すときは理由を残す（後から「なぜそうしたか」が分かるように）。
+   ============================================================ */
+const HV_REASONS={
+  in :['配送を待つと納期に間に合わないため','医院から取りに来てほしいと依頼があったため',
+       '近くへ行く用事があるため','再製作・修正で急ぐため'],
+  out:['配送だと翌日着になり納期に間に合わないため','医院から直接持ってきてほしいと依頼があったため',
+       '近くへ行く用事があるため','再製作・修正で急ぐため'],
+};
+function openHv(id,leg){
+  const c=findCase(id); if(!c)return;
+  const cl=clinicOf(c.clinic);
+  const def=leg==='in'?(cl.inDef||'SHIP'):(cl.outDef||'SHIP');
+  const cur=leg==='in'?c.hvIn:c.hvOut;
+  const opts=leg==='in'?INBOUND_JA:OUTBOUND_JA;
+  S.modal={title:`${LEG_JA[leg]}の受け渡しを変更`,wide:true,body:`
+    <p class="note mb">${esc(cl.name)}（${esc(cl.dist||'—')}）の既定は
+      <b>${legLabel(leg,def)}</b> です。</p>
+    <div class="chips mb">
+      ${Object.entries(opts).map(([k,l])=>
+        `<button class="chip ${cur===k?'on':''}" onclick="hvPick('${id}','${leg}','${k}')">
+          ${l}${k===def?'（既定）':''}</button>`).join('')}
+    </div>
+    <div id="hvReason">${cur!==def?hvReasonBox(id,leg,cur):''}</div>
+    <div class="alert info" style="font-size:12.5px">
+      ${leg==='in'
+        ? '★<b>往路を「取りに行く」にすると、医院からの発送を待ちません。</b>納期の起点が変わります。'
+        : '★<b>復路を「届けに行く」にすると、配送日数がかかりません。</b>その分だけ製作に使える日数が増えます。'}
+      <br>既定と違う方法にする場合は、<b>理由を残してください。</b>
+    </div>`,
+    ok:null};
+  render();
+}
+function hvReasonBox(id,leg,val){
+  const c=findCase(id);
+  const cur=leg==='in'?c.hvInReason:c.hvOutReason;
+  return `<label class="f"><span class="lb">理由 <span style="color:var(--danger);font-size:10.5px;font-weight:700">必須</span></span>
+    <select id="hvR">
+      <option value="">選んでください</option>
+      ${HV_REASONS[leg].map(r=>`<option value="${esc(r)}" ${cur===r?'selected':''}>${esc(r)}</option>`).join('')}
+    </select></label>
+  <button class="btn pri mt" onclick="hvSave('${id}','${leg}','${val}')">この内容で変更する</button>`;
+}
+function hvPick(id,leg,val){
+  const c=findCase(id), cl=clinicOf(c.clinic);
+  const def=leg==='in'?(cl.inDef||'SHIP'):(cl.outDef||'SHIP');
+  if(val===def){ hvSave(id,leg,val,true); return; }   /* 既定に戻すなら理由は要らない */
+  /* 選択だけ先に反映して、理由の欄を出す */
+  if(leg==='in')c.hvIn=val; else c.hvOut=val;
+  openHv(id,leg);
+}
+function hvSave(id,leg,val,toDefault){
+  const c=findCase(id);
+  const reason=toDefault?null:(document.getElementById('hvR')?.value||'');
+  if(!toDefault&&!reason){toast('理由を選んでください');return}
+  if(leg==='in'){ c.hvIn=val; c.hvInReason=reason; }
+  else{ c.hvOut=val; c.hvOutReason=reason; }
+  c.tl.push({t:nowJ(),w:ME().name,
+    x:`${LEG_JA[leg]}を「${legLabel(leg,val)}」に変更${reason?`（${reason}）`:'（既定に戻した）'}`,k:'hi'});
+  S.modal=null;
+  toast(`${LEG_JA[leg]}を ${legLabel(leg,val)} にしました`);
+  render();
+}
 
 /* 紙の医院を、システムに入った医院へ紐づける（昇格）。
    ★これまでの紙の案件も一緒に付け替える。履歴を切らないため。 */
@@ -2877,6 +3045,17 @@ function vAddClinic(){
         <span style="font-size:13px">上記とは<b>別の医院</b>であることを確認しました</span></label>
     </div></div>`:''}
   <div class="card"><div class="bd">
+    <label class="f"><span class="lb">この医院とはどう取引しますか</span>
+      <div class="chips">
+        <button class="chip ${n.mode!=='PAPER'?'on':''}" onclick="acNwSet('mode','SYSTEM')">システムで取引する</button>
+        <button class="chip ${n.mode==='PAPER'?'on':''}" onclick="acNwSet('mode','PAPER')">紙・FAX・電話で取引する</button>
+      </div></label>
+    <p class="note mb">
+      ${n.mode==='PAPER'
+        ? '★<b>医院はシステムを使いません。</b>依頼は紙で来るので、こちらで入力します。医院コードは発行せず、招待も送りません。'
+        : '★<b>医院にログインしてもらいます。</b>医院コードを発行し、招待メールを送ります。'}
+    </p>
+
     <div class="grid g2">
       <label class="f"><span class="lb">医院名 <span style="color:var(--danger);font-size:10.5px;font-weight:700">必須</span></span>
         <input type="text" value="${esc(n.name)}" oninput="acNwSet('name',this.value)" placeholder="さくら歯科クリニック"></label>
@@ -2887,15 +3066,37 @@ function vAddClinic(){
         <input type="text" value="${esc(n.addr)}" oninput="acNwSet('addr',this.value)" placeholder="大阪市中央区○○ 1-2-3"></label>
       <label class="f"><span class="lb">院長名</span>
         <input type="text" value="${esc(n.dr)}" oninput="acNwSet('dr',this.value)" placeholder="山田 太郎"></label>
+      ${n.mode!=='PAPER'?`
+      <label class="f"><span class="lb">招待の送り先メールアドレス
+        <span style="color:var(--danger);font-size:10.5px;font-weight:700">必須</span>
+        <span class="hint">ここへログインの案内を送ります</span></span>
+        <input type="text" value="${esc(n.email||'')}" oninput="acNwSet('email',this.value)"
+          placeholder="reception@example.jp"></label>`:''}
+      <label class="f"><span class="lb">距離の目安 <span class="hint">取りに行けるか判断する材料</span></span>
+        <input type="text" value="${esc(n.dist||'')}" oninput="acNwSet('dist',this.value)" placeholder="例：1.2km"></label>
     </div>
-    <div class="alert info" style="font-size:12.5px">
-      登録すると<b>医院コードが発行され</b>、医院へ招待メールが送られます。
-      医院がログインすると、貴院との取引が有効になります。
+
+    <div class="grid g2 mt">
+      <label class="f"><span class="lb">普段の往路 <span class="hint">印象・模型が来る</span></span>
+        <select onchange="acNwSet('inDef',this.value)">
+          ${Object.entries(INBOUND_JA).map(([k,l])=>
+            `<option value="${k}" ${(n.inDef||'SHIP')===k?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">普段の復路 <span class="hint">完成品を届ける</span></span>
+        <select onchange="acNwSet('outDef',this.value)">
+          ${Object.entries(OUTBOUND_JA).map(([k,l])=>
+            `<option value="${k}" ${(n.outDef||'SHIP')===k?'selected':''}>${l}</option>`).join('')}</select></label>
+    </div>
+
+    <div class="alert ${n.mode==='PAPER'?'warn':'info'} mt" style="font-size:12.5px">
+      ${n.mode==='PAPER'
+        ? '★<b>ここで作るのはこの技工所の中だけで有効な医院です。</b>システム全体の医院マスタには登録されません（医院コードは付きません）。医院がシステムを導入したら、<b>あとから紐づけて昇格</b>させてください。'
+        : '登録すると<b>医院コードが発行され</b>、上のアドレスへ招待メールが送られます。医院がログインすると、貴院との取引が有効になります。'}
     </div>
     <div class="row mt">
       <button class="btn" onclick="S.ac.step=1;render()">戻る</button>
       <span class="sp"></span>
-      <button class="btn pri lg" onclick="acRegister()">登録して招待を送る</button>
+      <button class="btn pri lg" onclick="acRegister()">
+        ${n.mode==='PAPER'?'紙の医院として登録する':'登録して招待を送る'}</button>
     </div>
   </div></div>`;
 }

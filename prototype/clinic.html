@@ -302,11 +302,11 @@ const CLINIC={
 const LABS=[
   {id:'t1',name:'なかたに技工所',code:'LAB-0001',pre:'NKTN',status:'ACTIVE',since:'2024-04-01',
    tel:'06-6xxx-xxxx',handles:['INSURANCE','PRIVATE'],cutoff:'16:30',
-   dist:'1.2km',hv:'DELIVER',            /* ★近所なので、普段は持ってきてもらう */
+   dist:'1.2km',inDef:'SHIP',outDef:'DELIVER',   /* ★近所なので、完成品は持ってきてもらう */
    note:'メインの発注先。保険・自費とも対応'},
   {id:'t2',name:'サンライズ・デンタルラボ',code:'LAB-0042',pre:'SNRS',status:'ACTIVE',since:'2025-11-10',
    tel:'072-xxx-xxxx',handles:['PRIVATE'],cutoff:'14:00',
-   dist:'23km',hv:'SHIP',                /* 遠いので発送 */
+   dist:'23km',inDef:'SHIP',outDef:'SHIP',       /* 遠いので両方とも発送 */
    note:'自費専門。ラミネートベニアなどの審美系が得意'},
   {id:'t3',name:'みどり歯科技工所',code:'LAB-0130',pre:'MDRI',status:'PENDING',since:null,
    tel:'—',handles:[],cutoff:null,
@@ -1540,7 +1540,9 @@ function confirmStage(){
         <div class="bd"><dl class="kv">
           <dt>発注先</dt><dd>${esc(labById(d.lab).name)}
             <span class="note">${d.labManual?'（手動で変更）':''}</span></dd>
-          <dt>受け渡し</dt><dd>${HANDOVER_JA[labById(d.lab).hv]||'発送'}
+          <dt>受け渡し</dt><dd>
+            行き：${INBOUND_JA[labById(d.lab).inDef]||'こちらが発送する'} ／
+            帰り：${OUTBOUND_JA[labById(d.lab).outDef]||'技工所が発送する'}
             <span class="note">設定 › 受け渡し で変えられます</span></dd>
           <dt>診療区分</dt><dd>${covB(d.cov)} ${covLabel(d.cov)}</dd>
           <dt>患者</dt><dd>${esc(d.pat.patient||'')}（${esc(d.pat.chart||'')}）</dd>
@@ -3058,11 +3060,17 @@ const SETNAV=[['branding','表示設定'],['clinic','医院情報'],['notify','�
      その回だけのイレギュラー（間に合わないので今回は持っていく）は
      技工所側で選び、理由が記録される。
    ============================================================ */
-const HANDOVER_JA={SHIP:'発送',PICKUP:'技工所が取りに来る',DELIVER:'技工所が届けに来る'};
-const HANDOVER_NOTE={
-  SHIP:'配送業者に載せます。締切時刻に間に合わないと翌日扱いになります',
-  PICKUP:'完成品ではなく、印象や模型をお預けするときの動きです',
-  DELIVER:'完成品を直接お持ちします。配送の日数がかからなくなります',
+/* ★往路と復路は別の移動。選べる値も違う。
+   往路：印象・模型がこちらから技工所へ行く
+   復路：完成品が技工所からこちらへ来る */
+const INBOUND_JA ={SHIP:'こちらが発送する', PICKUP :'技工所が取りに来る'};
+const OUTBOUND_JA={SHIP:'技工所が発送する', DELIVER:'技工所が届けに来る'};
+const LEG_JA={in:'往路（印象・模型）', out:'復路（完成品）'};
+const LEG_NOTE={
+  in :{SHIP:'配送業者に載せます。締切時刻に間に合わないと翌日扱いになります',
+       PICKUP:'技工所が取りに来ます。★発送を待たないぶん、着手が早まります'},
+  out:{SHIP:'配送業者に載せます。到着は翌日以降になります',
+       DELIVER:'技工所が持ってきます。★配送の日数がかからなくなります'},
 };
 function vSettings(){
   const isAdmin=U().role==='医院管理者';
@@ -3197,6 +3205,7 @@ function setHandover(){
   <div class="card"><div class="hdr"><h2>受け渡しの方法</h2></div><div class="bd">
     <p class="note mb">
       技工物と、印象・模型などをどうやり取りするかの<b>普段の決め方</b>です。
+      <b>行き（印象・模型）と帰り（完成品）は別々に決めます。</b>
       ここで決めた方法が、新しい依頼の初期値になります。
     </p>
 
@@ -3212,27 +3221,35 @@ function setHandover(){
             <b style="font-size:15px">${esc(l.name)}</b>
             <span class="note">${esc(l.dist||'—')}　/　${esc(l.code)}</span>
           </div>
-          <div class="chips">
-            ${Object.keys(HANDOVER_JA).map(k=>`
-              <button class="chip ${l.hv===k?'on':''}"
-                onclick="${isAdmin?`setHv('${l.id}','${k}')`:`toast('変更は医院管理者のみが行えます')`}">
-                ${HANDOVER_JA[k]}</button>`).join('')}
-          </div>
-          <p class="note mt">${esc(HANDOVER_NOTE[l.hv]||'')}</p>
+          ${['in','out'].map(leg=>{
+            const opts=leg==='in'?INBOUND_JA:OUTBOUND_JA;
+            const cur=leg==='in'?l.inDef:l.outDef;
+            return `<div style="margin-top:10px">
+              <div class="note" style="margin-bottom:5px"><b>${LEG_JA[leg]}</b></div>
+              <div class="chips">
+                ${Object.keys(opts).map(k=>`
+                  <button class="chip ${cur===k?'on':''}"
+                    onclick="${isAdmin?`setHv('${l.id}','${leg}','${k}')`:`toast('変更は医院管理者のみが行えます')`}">
+                    ${opts[k]}</button>`).join('')}
+              </div>
+              <p class="note mt">${esc(LEG_NOTE[leg][cur]||'')}</p>
+            </div>`;}).join('')}
         </div>
       </div>`).join('')}
 
     <div class="alert warn" style="font-size:12.5px">
       <b>ここで決めるのは「普段どうするか」だけです。</b>
-      納期に間に合わないなどの理由で、<b>その回だけ技工所が直接お届けに切り替えることがあります</b>。
-      そのときは技工所側に理由が記録され、案件の履歴に残ります。
+      <b>納期がギリギリのときは、技工所の判断でその回だけ切り替わることがあります</b>——
+      発送を待つと間に合わないので取りに来る、配送だと翌日着になるので届けに来る、など。
+      そのときは<b>技工所側に理由が記録され、案件の履歴に残ります。</b>
     </div>
   </div></div>`;
 }
-function setHv(labId,k){
+function setHv(labId,leg,k){
   const l=LABS.find(x=>x.id===labId); if(!l)return;
-  l.hv=k;
-  toast(`${l.name}：${HANDOVER_JA[k]}に設定しました`);
+  if(leg==='in')l.inDef=k; else l.outDef=k;
+  const ja=(leg==='in'?INBOUND_JA:OUTBOUND_JA)[k];
+  toast(`${l.name}：${LEG_JA[leg]}を「${ja}」にしました`);
   render();
 }
 

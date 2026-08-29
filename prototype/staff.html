@@ -221,14 +221,21 @@ const me = () => STAFF.find(s=>s.id===ME) || STAFF[0];
 
 /* ---------- 受け渡しの方法（BR-94）----------
    医院ごとの既定（近所なので普段から直接）と、その回だけのイレギュラーを分ける。 */
-const HANDOVER = {SHIP:'発送', PICKUP:'直接お預かり', DELIVER:'直接お届け'};
+/* ★往路と復路は別の移動。選べる値も違う。
+   往路：印象・模型が医院から来る。通常は医院が発送するが、
+        納期がギリギリなら近距離に限り取りに行く
+   復路：完成品を医院へ届ける。通常は発送するが、同じ理由で持っていくことがある */
+const INBOUND  = {SHIP:'医院が発送',   PICKUP :'取りに行く'};
+const OUTBOUND = {SHIP:'発送する',     DELIVER:'届けに行く'};
+const LEG_JA   = {in:'往路（印象・模型）', out:'復路（完成品）'};
+const legLabel = (leg,v)=>(leg==='in'?INBOUND:OUTBOUND)[v]||'—';
 
 const CLINICS=[
-  {id:'c1',name:'さくら歯科クリニック',dist:'12km',def:'SHIP'},
-  {id:'c2',name:'A歯科医院',          dist:'1.5km',def:'DELIVER'},  /* 近所なので既定が直接 */
-  {id:'c3',name:'B歯科クリニック',    dist:'8km', def:'SHIP'},
-  {id:'c4',name:'みどり台デンタル',   dist:'0.9km',def:'DELIVER'},
-  {id:'c5',name:'（紙）川西歯科',     dist:'3km', def:'PICKUP', paper:true},
+  {id:'c1',name:'さくら歯科クリニック',dist:'12km', inDef:'SHIP',  outDef:'SHIP'},
+  {id:'c2',name:'A歯科医院',          dist:'1.5km',inDef:'SHIP',  outDef:'DELIVER'},
+  {id:'c3',name:'B歯科クリニック',    dist:'8km',  inDef:'SHIP',  outDef:'SHIP'},
+  {id:'c4',name:'みどり台デンタル',   dist:'0.9km',inDef:'PICKUP',outDef:'DELIVER'},
+  {id:'c5',name:'（紙）川西歯科',     dist:'3km',  inDef:'SHIP',  outDef:'SHIP', paper:true},
 ];
 const clinicOf = id => CLINICS.find(c=>c.id===id) || CLINICS[0];
 
@@ -280,8 +287,8 @@ let CASES=[];
       state: rnd()<0.30 ? 'ACTIVE' : 'WAIT',       /* 作業中 / 待ち */
       owner: rnd()<0.55 ? pick(STAFF).id : null,   /* 担当（未定もある） */
       clinicId: cl.id,
-      handover: cl.def,                            /* 既定は医院の設定から */
-      handoverReason: null,
+      hvIn: cl.inDef, hvOut: cl.outDef,            /* 既定は医院ごとの設定から */
+      hvInReason: null, hvOutReason: null,
       due:['08/15','08/16','08/17','08/18','08/19','08/20','08/22'][d],
       dueDays:d,
       shade:pick(['A1','A2','A3','A3.5','B2']),
@@ -377,15 +384,19 @@ function doFinish(id){
   }
   DETAIL=null; render();
 }
-/* 受け渡し（最終工程）。★その回だけのイレギュラーは理由を残す */
-function doHandover(id, how, reason){
+/* 受け渡しを決める。★既定と違うときだけ理由を残す（FR-HD-008） */
+function setLeg(id, leg, how, reason, finish){
   const c=caseById(id); if(!c) return;
   const cl=clinicOf(c.clinicId);
-  c.handover=how;
-  c.handoverReason = (how!==cl.def) ? (reason||'（理由なし）') : null;
-  (c.log[c.cur] ||= {}).end = nowStamp();
-  c.state='DONE';
-  toast(`${HANDOVER[how]}で確定しました`);
+  const def = leg==='in' ? cl.inDef : cl.outDef;
+  const rsn = (how!==def) ? (reason||'（理由なし）') : null;
+  if(leg==='in'){ c.hvIn=how; c.hvInReason=rsn; }
+  else{ c.hvOut=how; c.hvOutReason=rsn; }
+  if(finish){
+    (c.log[c.cur] ||= {}).end = nowStamp();
+    c.state='DONE';
+  }
+  toast(`${LEG_JA[leg]}：${legLabel(leg,how)}`);
   SHEET=null; DETAIL=null; render();
 }
 
@@ -500,8 +511,12 @@ function vDetail(){
       <dt>部位</dt><dd>${esc(c.teeth)}</dd>
       <dt>シェード</dt><dd>${esc(c.shade)}</dd>
       <dt>発送予定</dt><dd>${esc(c.due)}</dd>
-      <dt>受け渡し</dt><dd>${HANDOVER[c.handover]}
-        <span class="faint small">（医院の既定：${HANDOVER[cl.def]}・${esc(cl.dist)}）</span></dd>
+      <dt>往路</dt><dd>${legLabel('in',c.hvIn)}
+        ${c.hvIn!==cl.inDef?'<span class="chip pri">既定外</span>':''}
+        ${c.hvInReason?`<br><span class="faint small">${esc(c.hvInReason)}</span>`:''}</dd>
+      <dt>復路</dt><dd>${legLabel('out',c.hvOut)}
+        ${c.hvOut!==cl.outDef?'<span class="chip pri">既定外</span>':''}
+        ${c.hvOutReason?`<br><span class="faint small">${esc(c.hvOutReason)}</span>`:''}</dd>
       <dt>指示</dt><dd>${esc(c.note)}</dd>
     </dl>
     <div class="flow">
@@ -519,6 +534,7 @@ function vDetail(){
     </div>
     ${miss.length ? `<div class="gap">⚠ <b>${miss.map(stepName).join('・')}</b> の記録が抜けています。<br>
       <b>分析からはこの案件を外します。</b>件数は管理者の画面に出ます。</div>` : ''}
+    <button class="act-btn ghost" onclick="openLeg('${c.id}','in')">往路の受け渡しを変える</button>
     ${c.state==='WAIT'
       ? `<button class="act-btn" onclick="doStart('${c.id}')">着手する</button>`
       : c.state==='ACTIVE'
@@ -532,37 +548,52 @@ function vDetail(){
 /* ---------- 引き渡しのシート（BR-94）----------
    医院ごとの既定と、その回だけのイレギュラーを分ける。
    ★既定から外すときは理由を残す。「なぜ直接持っていったか」が後から分かるように。 */
-function openHandover(id){ SHEET={kind:'handover',id}; render(); }
+/* leg='out' は最終工程での確定、leg='in' は途中での切り替え */
+function openHandover(id){ SHEET={kind:'leg',id,leg:'out',finish:true}; render(); }
+function openLeg(id,leg){ SHEET={kind:'leg',id,leg,finish:false}; render(); }
 
-function sheetHandover(id){
+const LEG_NOTE={
+  in :{SHIP:'医院からの発送を待ちます',
+       PICKUP:'こちらが医院へ取りに行きます。★発送を待たないぶん着手が早まります'},
+  out:{SHIP:'通常の配送に載せます',
+       DELIVER:'こちらが医院へ持っていきます。★配送の日数がかかりません'},
+};
+function sheetLeg(id,leg,finish){
   const c=caseById(id), cl=clinicOf(c.clinicId);
+  const opts=leg==='in'?INBOUND:OUTBOUND;
+  const def =leg==='in'?cl.inDef:cl.outDef;
+  const cur =leg==='in'?c.hvIn:c.hvOut;
   return `
-  <h3>どうやって渡しますか</h3>
+  <h3>${LEG_JA[leg]}をどうしますか</h3>
   <p class="small muted">${esc(cl.name)}（${esc(cl.dist)}）の既定は
-    <b style="color:var(--text)">${HANDOVER[cl.def]}</b> です。</p>
-  ${Object.keys(HANDOVER).map(k=>`
-    <button class="pick" onclick="pickHandover('${id}','${k}')">
-      <div class="p1">${HANDOVER[k]}${k===cl.def?'　<span class="chip">医院の既定</span>':''}</div>
-      <div class="p2">${k==='SHIP'?'通常の配送に載せます'
-        : k==='PICKUP'?'こちらが医院へ取りに行きます'
-        : 'こちらが医院へ持っていきます'}</div>
+    <b style="color:var(--text)">${legLabel(leg,def)}</b> です。</p>
+  ${Object.keys(opts).map(k=>`
+    <button class="pick ${cur===k?'on':''}" onclick="pickLeg('${id}','${leg}','${k}',${finish})">
+      <div class="p1">${opts[k]}${k===def?'　<span class="chip">医院の既定</span>':''}</div>
+      <div class="p2">${LEG_NOTE[leg][k]}</div>
     </button>`).join('')}
   <button class="act-btn ghost" onclick="SHEET=null;render()">やめる</button>`;
 }
-function pickHandover(id,how){
+function pickLeg(id,leg,how,finish){
   const c=caseById(id), cl=clinicOf(c.clinicId);
-  if(how===cl.def){ doHandover(id,how,null); return; }
-  SHEET={kind:'reason',id,how}; render();
+  const def=leg==='in'?cl.inDef:cl.outDef;
+  if(how===def){ setLeg(id,leg,how,null,finish); return; }
+  SHEET={kind:'reason',id,leg,how,finish}; render();
 }
-function sheetReason(id,how){
+const REASONS={
+  in :['配送を待つと納期に間に合わないため','医院から取りに来てほしいと依頼があったため',
+       '近くへ行く用事があるため','再製作・修正で急ぐため'],
+  out:['配送だと翌日着になり納期に間に合わないため','医院から直接持ってきてほしいと依頼があったため',
+       '近くへ行く用事があるため','再製作・修正で急ぐため'],
+};
+function sheetReason(id,leg,how,finish){
   const c=caseById(id), cl=clinicOf(c.clinicId);
-  const RS=['配送だと納期に間に合わないため','医院から依頼があったため',
-            'ついでに近くへ行くため','再製作・修正のため急ぐ'];
+  const def=leg==='in'?cl.inDef:cl.outDef;
   return `
-  <h3>${HANDOVER[how]}にする理由</h3>
-  <p class="small muted">医院の既定（${HANDOVER[cl.def]}）と違うので、
+  <h3>${legLabel(leg,how)}にする理由</h3>
+  <p class="small muted">医院の既定（${legLabel(leg,def)}）と違うので、
     <b style="color:var(--text)">理由を残します。</b>後から「なぜそうしたか」が分かるようにするためです。</p>
-  ${RS.map(r=>`<button class="pick" onclick="doHandover('${id}','${how}','${esc(r)}')">
+  ${REASONS[leg].map(r=>`<button class="pick" onclick="setLeg('${id}','${leg}','${how}','${esc(r)}',${finish})">
     <div class="p1">${esc(r)}</div></button>`).join('')}
   <button class="act-btn ghost" onclick="SHEET=null;render()">やめる</button>`;
 }
@@ -615,8 +646,8 @@ function render(){
   let ov='';
   if(SHEET){
     const body = SHEET.kind==='scan' ? sheetScan()
-      : SHEET.kind==='handover' ? sheetHandover(SHEET.id)
-      : SHEET.kind==='reason' ? sheetReason(SHEET.id,SHEET.how) : '';
+      : SHEET.kind==='leg' ? sheetLeg(SHEET.id,SHEET.leg,SHEET.finish)
+      : SHEET.kind==='reason' ? sheetReason(SHEET.id,SHEET.leg,SHEET.how,SHEET.finish) : '';
     ov += `<div class="mask" onclick="if(event.target===this){SHEET=null;render()}">
       <div class="sheet">${body}</div></div>`;
   }
