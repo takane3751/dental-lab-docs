@@ -1358,6 +1358,7 @@ CFG.ticketAuto=true;
    ============================================================ */
 const S={me:'s1',route:'dashboard',param:null,sub:null,toast:null,modal:null,hist:[],
   ac:null,   /* 医院追加フローの一時状態 */
+  pp:null,   /* 紙の依頼の入力フローの一時状態（FR-PP） */
   sel:[],   /* 一覧の一括操作で選択中のケースID（A-8） */
   sumOpen:true, bDue:false,
   board:{group:'step',mine:false,dense:false,who:null,dues:[],phase:null}};
@@ -1366,7 +1367,37 @@ const isAdmin=()=>ME().role==='LAB_ADMIN';
 const isOverseer=()=>['LAB_ADMIN','LAB_MANAGER'].includes(ME().role);
 const isStaff=()=>ME().role==='LAB_STAFF';
 const isAcc=()=>ME().role==='LAB_ACCOUNTANT';
-const clinicOf=id=>CLINICS.find(c=>c.id===id);
+/* ============================================================
+   紙で来た依頼を受ける（BR-93）
+   ------------------------------------------------------------
+   ★技工所が導入しても、取引先の医院が全部入るとは限らない。
+     紙の依頼が相当数残るが、技工所の中で紙とシステムが混在する管理は避けたい。
+     → 紙も同じデータ構造に入れる。
+
+   ★ただし `clinics` を勝手に作ってはいけない。
+     BR-32：医院コードはシステム全体で一意。検索なしの新規登録を禁ずる
+     BR-33：取引開始は双方の申請と承認
+     紙の医院はシステムに存在しないので、技工所が勝手に登録できない。
+
+   → 技工所の中だけで有効な「簡易医院レコード」を別に持つ。
+     グローバルの医院マスタとは別物で、医院コードを持たない。
+     その医院が後日システムに入ったら、名寄せして昇格させる（FR-LK に繋がる）。
+   ============================================================ */
+let PAPER_CLINICS=[
+  {id:'pc1',name:'川西歯科',      dr:'川西 亮',  tel:'06-6xxx-1111',paper:true,
+   handoverDef:'PICKUP', memo:'徒歩5分。いつも取りに行っている', score:{total:0},notes:[],users:[]},
+  {id:'pc2',name:'たかはし歯科',  dr:'高橋 誠',  tel:'072-xxx-2222',paper:true,
+   handoverDef:'SHIP',   memo:'FAXで依頼が来る',                  score:{total:0},notes:[],users:[]},
+];
+const paperOf = id => PAPER_CLINICS.find(c=>c.id===id);
+
+/* ★43箇所から呼ばれる。ここを拡張すれば紙の医院も全画面でそのまま名前が出る。
+   紙の医院はスコアも利用者も持たないので、空の形を持たせて参照側を壊さない。 */
+const clinicOf=id=>CLINICS.find(c=>c.id===id)||paperOf(id)
+  ||{id:null,name:'—',code:'—',dr:'',score:{total:0},notes:[],users:[]};
+const isPaperCase = c => !!(c && c.paper);
+/* 紙由来であることの印。★医院側に画面が無いので、誰が見ても分かるようにする */
+const paperTag = c => isPaperCase(c) ? '<span class="b gray" title="紙で受けた依頼">紙</span>' : '';
 const staffOf=id=>STAFF.find(s=>s.id===id);
 const findCase=id=>CASES.find(c=>c.id===id);
 const variantOf=c=>VARIANTS.find(v=>v.id===c.variant)||{};
@@ -1488,7 +1519,7 @@ function dashAdmin(){
         <div class="tw"><table>
           <thead><tr><th>医院</th><th>患者</th><th>技工物</th><th>工程</th><th>担当</th><th>納期</th></tr></thead>
           <tbody>${[...od,...today].slice(0,8).map(c=>`<tr class="clk" onclick="go('case','${c.id}')">
-            <td>${esc(clinicOf(c.clinic).name)}</td><td>${esc(c.patient)}</td>
+            <td>${esc(clinicOf(c.clinic).name)} ${paperTag(c)}</td><td>${esc(c.patient)}</td>
             <td>${esc(c.type)}<div class="note">${esc(c.mat)}</div></td>
             <td>${esc(STEPS[c.step].n)}</td>
             <td>${c.assign.map(a=>av(a.s,a.r!=='MAIN')).join('')||'<span class="b wait">未割当</span>'}</td>
@@ -1500,7 +1531,7 @@ function dashAdmin(){
         <div class="tw"><table>
           <thead><tr><th>医院</th><th>患者</th><th>内容</th><th>滞留</th><th></th></tr></thead>
           <tbody>${waitingClinic().map(c=>`<tr class="clk" onclick="go('case','${c.id}')" title="案件詳細を開きます">
-            <td>${esc(clinicOf(c.clinic).name)}</td><td>${esc(c.patient)}</td>
+            <td>${esc(clinicOf(c.clinic).name)} ${paperTag(c)}</td><td>${esc(c.patient)}</td>
             <td>${esc(c.ext)}<div class="note">${esc(c.no)}</div></td>
             <td><span class="b ${c.extDays>=3?'dgr':'wait'}">${c.extDays}日</span></td>
             <td><button class="btn sm" onclick="event.stopPropagation();go('case','${c.id}')">詳細</button>
@@ -2084,10 +2115,18 @@ function vCases(){
   const nsel=S.sel.length;
   const sum=filterSummary();
 
+  const paperN=CASES.filter(isPaperCase).length;
+
   return `
-  <h1>案件一覧</h1>
-  <p class="sub">${cs.length}件${sum?` ／ 絞り込み：${esc(sum)}`:''}
-    ／ 並び：${esc((SORTS[F.sortKey]||SORTS.no).l)}${F.sortDir==='asc'?'（昇順）':'（降順）'}</p>
+  <div class="row mb" style="justify-content:space-between;align-items:flex-start;gap:10px">
+    <div>
+      <h1 style="margin:0">案件一覧</h1>
+      <p class="sub" style="margin:2px 0 0">${cs.length}件${sum?` ／ 絞り込み：${esc(sum)}`:''}
+        ／ 並び：${esc((SORTS[F.sortKey]||SORTS.no).l)}${F.sortDir==='asc'?'（昇順）':'（降順）'}
+        ${paperN?` ／ うち紙の依頼 <b>${paperN}件</b>`:''}</p>
+    </div>
+    ${!isStaff()?`<button class="btn pri" onclick="startPaper()" style="flex:none">＋ 紙の依頼を入力</button>`:''}
+  </div>
 
   <div class="card mb stick">
     ${filterBar()}
@@ -2405,6 +2444,29 @@ function vClinics(){
     <button class="btn sm" onclick="csvClinicsLab()">CSV出力</button>
     <button class="btn sm pri" onclick="startAddClinic()">＋ 医院を追加</button></div></div>
 
+  ${PAPER_CLINICS.length?`<div class="card mb">
+    <div class="hdr"><h3>紙で受けている医院</h3>
+      <span class="b gray">${PAPER_CLINICS.length}件</span>
+      <span class="sp"></span><span class="note">この技工所の中だけの記録です</span></div>
+    <div class="bd">
+      <div class="alert info mb">
+        <b>これらはシステム全体の医院マスタには登録されていません。</b>医院コードも付いていません。
+        医院はシステム全体で一意に管理されるため、技工所の側から勝手に登録することはできないからです。<br>
+        <b>その医院がシステムを導入したら、下の「紐づける」から既存の医院と結び付けてください。</b>
+        これまでの紙の案件も、そのまま引き継がれます。
+      </div>
+      ${PAPER_CLINICS.map(c=>{
+        const n=CASES.filter(x=>x.clinic===c.id).length;
+        return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--border-2)">
+          <div style="flex:1">
+            <b>${esc(c.name)}</b> <span class="b gray">紙</span>
+            <div class="note">${esc(c.dr||'—')} ／ ${esc(c.tel||'—')} ／
+              既定の受け渡し：${HANDOVER_JA[c.handoverDef]||'—'} ／ 案件 ${n}件</div>
+          </div>
+          <button class="btn sm" onclick="linkPaper('${c.id}')">システムの医院に紐づける</button>
+        </div>`}).join('')}
+    </div></div>`:''}
+
   ${LINK_REQS.length?`<div class="card mb" style="border-color:#f0d5a8">
     <div class="hdr" style="background:var(--accent-soft);border-radius:10px 10px 0 0">
       <h3 style="color:#7c3d06">紐付け申請中</h3><span class="b wait">${LINK_REQS.length}件</span>
@@ -2500,6 +2562,191 @@ function acRegister(){
   S.ac=null;
   toast(`${n.name} を登録しました（医院コード ${code}）。招待メールを送りました`);
   go('clinics');
+}
+
+/* ============================================================
+   紙の依頼を入力する画面（FR-PP）
+   ------------------------------------------------------------
+   ★入力したら、システム経由の依頼とまったく同じ案件になる。
+     ボードにも一覧にも並ぶ。技工所の中で紙とシステムを分けないため。
+   ★違うのは2つだけ：医院が簡易レコードであることと、医院側に画面が無いこと。
+     承認のラリーは起きない（相手がシステムにいない）ので、受注済みとして入る。
+   ============================================================ */
+const HANDOVER_JA={SHIP:'発送',PICKUP:'直接お預かり',DELIVER:'直接お届け'};
+
+function startPaper(){
+  S.pp={clinic:PAPER_CLINICS[0]?.id||'', newClinic:false,
+        nm:'', dr:'', tel:'', hv:'PICKUP',
+        patient:'', pno:'', variant:VARIANTS[0].id, units:1, teeth:'46', shade:'A3',
+        due:fmt(addDays(TODAY,7)), handover:'', note:''};
+  go('paper');
+}
+const ppSet=(k,v)=>{S.pp[k]=v; render()};
+
+function vPaper(){
+  if(isStaff())return noPerm();
+  const a=S.pp; if(!a){startPaper();return ''}
+  const v=VARIANTS.find(x=>x.id===a.variant)||VARIANTS[0];
+  const cl=a.newClinic?null:paperOf(a.clinic);
+  const hv=a.handover||(cl?cl.handoverDef:a.hv);
+
+  return `
+  <div class="row mb">${backBtn()}<button class="btn sm" onclick="go('cases')">案件一覧</button></div>
+  <h1>紙の依頼を入力</h1>
+  <p class="sub">FAX・電話・持ち込みで受けた依頼を、システムの案件として登録します</p>
+
+  <div class="alert info mb">
+    入力すると<b>システム経由の依頼とまったく同じ案件</b>になり、ボードにも一覧にも並びます。
+    <b>技工所の中で紙とシステムを分けないため</b>です。<br>
+    違うのは2点だけ——<b>医院はこの技工所の中だけの簡易レコード</b>であること、
+    <b>医院側に画面が無いので承認のやりとりは起きない</b>こと。受注済みとして入ります。
+  </div>
+
+  <div class="card mb"><div class="hd"><b>どの医院から</b></div><div class="bd">
+    <div class="chips mb">
+      <button class="chip ${!a.newClinic?'on':''}" onclick="ppSet('newClinic',false)">登録済みの医院</button>
+      <button class="chip ${a.newClinic?'on':''}" onclick="ppSet('newClinic',true)">新しく登録する</button>
+    </div>
+    ${a.newClinic?`
+      <div class="alert warn mb">
+        ここで作るのは<b>この技工所の中だけで有効な医院</b>です。
+        <b>システム全体の医院マスタには登録されません</b>（医院コードは付きません）。
+        その医院が後でシステムに入ったら、<b>紐づけて昇格</b>させてください。
+      </div>
+      <div class="grid g2">
+        <label class="f"><span class="lb">医院名</span>
+          <input type="text" value="${esc(a.nm)}" oninput="S.pp.nm=this.value" placeholder="例：川西歯科"></label>
+        <label class="f"><span class="lb">担当の先生</span>
+          <input type="text" value="${esc(a.dr)}" oninput="S.pp.dr=this.value" placeholder="例：川西 亮"></label>
+        <label class="f"><span class="lb">電話番号</span>
+          <input type="text" value="${esc(a.tel)}" oninput="S.pp.tel=this.value" placeholder="06-xxxx-xxxx"></label>
+        <label class="f"><span class="lb">普段の受け渡し</span>
+          <select onchange="ppSet('hv',this.value)">
+            ${Object.entries(HANDOVER_JA).map(([k,l])=>
+              `<option value="${k}" ${a.hv===k?'selected':''}>${l}</option>`).join('')}</select></label>
+      </div>`
+    :`<label class="f" style="margin-bottom:0"><span class="lb">医院</span>
+        <select onchange="ppSet('clinic',this.value)">
+          ${PAPER_CLINICS.map(c=>`<option value="${c.id}" ${a.clinic===c.id?'selected':''}>
+            ${esc(c.name)}（${HANDOVER_JA[c.handoverDef]}）</option>`).join('')}</select></label>
+      ${cl&&cl.memo?`<p class="note mt">${esc(cl.memo)}</p>`:''}`}
+  </div></div>
+
+  <div class="card mb"><div class="hd"><b>患者と技工物</b></div><div class="bd">
+    <div class="grid g2">
+      <label class="f"><span class="lb">患者名</span>
+        <input type="text" value="${esc(a.patient)}" oninput="S.pp.patient=this.value" placeholder="例：山田 花子"></label>
+      <label class="f"><span class="lb">患者コード <span class="note">医院の管理番号</span></span>
+        <input type="text" value="${esc(a.pno)}" oninput="S.pp.pno=this.value" placeholder="P-12345"></label>
+      <label class="f"><span class="lb">技工物</span>
+        <select onchange="ppSet('variant',this.value)">
+          ${VARIANTS.map(x=>`<option value="${x.id}" ${a.variant===x.id?'selected':''}>
+            ${x.cov==='INSURANCE'?'[保険]':'[自費]'} ${esc(x.type)} / ${esc(x.mat)}</option>`).join('')}</select></label>
+      <label class="f"><span class="lb">本数</span>
+        <input type="number" min="1" value="${a.units}" oninput="S.pp.units=Math.max(1,+this.value||1)"></label>
+      <label class="f"><span class="lb">部位 <span class="note">歯式</span></span>
+        <input type="text" value="${esc(a.teeth)}" oninput="S.pp.teeth=this.value" placeholder="46"></label>
+      <label class="f"><span class="lb">シェード</span>
+        <input type="text" value="${esc(a.shade)}" oninput="S.pp.shade=this.value" placeholder="A3"></label>
+    </div>
+    <p class="note mt">
+      技工料の目安 <b>${yen(v.price*a.units)}</b>（${esc(v.type)}／${esc(v.mat)} × ${a.units}本）。
+      標準の所要は ${v.days}日です。
+    </p>
+  </div></div>
+
+  <div class="card mb"><div class="hd"><b>納期と受け渡し</b></div><div class="bd">
+    <div class="grid g2">
+      <label class="f"><span class="lb">納期 <span class="note">医院に届く日</span></span>
+        <input type="date" value="${esc(a.due)}" oninput="S.pp.due=this.value"></label>
+      <label class="f"><span class="lb">受け渡しの方法</span>
+        <select onchange="ppSet('handover',this.value)">
+          ${Object.entries(HANDOVER_JA).map(([k,l])=>
+            `<option value="${k}" ${hv===k?'selected':''}>${l}${cl&&cl.handoverDef===k?'（この医院の既定）':''}</option>`).join('')}</select></label>
+    </div>
+    <label class="f mt"><span class="lb">指示の内容</span>
+      <textarea rows="3" oninput="S.pp.note=this.value"
+        placeholder="紙の指示書に書かれている内容を写してください">${esc(a.note)}</textarea></label>
+    <p class="note mt">
+      発送予定は納期の前日（${esc(fmt(addDays(new Date(a.due+'T00:00:00+09:00'),-1)))}）で入ります。
+      ${hv!=='SHIP'?'<b>直接の受け渡しなので、配送は発生しません。</b>':''}
+    </p>
+  </div></div>
+
+  <div class="row" style="gap:8px">
+    <button class="btn pri" onclick="savePaper()">この内容で登録する</button>
+    <button class="btn" onclick="go('cases')">やめる</button>
+  </div>`;
+}
+
+function savePaper(){
+  const a=S.pp;
+  if(a.newClinic&&!a.nm.trim()){toast('医院名を入れてください');return}
+  if(!a.patient.trim()){toast('患者名を入れてください');return}
+
+  /* 新しい紙の医院は、この技工所の中だけに作る。★医院コードは付けない（BR-32） */
+  let cid=a.clinic;
+  if(a.newClinic){
+    cid='pc'+(PAPER_CLINICS.length+1)+'_'+Date.now().toString().slice(-4);
+    PAPER_CLINICS.push({id:cid,name:a.nm.trim(),dr:a.dr.trim(),tel:a.tel.trim(),paper:true,
+      handoverDef:a.hv,memo:'',score:{total:0},notes:[],users:[]});
+  }
+  const cl=paperOf(cid);
+  const v=VARIANTS.find(x=>x.id===a.variant)||VARIANTS[0];
+  const hv=a.handover||cl.handoverDef;
+  const no=200+CASES.length+1;
+
+  CASES.unshift({
+    id:'kp'+Date.now(), no:'NKTN-2026-P'+String(no).padStart(3,'0'),
+    clinic:cid, paper:true,                       /* ★紙由来の印 */
+    patient:a.patient.trim(), chart:'—', pno:a.pno.trim()||'—',
+    cov:v.cov,type:v.type,mat:v.mat,variant:v.id,units:a.units,
+    teeth:[parseInt(a.teeth,10)||46], shade:a.shade||'A3',
+    due:a.due, ship:fmt(addDays(new Date(a.due+'T00:00:00+09:00'),-1)),
+    handover:hv,
+    step:0, assign:[], items:1,
+    diff:v.diff+(a.units>1?a.units*2:0)+(v.cov==='PRIVATE'?5:0),
+    tray:null, isRush:false, amount:v.price*a.units, changeNotice:false, prio:null,
+    note:a.note.trim(),
+    tl:[{t:nowJ(),w:ME().name,x:'紙の依頼を入力しました（'+esc(cl.name)+'）',k:'hi'}]
+  });
+  S.pp=null;
+  toast(`登録しました — ${cl.name} / ${a.patient}様`);
+  go('cases');
+}
+/* 履歴の時刻。デモの「今日」を使う */
+function nowJ(){const d=new Date();return `${DL.TODAY.slice(5).replace('-','/')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+
+/* 紙の医院を、システムに入った医院へ紐づける（昇格）。
+   ★これまでの紙の案件も一緒に付け替える。履歴を切らないため。 */
+function linkPaper(pid){
+  const pc=paperOf(pid); if(!pc)return;
+  const n=CASES.filter(c=>c.clinic===pid).length;
+  S.modal={title:`${pc.name} を紐づける`,wide:true,body:`
+    <div class="alert info mb">
+      <b>${esc(pc.name)}</b> がシステムを導入したら、既存の医院と結び付けます。<br>
+      これまでの<b>紙の案件 ${n}件も、そのまま新しい医院へ引き継がれます</b>（履歴を切らないため）。
+    </div>
+    <label class="f" style="margin-bottom:0"><span class="lb">紐づけ先の医院</span>
+      <select id="lpTo">${CLINICS.map(c=>
+        `<option value="${c.id}">${esc(c.name)}（${esc(c.code)}）</option>`).join('')}</select></label>
+    <p class="note mt">
+      ★実際には<b>医院コードで検索して、医院側の承認を得てから</b>紐づきます（BR-32・BR-33）。
+      ここでは取引中の医院から選ぶ形にしています。
+    </p>`,
+    ok:'紐づける',fn:()=>{
+      const to=document.getElementById('lpTo').value;
+      CASES.filter(c=>c.clinic===pid).forEach(c=>{
+        c.clinic=to;
+        c.tl.push({t:nowJ(),w:ME().name,
+          x:`紙の医院「${pc.name}」を ${clinicOf(to).name} に紐づけました`,k:'hi'});
+      });
+      PAPER_CLINICS=PAPER_CLINICS.filter(c=>c.id!==pid);
+      S.modal=null;
+      toast(`${pc.name} を ${clinicOf(to).name} に紐づけました（案件 ${n}件を移行）`);
+      render();
+    }};
+  render();
 }
 
 function vAddClinic(){
@@ -7406,13 +7653,13 @@ function render(){
     `<span class="av" style="width:19px;height:19px;font-size:9px">${ME().init}</span> ${esc(ME().name)}
      <span class="note">${esc(ME().label)}</span>`;
   const tabs=tabsFor();
-  if(!tabs.some(([r])=>r===S.route)&&!['case','clinic','addclinic'].includes(S.route))S.route=tabs[0][0];
+  if(!tabs.some(([r])=>r===S.route)&&!['case','clinic','addclinic','paper'].includes(S.route))S.route=tabs[0][0];
   document.getElementById('tabs').innerHTML=tabs.map(([r,l])=>
     `<button class="${S.route===r||(r==='cases'&&S.route==='case')||(r==='clinics'&&S.route==='clinic')?'on':''}"
       onclick="go('${r}')">${l}</button>`).join('');
   document.getElementById('bellN').textContent=isStaff()?'2':'5';
   const V={dashboard:vDashboard,board:vBoard,cases:vCases,case:vCase,capacity:vCapacity,ship:vShip,
-    clinics:vClinics,clinic:vClinic,addclinic:vAddClinic,analytics:vAnalytics,
+    clinics:vClinics,clinic:vClinic,addclinic:vAddClinic,paper:vPaper,analytics:vAnalytics,
     supply:vSupply,worktime:vWorkTime,margin:vMargin,
     invoices:vInvoices,service:vService,settings:vSettings};
   document.getElementById('app').innerHTML=(V[S.route]||vDashboard)();

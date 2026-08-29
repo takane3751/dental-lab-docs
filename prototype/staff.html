@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>スタッフ端末（スマホ） — 技工物管理</title>
+<style>
+:root{
+  --bg:#0f1613; --panel:#18231f; --panel-2:#1f2d28; --panel-3:#26362f;
+  --line:#2c3d36; --line-2:#3a4f46;
+  --text:#eaf2ef; --muted:#8fa79e; --faint:#6b8078;
+  --primary:#2dd4bf; --primary-d:#0f766e;
+  --ok:#4ade80; --warn:#fbbf24; --danger:#f87171;
+  --ins:#60a5fa; --pri:#fbbf24;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+/* ★スマホ幅を基準に作る。PCで開いたときは中央に寄せて枠を出す（デモの見やすさ用） */
+.phone{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);
+  border-left:1px solid var(--line);border-right:1px solid var(--line)}
+@media (max-width:460px){ .phone{border:none} }
+
+header{position:sticky;top:0;z-index:20;background:var(--panel);
+  border-bottom:1px solid var(--line);padding:10px 14px}
+.hrow{display:flex;align-items:center;gap:10px}
+.lab{font-size:12px;color:var(--muted);letter-spacing:.02em}
+.me{margin-left:auto;display:flex;align-items:center;gap:7px}
+.av{width:30px;height:30px;border-radius:50%;background:var(--primary-d);color:#fff;
+  display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+select.who{background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);
+  border-radius:8px;padding:5px 8px;font-size:13px;font-family:inherit;max-width:150px}
+
+nav.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);background:var(--panel)}
+nav.tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);font-size:13.5px;font-family:inherit;padding:11px 4px;cursor:pointer;font-weight:600}
+nav.tabs button.on{color:var(--primary);border-bottom-color:var(--primary)}
+nav.tabs .n{display:inline-block;min-width:19px;padding:0 5px;margin-left:4px;border-radius:99px;
+  background:var(--panel-3);color:var(--text);font-size:11.5px;line-height:18px;font-weight:700}
+nav.tabs button.on .n{background:var(--primary);color:#04211d}
+
+main{padding:14px 14px 90px}
+h2{font-size:15px;margin:0 0 10px;font-weight:700}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+.small{font-size:12.5px}
+
+/* ── 案件カード ───────────────────────── */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  padding:13px 14px;margin-bottom:11px}
+.card.act{border-color:var(--primary);background:var(--panel-2)}
+.card.warn{border-color:var(--warn)}
+.top{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.no{font-family:ui-monospace,monospace;font-size:12px;color:var(--faint)}
+.ttl{font-size:16.5px;font-weight:700;line-height:1.35}
+.sub{font-size:13px;color:var(--muted);margin-top:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:11.5px;padding:2px 9px;border-radius:99px;background:var(--panel-3);color:var(--muted)}
+.chip.ins{background:#12304d;color:var(--ins)}
+.chip.pri{background:#3a2f10;color:var(--pri)}
+.chip.due{background:#3a1a1a;color:var(--danger);font-weight:700}
+.chip.soon{background:#3a2f10;color:var(--warn);font-weight:700}
+.chip.step{background:var(--primary-d);color:#eafffb;font-weight:700}
+
+/* ★手袋でも押せるように大きく。現場の操作は迷わせない */
+.act-btn{display:block;width:100%;margin-top:12px;padding:15px;border-radius:11px;
+  border:none;font-family:inherit;font-size:16.5px;font-weight:700;cursor:pointer;
+  background:var(--primary);color:#04211d}
+.act-btn.done{background:var(--ok);color:#052e14}
+.act-btn.ship{background:var(--ins);color:#04203f}
+.act-btn:active{transform:translateY(1px)}
+.act-btn.ghost{background:var(--panel-3);color:var(--text);font-size:14.5px;padding:11px;font-weight:600}
+
+.el{display:flex;align-items:baseline;gap:6px;margin-top:9px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.el .lb{flex:none}
+.el b{color:var(--text);font-family:ui-monospace,monospace}
+
+/* ── 取り漏れの警告（BR-90）───────────── */
+.gap{margin-top:10px;padding:9px 11px;border-radius:9px;background:#3a2f10;
+  border:1px solid var(--warn);font-size:13px;color:#fde68a;line-height:1.65}
+.gap b{color:#fff}
+
+/* ── 読み取り ─────────────────────────── */
+.scan{position:fixed;left:0;right:0;bottom:0;z-index:30;max-width:430px;margin:0 auto;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--bg) 70%,transparent);}
+.scan button{width:100%;padding:16px;border-radius:13px;border:none;font-family:inherit;
+  font-size:17px;font-weight:700;background:var(--primary);color:#04211d;cursor:pointer;
+  box-shadow:0 6px 20px -6px rgba(45,212,191,.5)}
+.mask{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:grid;
+  place-items:end center;padding:0}
+.sheet{width:100%;max-width:430px;background:var(--panel);border-radius:16px 16px 0 0;
+  border:1px solid var(--line);border-bottom:none;padding:16px 14px calc(16px + env(safe-area-inset-bottom));
+  max-height:88vh;overflow:auto}
+.sheet h3{margin:0 0 4px;font-size:16px}
+.cam{margin:12px 0;border:2px dashed var(--line-2);border-radius:12px;padding:22px 12px;
+  text-align:center;color:var(--muted);font-size:13px;line-height:1.8;background:var(--panel-2)}
+.cam .big{font-size:30px;display:block;margin-bottom:6px}
+.pick{display:block;width:100%;text-align:left;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px;margin-bottom:8px;color:var(--text);font-family:inherit;
+  font-size:14px;cursor:pointer}
+.pick:hover{border-color:var(--primary)}
+.pick .p1{font-weight:700}
+.pick .p2{font-size:12.5px;color:var(--muted);margin-top:2px}
+input.code{width:100%;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;
+  padding:12px;color:var(--text);font-family:ui-monospace,monospace;font-size:16px}
+
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:60;
+  background:#04211d;border:1px solid var(--primary);color:var(--text);
+  padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;white-space:nowrap;
+  box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
+.empty{text-align:center;color:var(--faint);padding:34px 10px;font-size:14px;line-height:1.9}
+.note{background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--primary);
+  border-radius:9px;padding:11px 13px;font-size:12.5px;color:var(--muted);line-height:1.75;margin-bottom:12px}
+.note b{color:var(--text)}
+
+/* 詳細 */
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13.5px;margin-top:10px}
+.dl dt{color:var(--muted);white-space:nowrap}
+.dl dd{margin:0}
+.flow{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.fs{font-size:11.5px;padding:3px 8px;border-radius:7px;background:var(--panel-3);color:var(--faint)}
+.fs.done{background:#0e2c22;color:var(--ok)}
+.fs.now{background:var(--primary);color:#04211d;font-weight:700}
+.fs.miss{background:#3a2f10;color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div class="hrow">
+      <div>
+        <div class="lab" id="labName">なかたに技工所</div>
+        <div class="small faint" id="modeLine"></div>
+      </div>
+      <div class="me">
+        <select class="who" id="whoSel"></select>
+        <div class="av" id="avatar">高</div>
+      </div>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="app"></main>
+</div>
+<div class="scan"><button id="scanBtn">📷　指示書のQRを読む</button></div>
+<div id="overlay"></div>
+<script src="shared.js"></script>
+<script>
+/* ============================================================
+   スタッフ端末（スマホ）— 工程の記録
+   ------------------------------------------------------------
+   ★この画面の位置づけ（2026-08-29 新設）
+     RFID を入れられる技工所はごくわずかという調査結果から、
+     工程の記録は「①タップ ②QR ③RFID」の3方式にし、技工所が選ぶ。
+     ①②は基本パック、③はオプション（BR-89）。
+
+   ★読むのは工程あたり2回だけ（BR-92）
+     RFID の3ゾーン（待機・作業中・完了）は「置くだけ」だから成立する。
+     QR で同じことをやると 13工程 × 3回 = 1件39スキャンになり、現場が続かない。
+     → 記録するのは「着手」と「完了」の2回。
+       待ち時間は「前工程の完了時刻」から導出する（前工程の完了＝次工程の待機開始）。
+
+   ★取り漏れは起きる前提で作る（BR-90・BR-91）
+     議事録 1-3「1人でも取り漏れた瞬間にデータが壊れる」が QR の既知の弱点。
+     - 工程の飛び越しをエラーにしない。記録したうえで画面に出す
+     - 記録の欠けた案件は分析から外し、除外件数を管理者に見せる（BR-74 と同じ考え方）
+   ============================================================ */
+const esc = DL.esc;
+
+/* 13工程。★lab.html / station.html と同一（整合テストが突き合わせる） */
+const STEPS=[
+  {c:'INTAKE',        n:'受付・確認'},
+  {c:'CLARIFY',       n:'仕様調整'},
+  {c:'WAXUP',         n:'ワックスアップ'},
+  {c:'SCAN',          n:'スキャン'},
+  {c:'DESIGN',        n:'デザイン'},
+  {c:'DESIGN_REVIEW', n:'デザイン確認'},
+  {c:'EXPORT',        n:'データエクスポート'},
+  {c:'NESTING',       n:'ネスティング・スライス'},
+  {c:'MILLING',       n:'加工'},
+  {c:'ADJUST',        n:'加工物調整'},
+  {c:'FINISHING',     n:'仕上げ'},
+  {c:'QC',            n:'最終検品'},
+  {c:'SHIPPING',      n:'梱包・発送'}
+];
+const stepName = c => (STEPS.find(s=>s.c===c)||{n:c}).n;
+const stepIdx  = c => STEPS.findIndex(s=>s.c===c);
+
+/* ★作業中ゾーンを持たない工程＝素通り（原則45）。
+   ここを「飛ばした」と扱うと切削の案件が全部アラートになる。 */
+const PASS_THROUGH = ['EXPORT','NESTING'];
+const observable = c => !PASS_THROUGH.includes(c);
+
+/* エリアごとの記録方式。★技工所が選ぶ。段階導入（主要工程だけRFID）も表現できる */
+const AREAS=[
+  {id:'a1',name:'受注テーブル',      steps:['INTAKE','CLARIFY'],            mode:'QR'},
+  {id:'a2',name:'ワックステーブル',  steps:['WAXUP'],                       mode:'QR'},
+  {id:'a3',name:'CADデスク',         steps:['SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING'], mode:'QR'},
+  {id:'a4',name:'ミリング室',        steps:['MILLING','ADJUST'],            mode:'RFID'},
+  {id:'a5',name:'仕上げテーブル',    steps:['FINISHING'],                   mode:'RFID'},
+  {id:'a6',name:'検品・発送テーブル',steps:['QC','SHIPPING'],               mode:'QR'},
+];
+const areaOf = c => AREAS.find(a=>a.steps.includes(c)) || AREAS[0];
+const MODE_JA = {TAP:'タップ', QR:'QR', RFID:'RFID'};
+
+/* スタッフ。★対応できる工程＝技能。自分の担当をメインに出すための軸 */
+const STAFF=[
+  {id:'s1',name:'高根 弘二',init:'高',can:STEPS.map(s=>s.c)},
+  {id:'s2',name:'中谷 誠',  init:'中',can:['INTAKE','CLARIFY','QC','SHIPPING']},
+  {id:'s3',name:'佐藤 圭',  init:'佐',can:['SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING','MILLING','ADJUST']},
+  {id:'s4',name:'山本 千夏',init:'山',can:['FINISHING','ADJUST','QC']},
+];
+let ME = 's3';
+const me = () => STAFF.find(s=>s.id===ME) || STAFF[0];
+
+/* ---------- 受け渡しの方法（BR-94）----------
+   医院ごとの既定（近所なので普段から直接）と、その回だけのイレギュラーを分ける。 */
+const HANDOVER = {SHIP:'発送', PICKUP:'直接お預かり', DELIVER:'直接お届け'};
+
+const CLINICS=[
+  {id:'c1',name:'さくら歯科クリニック',dist:'12km',def:'SHIP'},
+  {id:'c2',name:'A歯科医院',          dist:'1.5km',def:'DELIVER'},  /* 近所なので既定が直接 */
+  {id:'c3',name:'B歯科クリニック',    dist:'8km', def:'SHIP'},
+  {id:'c4',name:'みどり台デンタル',   dist:'0.9km',def:'DELIVER'},
+  {id:'c5',name:'（紙）川西歯科',     dist:'3km', def:'PICKUP', paper:true},
+];
+const clinicOf = id => CLINICS.find(c=>c.id===id) || CLINICS[0];
+
+/* ---------- 案件 ---------- */
+let _s=20260829;
+const rnd=()=>{_s=(_s*1103515245+12345)&0x7fffffff;return _s/0x7fffffff};
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+
+const TYPES=['クラウン','インレー','ブリッジ','前装冠','局部床義歯'];
+const MATS={'クラウン':['フルジルコニア','e.max','金銀パラジウム'],'インレー':['e.max','金銀パラジウム'],
+  'ブリッジ':['フルジルコニア','金銀パラジウム'],'前装冠':['前装鋳造冠'],'局部床義歯':['コバルトクロム']};
+
+/* ルート：材料で通る工程が変わる（切削 vs 鋳造） */
+function routeOf(mat){
+  const cast = ['金銀パラジウム','前装鋳造冠','コバルトクロム'].includes(mat);
+  return cast
+    ? ['INTAKE','CLARIFY','WAXUP','FINISHING','QC','SHIPPING']
+    : ['INTAKE','CLARIFY','SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING','MILLING','ADJUST','FINISHING','QC','SHIPPING'];
+}
+
+let CASES=[];
+(function(){
+  for(let i=0;i<14;i++){
+    const type=pick(TYPES), mat=pick(MATS[type]);
+    const route=routeOf(mat);
+    const cl=pick(CLINICS);
+    /* いまどこにいるか。route の途中に置く。
+       ★素通りの工程（作業中ゾーンが無い）には止まれない。そこは通過するだけなので、
+         スタッフが「着手する」対象にならない（原則45・36） */
+    let at=ri(1,route.length-2);
+    while(at<route.length-1 && !observable(route[at])) at++;
+    const cur=route[at];
+    const cov=rnd()<0.62?'INSURANCE':'PRIVATE';
+    const d=ri(0,6);
+    /* 履歴：ここまでの工程の完了時刻。★一部わざと欠かす（取り漏れの再現） */
+    const log={};
+    for(let k=0;k<at;k++){
+      const c=route[k];
+      if(!observable(c)) continue;                 /* 素通りの工程は記録が無いのが正常 */
+      if(rnd()<0.12) continue;                     /* ★12%の確率で取り漏れ */
+      log[c]={start:`08/${13+Math.floor(k/3)} ${8+k%9}:${DL.pad(ri(0,59),2)}`,
+              end:`08/${13+Math.floor(k/3)} ${9+k%9}:${DL.pad(ri(0,59),2)}`};
+    }
+    CASES.push({
+      id:'k'+i, no:'NKTN-2026-'+(1200+i*7),
+      pno:'P-'+ri(10000,99999),
+      type, mat, cov, route, cur,
+      state: rnd()<0.30 ? 'ACTIVE' : 'WAIT',       /* 作業中 / 待ち */
+      owner: rnd()<0.55 ? pick(STAFF).id : null,   /* 担当（未定もある） */
+      clinicId: cl.id,
+      handover: cl.def,                            /* 既定は医院の設定から */
+      handoverReason: null,
+      due:['08/15','08/16','08/17','08/18','08/19','08/20','08/22'][d],
+      dueDays:d,
+      shade:pick(['A1','A2','A3','A3.5','B2']),
+      teeth:pick(['右上6','左下7','右下4','左上5','前歯部 2〜3']),
+      note:pick(['隣在歯に合わせて自然に','咬合強め。厚みを確保','コンタクトきつめで','指示書のとおり']),
+      log,
+      startedAt:null,
+    });
+  }
+})();
+const caseById = id => CASES.find(c=>c.id===id);
+
+/* ============================================================
+   取り漏れの検出（BR-90）
+   ------------------------------------------------------------
+   いまの工程より前で、観測できるはずなのに記録が無い工程を洗い出す。
+   ★弾かない。記録したうえで画面に出す。
+     弾くと現場が止まり、勝手に補完するとデータが嘘になる。
+   ============================================================ */
+function missingSteps(c){
+  const at = c.route.indexOf(c.cur);
+  return c.route.slice(0, at).filter(x => observable(x) && !c.log[x]);
+}
+
+/* 待ち時間は「前工程の完了時刻」から導出する（BR-92）。
+   待機ゾーンを読ませないので、これが唯一の求め方になる。 */
+function waitingSince(c){
+  const at = c.route.indexOf(c.cur);
+  for(let k=at-1;k>=0;k--){
+    const rec = c.log[c.route[k]];
+    if(rec && rec.end) return rec.end;
+  }
+  return null;
+}
+
+/* ---------- 表示の小物 ---------- */
+const dueChip = c => {
+  const cls = c.dueDays<=1 ? 'due' : c.dueDays<=3 ? 'soon' : '';
+  const t = c.dueDays===0 ? '今日' : c.dueDays===1 ? '明日' : `${c.due}`;
+  return `<span class="chip ${cls}">発送 ${t}</span>`;
+};
+const covChip = c => c.cov==='INSURANCE'
+  ? '<span class="chip ins">保険</span>' : '<span class="chip pri">自費</span>';
+
+/* ============================================================
+   一覧の作り方
+   ------------------------------------------------------------
+   ★「自分の担当をメインに出す」（オーナー指示）
+     1. 手元    … 自分が着手済みのもの
+     2. これから … 自分が対応できる工程で待っているもの（担当が自分 or 未定）
+   ============================================================ */
+const myActive = () => CASES.filter(c => c.state==='ACTIVE' && c.owner===ME);
+const myNext   = () => CASES.filter(c =>
+  c.state==='WAIT' && me().can.includes(c.cur) && (c.owner===ME || c.owner===null));
+const allWait  = () => CASES.filter(c => c.state==='WAIT');
+
+let TAB='now', TOAST=null, SHEET=null, DETAIL=null;
+
+/* ============================================================
+   操作 — 記録するのは「着手」と「完了」の2回だけ（BR-92）
+   ============================================================ */
+function nowStamp(){
+  /* デモの「今日」を使う。実データではないので固定（DL.TODAY と揃える） */
+  const d=new Date();
+  return `08/15 ${DL.pad(d.getHours(),2)}:${DL.pad(d.getMinutes(),2)}`;
+}
+function doStart(id){
+  const c=caseById(id); if(!c) return;
+  c.state='ACTIVE'; c.owner=ME; c.startedAt=nowStamp();
+  (c.log[c.cur] ||= {}).start = c.startedAt;
+  toast(`着手しました — ${stepName(c.cur)}`);
+  DETAIL=null; render();
+}
+function doFinish(id){
+  const c=caseById(id); if(!c) return;
+  (c.log[c.cur] ||= {}).end = nowStamp();
+  const at=c.route.indexOf(c.cur);
+  /* ★素通りの工程は飛ばして、次に「作業中ゾーンがある工程」まで送る。
+     ただし飛ばした工程名は画面に残す（原則36：出さないと現物が行方不明に見える）。 */
+  let next=at+1, passed=[];
+  while(next < c.route.length && !observable(c.route[next])){
+    passed.push(c.route[next]); next++;
+  }
+  if(next < c.route.length){
+    c.cur = c.route[next];
+    c.state='WAIT'; c.owner=null; c.startedAt=null;
+    toast(passed.length
+      ? `完了 → ${passed.map(stepName).join('・')}を通って「${stepName(c.cur)}」へ`
+      : `完了 → 次は「${stepName(c.cur)}」へ`);
+  }else{
+    c.state='DONE';
+    toast('完了しました');
+  }
+  DETAIL=null; render();
+}
+/* 受け渡し（最終工程）。★その回だけのイレギュラーは理由を残す */
+function doHandover(id, how, reason){
+  const c=caseById(id); if(!c) return;
+  const cl=clinicOf(c.clinicId);
+  c.handover=how;
+  c.handoverReason = (how!==cl.def) ? (reason||'（理由なし）') : null;
+  (c.log[c.cur] ||= {}).end = nowStamp();
+  c.state='DONE';
+  toast(`${HANDOVER[how]}で確定しました`);
+  SHEET=null; DETAIL=null; render();
+}
+
+let toastTimer=null;
+function toast(t){
+  TOAST=t; render();
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{TOAST=null;render()},2400);
+}
+
+/* ============================================================
+   QRの読み取り
+   ------------------------------------------------------------
+   ★デモではカメラを起動しない。
+     file:// は secure context ではないので getUserMedia が動かない。
+     本実装は BarcodeDetector（Chrome で qr_code 対応を実測済み）＋
+     iOS 用のフォールバックで組む。★iOS Safari の対応は Phase 0 で要確認。
+   ============================================================ */
+function openScan(){
+  SHEET={kind:'scan'}; render();
+}
+function scanPick(id){
+  SHEET=null; DETAIL=id; TAB='now'; render();
+  const c=caseById(id);
+  if(c) toast(`読み取りました — ${c.no}`);
+}
+function scanByCode(){
+  const v=(document.getElementById('codeIn')?.value||'').trim().toUpperCase();
+  if(!v){ toast('指示書番号を入れてください'); return; }
+  const c=CASES.find(x=>x.no.toUpperCase().includes(v));
+  if(!c){ toast('その番号は見つかりません'); return; }
+  scanPick(c.id);
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+function caseCard(c, kind){
+  const cl=clinicOf(c.clinicId);
+  const miss=missingSteps(c);
+  const area=areaOf(c.cur);
+  const last = c.route[c.route.length-1];
+  const isLast = c.cur===last;
+
+  /* ★次にやる操作は1つだけ出す。現場で迷わせないため */
+  let btn='';
+  if(c.state==='ACTIVE'){
+    btn = isLast
+      ? `<button class="act-btn ship" onclick="openHandover('${c.id}')">終わった → 引き渡しへ</button>`
+      : `<button class="act-btn done" onclick="doFinish('${c.id}')">終わった</button>`;
+  }else if(c.state==='WAIT'){
+    btn = `<button class="act-btn" onclick="doStart('${c.id}')">着手する</button>`;
+  }
+
+  return `<div class="card ${c.state==='ACTIVE'?'act':''} ${miss.length?'warn':''}">
+    <div class="top"><span class="no">${esc(c.no)}</span></div>
+    <div class="ttl">${esc(c.type)}　<span class="muted" style="font-size:14px">${esc(c.mat)}</span></div>
+    <div class="sub">${esc(cl.name)}　/　${esc(c.teeth)}　/　シェード ${esc(c.shade)}</div>
+    <div class="chips">
+      <span class="chip step">${esc(stepName(c.cur))}</span>
+      ${covChip(c)} ${dueChip(c)}
+      <span class="chip">${esc(area.name)}・${MODE_JA[area.mode]}</span>
+    </div>
+    ${c.state==='ACTIVE' && c.startedAt ? `<div class="el">着手 <b>${esc(c.startedAt)}</b></div>` : ''}
+    ${c.state==='WAIT' && waitingSince(c) ? `<div class="el"><span class="lb">前の工程の完了</span> <b>${esc(waitingSince(c))}</b>
+      <span class="faint small" style="flex-basis:100%">ここから待ち時間を数えます</span></div>` : ''}
+    ${miss.length ? `<div class="gap">⚠ <b>${miss.map(stepName).join('・')}</b> の記録が抜けています。<br>
+      作業は進めて構いません。<b>あとで管理者が確認します。</b></div>` : ''}
+    ${btn}
+    <button class="act-btn ghost" onclick="DETAIL='${c.id}';render()">指示書を見る</button>
+  </div>`;
+}
+
+function vNow(){
+  const a=myActive(), n=myNext();
+  return `
+  <div class="note">
+    <b>読むのは「着手」と「終わった」の2回だけです。</b>
+    待ち時間は前の工程の完了時刻から計算するので、届いたときに読む必要はありません。
+  </div>
+  <h2>いま手元にあるもの <span class="muted small">${a.length}件</span></h2>
+  ${a.length ? a.map(c=>caseCard(c,'now')).join('')
+    : '<div class="empty">手元に作業中のものはありません。<br>下の「QRを読む」か、次の一覧から着手してください。</div>'}
+  <h2 style="margin-top:20px">これから来るもの <span class="muted small">${n.length}件</span></h2>
+  ${n.length ? n.map(c=>caseCard(c,'next')).join('')
+    : '<div class="empty">あなたが対応できる工程で待っているものはありません。</div>'}`;
+}
+
+function vAll(){
+  const w=allWait();
+  return `
+  <div class="note">技工所全体の待ちです。<b>自分の技能外の工程も見えます</b>が、
+    着手できるのは対応できる工程だけです。</div>
+  ${w.length ? w.map(c=>{
+    const can=me().can.includes(c.cur);
+    return can ? caseCard(c,'all') : caseCard(c,'all').replace(/<button class="act-btn"[^>]*>着手する<\/button>/,
+      '<div class="el faint">この工程はあなたの担当外です</div>');
+  }).join('') : '<div class="empty">待ちはありません。</div>'}`;
+}
+
+function vDetail(){
+  const c=caseById(DETAIL); if(!c) return vNow();
+  const cl=clinicOf(c.clinicId), miss=missingSteps(c);
+  return `
+  <button class="act-btn ghost" onclick="DETAIL=null;render()" style="margin:0 0 12px">← 一覧へ戻る</button>
+  <div class="card">
+    <div class="top"><span class="no">${esc(c.no)}</span></div>
+    <div class="ttl">${esc(c.type)}　<span class="muted" style="font-size:14px">${esc(c.mat)}</span></div>
+    <dl class="dl">
+      <dt>医院</dt><dd>${esc(cl.name)}${cl.paper?' <span class="chip">紙の依頼</span>':''}</dd>
+      <dt>患者コード</dt><dd class="muted">${esc(c.pno)}</dd>
+      <dt>部位</dt><dd>${esc(c.teeth)}</dd>
+      <dt>シェード</dt><dd>${esc(c.shade)}</dd>
+      <dt>発送予定</dt><dd>${esc(c.due)}</dd>
+      <dt>受け渡し</dt><dd>${HANDOVER[c.handover]}
+        <span class="faint small">（医院の既定：${HANDOVER[cl.def]}・${esc(cl.dist)}）</span></dd>
+      <dt>指示</dt><dd>${esc(c.note)}</dd>
+    </dl>
+    <div class="flow">
+      ${c.route.map(x=>{
+        const cls = x===c.cur ? 'now'
+          : (c.route.indexOf(x)<c.route.indexOf(c.cur)
+              ? (observable(x) && !c.log[x] ? 'miss' : 'done') : '');
+        return `<span class="fs ${cls}">${esc(stepName(x))}</span>`;
+      }).join('')}
+    </div>
+    <div class="small faint" style="margin-top:8px">
+      薄い緑＝完了 ／ 黄＝記録が抜けている ／ 枠なし＝これから
+      ${PASS_THROUGH.some(x=>c.route.includes(x))
+        ? '<br>※ データエクスポート・ネスティングは作業台を移らないため、記録がなくても正常です' : ''}
+    </div>
+    ${miss.length ? `<div class="gap">⚠ <b>${miss.map(stepName).join('・')}</b> の記録が抜けています。<br>
+      <b>分析からはこの案件を外します。</b>件数は管理者の画面に出ます。</div>` : ''}
+    ${c.state==='WAIT'
+      ? `<button class="act-btn" onclick="doStart('${c.id}')">着手する</button>`
+      : c.state==='ACTIVE'
+        ? (c.cur===c.route[c.route.length-1]
+            ? `<button class="act-btn ship" onclick="openHandover('${c.id}')">終わった → 引き渡しへ</button>`
+            : `<button class="act-btn done" onclick="doFinish('${c.id}')">終わった</button>`)
+        : '<div class="el">この案件は完了しています</div>'}
+  </div>`;
+}
+
+/* ---------- 引き渡しのシート（BR-94）----------
+   医院ごとの既定と、その回だけのイレギュラーを分ける。
+   ★既定から外すときは理由を残す。「なぜ直接持っていったか」が後から分かるように。 */
+function openHandover(id){ SHEET={kind:'handover',id}; render(); }
+
+function sheetHandover(id){
+  const c=caseById(id), cl=clinicOf(c.clinicId);
+  return `
+  <h3>どうやって渡しますか</h3>
+  <p class="small muted">${esc(cl.name)}（${esc(cl.dist)}）の既定は
+    <b style="color:var(--text)">${HANDOVER[cl.def]}</b> です。</p>
+  ${Object.keys(HANDOVER).map(k=>`
+    <button class="pick" onclick="pickHandover('${id}','${k}')">
+      <div class="p1">${HANDOVER[k]}${k===cl.def?'　<span class="chip">医院の既定</span>':''}</div>
+      <div class="p2">${k==='SHIP'?'通常の配送に載せます'
+        : k==='PICKUP'?'こちらが医院へ取りに行きます'
+        : 'こちらが医院へ持っていきます'}</div>
+    </button>`).join('')}
+  <button class="act-btn ghost" onclick="SHEET=null;render()">やめる</button>`;
+}
+function pickHandover(id,how){
+  const c=caseById(id), cl=clinicOf(c.clinicId);
+  if(how===cl.def){ doHandover(id,how,null); return; }
+  SHEET={kind:'reason',id,how}; render();
+}
+function sheetReason(id,how){
+  const c=caseById(id), cl=clinicOf(c.clinicId);
+  const RS=['配送だと納期に間に合わないため','医院から依頼があったため',
+            'ついでに近くへ行くため','再製作・修正のため急ぐ'];
+  return `
+  <h3>${HANDOVER[how]}にする理由</h3>
+  <p class="small muted">医院の既定（${HANDOVER[cl.def]}）と違うので、
+    <b style="color:var(--text)">理由を残します。</b>後から「なぜそうしたか」が分かるようにするためです。</p>
+  ${RS.map(r=>`<button class="pick" onclick="doHandover('${id}','${how}','${esc(r)}')">
+    <div class="p1">${esc(r)}</div></button>`).join('')}
+  <button class="act-btn ghost" onclick="SHEET=null;render()">やめる</button>`;
+}
+
+function sheetScan(){
+  /* デモではカメラを開かない。実装の姿だけ示し、選べるようにする */
+  const list=CASES.filter(c=>c.state!=='DONE').slice(0,6);
+  return `
+  <h3>指示書のQRを読む</h3>
+  <div class="cam">
+    <span class="big">📷</span>
+    本番ではここにカメラが出ます。<br>
+    <span class="faint">Chrome は <b>BarcodeDetector</b> で追加ライブラリなしに読めます（実測）。<br>
+    HTTPS が必要です。★iOS Safari の対応は検証中。</span>
+  </div>
+  <p class="small muted" style="margin-bottom:8px">デモでは、読み取った結果を選んでください。</p>
+  ${list.map(c=>`<button class="pick" onclick="scanPick('${c.id}')">
+    <div class="p1">${esc(c.no)}　${esc(c.type)}</div>
+    <div class="p2">${esc(stepName(c.cur))}／${esc(clinicOf(c.clinicId).name)}</div></button>`).join('')}
+  <p class="small muted" style="margin:12px 0 6px">番号で探す</p>
+  <input class="code" id="codeIn" placeholder="例：1200" inputmode="numeric">
+  <button class="act-btn" style="margin-top:10px" onclick="scanByCode()">この番号で開く</button>
+  <button class="act-btn ghost" onclick="SHEET=null;render()">閉じる</button>`;
+}
+
+/* ---------- 全体の描画 ---------- */
+const TABS=[['now','自分の作業'],['all','全体の待ち']];
+function render(){
+  const m=me();
+  document.getElementById('avatar').textContent=m.init;
+  const sel=document.getElementById('whoSel');
+  if(sel.options.length!==STAFF.length){
+    sel.innerHTML=STAFF.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  }
+  sel.value=ME;
+
+  /* いまの工程のエリアがどの記録方式かを出す。技工所ごと・エリアごとに違う */
+  const modes=[...new Set(AREAS.map(a=>a.mode))].map(x=>MODE_JA[x]).join('＋');
+  document.getElementById('modeLine').textContent=`記録方式：${modes}（エリアごとに設定）`;
+
+  document.getElementById('tabs').innerHTML=TABS.map(([k,l])=>{
+    const n = k==='now' ? myActive().length+myNext().length : allWait().length;
+    return `<button class="${TAB===k&&!DETAIL?'on':''}" onclick="TAB='${k}';DETAIL=null;render()">
+      ${l}<span class="n">${n}</span></button>`;
+  }).join('');
+
+  document.getElementById('app').innerHTML =
+    DETAIL ? vDetail() : (TAB==='now' ? vNow() : vAll());
+
+  let ov='';
+  if(SHEET){
+    const body = SHEET.kind==='scan' ? sheetScan()
+      : SHEET.kind==='handover' ? sheetHandover(SHEET.id)
+      : SHEET.kind==='reason' ? sheetReason(SHEET.id,SHEET.how) : '';
+    ov += `<div class="mask" onclick="if(event.target===this){SHEET=null;render()}">
+      <div class="sheet">${body}</div></div>`;
+  }
+  if(TOAST) ov += `<div class="toast">${esc(TOAST)}</div>`;
+  document.getElementById('overlay').innerHTML=ov;
+}
+
+document.getElementById('whoSel').onchange=e=>{ME=e.target.value;DETAIL=null;render()};
+document.getElementById('scanBtn').onclick=openScan;
+render();
+</script>
+</body>
+</html>

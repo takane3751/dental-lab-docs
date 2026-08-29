@@ -52,7 +52,7 @@ h3{font-size:15px;margin:40px 0 12px}
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">操作デモ v0.8.3</div>
+  <div class="eyebrow">操作デモ v0.9</div>
   <h1>歯科技工物 管理・受発注システム</h1>
   <p class="lede">歯科医院 ⇄ 歯科技工所の技工物受発注をデジタル化するB2B SaaS のプロトタイプです。
     <b>2026-08-25 にいただいた確認事項チェックシートのご回答（97項目）を反映した状態</b>です。</p>
@@ -61,7 +61,20 @@ h3{font-size:15px;margin:40px 0 12px}
     <b>これは画面プロトタイプです。</b>データはすべてブラウザ内のダミーで、保存されません。リロードすると初期状態に戻ります。
   </div>
 
-  <div class="cards">
+  <div class="card">
+        <div class="ic">📱</div>
+        <h2>スタッフ端末（スマホ）</h2>
+        <p>技工士が自分のスマホで使う画面。<b>指示書のQRを読んで、着手・完了を記録します。</b></p>
+        <ul>
+          <li>★<b>読むのは「着手」と「終わった」の2回だけ</b>（待ち時間は前工程の完了から計算）</li>
+          <li>自分の担当だけを大きく表示</li>
+          <li>★<b>記録が抜けたら警告を出す</b>（弾かない・止めない）</li>
+          <li>引き渡しは発送／直接お預かり／直接お届け</li>
+        </ul>
+        <a class="btn" href="staff.html">スタッフ端末を開く</a>
+      </div>
+
+      <div class="cards">
     <div class="c">
       <div class="top">
         <div class="ico" style="background:var(--primary-soft);color:var(--primary-dark)">🏥</div>

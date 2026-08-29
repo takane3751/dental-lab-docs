@@ -302,9 +302,11 @@ const CLINIC={
 const LABS=[
   {id:'t1',name:'なかたに技工所',code:'LAB-0001',pre:'NKTN',status:'ACTIVE',since:'2024-04-01',
    tel:'06-6xxx-xxxx',handles:['INSURANCE','PRIVATE'],cutoff:'16:30',
+   dist:'1.2km',hv:'DELIVER',            /* ★近所なので、普段は持ってきてもらう */
    note:'メインの発注先。保険・自費とも対応'},
   {id:'t2',name:'サンライズ・デンタルラボ',code:'LAB-0042',pre:'SNRS',status:'ACTIVE',since:'2025-11-10',
    tel:'072-xxx-xxxx',handles:['PRIVATE'],cutoff:'14:00',
+   dist:'23km',hv:'SHIP',                /* 遠いので発送 */
    note:'自費専門。ラミネートベニアなどの審美系が得意'},
   {id:'t3',name:'みどり歯科技工所',code:'LAB-0130',pre:'MDRI',status:'PENDING',since:null,
    tel:'—',handles:[],cutoff:null,
@@ -1538,6 +1540,8 @@ function confirmStage(){
         <div class="bd"><dl class="kv">
           <dt>発注先</dt><dd>${esc(labById(d.lab).name)}
             <span class="note">${d.labManual?'（手動で変更）':''}</span></dd>
+          <dt>受け渡し</dt><dd>${HANDOVER_JA[labById(d.lab).hv]||'発送'}
+            <span class="note">設定 › 受け渡し で変えられます</span></dd>
           <dt>診療区分</dt><dd>${covB(d.cov)} ${covLabel(d.cov)}</dd>
           <dt>患者</dt><dd>${esc(d.pat.patient||'')}（${esc(d.pat.chart||'')}）</dd>
           <dt>次回ご来院日</dt><dd>${esc(d.pat.visit||'—')}</dd>
@@ -3040,7 +3044,26 @@ function applyBrand(){
         <code id="clinicCode">${esc(CLINIC.code)}</code></span></span>`;
   document.title=(BRAND.name||CLINIC.name)+' 技工依頼';
 }
-const SETNAV=[['branding','表示設定'],['clinic','医院情報'],['notify','通知'],['defaults','依頼の既定値']];
+const SETNAV=[['branding','表示設定'],['clinic','医院情報'],['notify','通知'],
+  ['handover','受け渡し'],['defaults','依頼の既定値']];
+
+/* ============================================================
+   受け渡しの方法（BR-94）
+   ------------------------------------------------------------
+   ★「医院ごと」ではなく「医院 ⇄ 技工所の組み合わせごと」に持つ。
+     医院はシステム全体で一意（A-7）だが、距離は技工所によって違う。
+     同じ医院でも、A技工所には徒歩5分・B技工所には車で40分ということが起きる。
+     → 受け渡しの既定は取引関係の属性であって、医院の属性ではない。
+   ★ここで決めるのは「普段どうするか」だけ。
+     その回だけのイレギュラー（間に合わないので今回は持っていく）は
+     技工所側で選び、理由が記録される。
+   ============================================================ */
+const HANDOVER_JA={SHIP:'発送',PICKUP:'技工所が取りに来る',DELIVER:'技工所が届けに来る'};
+const HANDOVER_NOTE={
+  SHIP:'配送業者に載せます。締切時刻に間に合わないと翌日扱いになります',
+  PICKUP:'完成品ではなく、印象や模型をお預けするときの動きです',
+  DELIVER:'完成品を直接お持ちします。配送の日数がかからなくなります',
+};
 function vSettings(){
   const isAdmin=U().role==='医院管理者';
   const cur=S.sub||'branding';
@@ -3050,7 +3073,7 @@ function vSettings(){
   <div class="grid" style="grid-template-columns:200px 1fr;gap:14px">
     <div class="setnav">${SETNAV.map(([k,l])=>
       `<a class="${cur===k?'on':''}" onclick="go('settings',null,'${k}')">${l}</a>`).join('')}</div>
-    <div>${({branding:setBranding,clinic:setClinicInfo,notify:setNotify,defaults:setDefaults}[cur]||setBranding)()}</div>
+    <div>${({branding:setBranding,clinic:setClinicInfo,notify:setNotify,handover:setHandover,defaults:setDefaults}[cur]||setBranding)()}</div>
   </div>`;
 }
 function setBranding(){
@@ -3167,6 +3190,52 @@ function setNotify(){
       <button class="btn" onclick="openLine()">連携する</button></div>
   </div></div>`;
 }
+function setHandover(){
+  const isAdmin=U().role==='医院管理者';
+  const act=LABS.filter(l=>l.status==='ACTIVE');
+  return `
+  <div class="card"><div class="hdr"><h2>受け渡しの方法</h2></div><div class="bd">
+    <p class="note mb">
+      技工物と、印象・模型などをどうやり取りするかの<b>普段の決め方</b>です。
+      ここで決めた方法が、新しい依頼の初期値になります。
+    </p>
+
+    <div class="alert info mb">
+      <b>技工所ごとに決めます。</b>同じ医院でも、近い技工所と遠い技工所があるためです。
+      徒歩圏の技工所とは直接やり取りし、遠い技工所とは配送、という使い分けができます。
+    </div>
+
+    ${act.map(l=>`
+      <div class="card mb" style="box-shadow:none">
+        <div class="bd">
+          <div class="row" style="align-items:baseline;gap:8px;margin-bottom:10px">
+            <b style="font-size:15px">${esc(l.name)}</b>
+            <span class="note">${esc(l.dist||'—')}　/　${esc(l.code)}</span>
+          </div>
+          <div class="chips">
+            ${Object.keys(HANDOVER_JA).map(k=>`
+              <button class="chip ${l.hv===k?'on':''}"
+                onclick="${isAdmin?`setHv('${l.id}','${k}')`:`toast('変更は医院管理者のみが行えます')`}">
+                ${HANDOVER_JA[k]}</button>`).join('')}
+          </div>
+          <p class="note mt">${esc(HANDOVER_NOTE[l.hv]||'')}</p>
+        </div>
+      </div>`).join('')}
+
+    <div class="alert warn" style="font-size:12.5px">
+      <b>ここで決めるのは「普段どうするか」だけです。</b>
+      納期に間に合わないなどの理由で、<b>その回だけ技工所が直接お届けに切り替えることがあります</b>。
+      そのときは技工所側に理由が記録され、案件の履歴に残ります。
+    </div>
+  </div></div>`;
+}
+function setHv(labId,k){
+  const l=LABS.find(x=>x.id===labId); if(!l)return;
+  l.hv=k;
+  toast(`${l.name}：${HANDOVER_JA[k]}に設定しました`);
+  render();
+}
+
 function setDefaults(){
   return `
   <div class="card"><div class="hdr"><h2>依頼の既定値</h2></div><div class="bd">

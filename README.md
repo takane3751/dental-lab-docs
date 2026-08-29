@@ -9,6 +9,7 @@
 | `prototype/clinic.html` | 医院側 — 依頼の作成・承認・検収 |
 | `prototype/lab.html` | 技工所側 — 案件ボード・工程・請求・採算 |
 | `prototype/station.html` | 工程エリア端末 — 現場の閲覧専用画面 |
+| `prototype/staff.html` | スタッフ端末（スマホ）— 指示書のQRを読んで着手・完了を記録 |
 | `prototype/admin.html` | 運営管理コンソール — テナント・料金・請求 |
 
 ## 注意
