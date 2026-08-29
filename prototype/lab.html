@@ -2265,13 +2265,22 @@ function vCase(){
     <span class="b gray">紙</span><span class="sp"></span>
     <span class="note">医院側に画面が無いため、ここが唯一の記録です</span></div>
     <div class="bd"><dl class="kv">
+      ${c.dent?`<dt>義歯のステージ</dt><dd>
+        <b>${esc(c.dent.name)}</b>　${c.dent.single?'（単独のご依頼）'
+          :`<b>${c.dent.stage+1} / ${c.dent.total} 回目</b>「${esc(c.dent.stageName)}」`}
+        ${c.dent.metal?'<span class="b wait">メタルあり</span>':''}
+        ${!c.dent.single&&c.dent.stage<c.dent.total-1
+          ? '<div class="note">★このステージが終わったら医院へお返しします。次のステージは返ってきてから登録します</div>'
+          : (c.dent.single?'':'<div class="note">★最後のステージです</div>')}
+      </dd>`:''}
       <dt>カルテ番号</dt><dd>${esc(c.chart||'—')}</dd>
       <dt>次回ご来院日</dt><dd>${esc(c.visit||'（記載なし）')}</dd>
       <dt>シェード</dt><dd>${c.shade?esc(c.shade):'<span class="note">（紙に記載なし）</span>'}</dd>
       <dt>同梱物</dt><dd>${(c.mats&&c.mats.length)
-        ? c.mats.map(k=>{const m=paperMats(variantOf(c)).find(x=>x.k===k);return esc(m?m.l:k)}).join('、')
+        ? c.mats.map(k=>{const m=(c.dent?PAPER_MATS.REMOVABLE:paperMats(variantOf(c))).find(x=>x.k===k);
+                         return esc(m?m.l:k)}).join('、')
         : '<span class="note">（チェックなし）</span>'}</dd>
-      ${paperTech(variantOf(c)).map(f=>`<dt>${esc(f.l)}</dt><dd>${
+      ${(c.dent?PAPER_DENT_FIELDS:paperTech(variantOf(c))).map(f=>`<dt>${esc(f.l)}</dt><dd>${
         c.tech&&c.tech[f.c] ? esc(c.tech[f.c])
         : '<span class="note">（紙に記載なし）</span>'}</dd>`).join('')}
       <dt>特記事項</dt><dd>${c.note?esc(c.note):'<span class="note">—</span>'}</dd>
@@ -2684,6 +2693,61 @@ const PAPER_TECH={
     {c:'pontic',l:'ポンティック基底面形態', opts:['該当なし','離底型','偏側型','船底型']},
     {c:'warranty',l:'保証書の発行', opts:['不要','希望する']}],
 };
+/* ============================================================
+   義歯（FR-DN）— ★いま実際に紙で来ているのはこれ
+   ------------------------------------------------------------
+   ★義歯は一度で終わらない。ステージごとに医院へ返し、患者の口で試して、また戻ってくる。
+     つまり N ステージ ＝ N回引き渡す（原則44）。
+
+   ★紙で受けるときに固定物と決定的に違うのが2点。
+     1. **今回がどのステージか**を受ける必要がある。
+        途中のステージだけが紙で来ることがある（前回まで別の技工所、途中から、など）。
+     2. **納期はステージごと**にある。依頼に1つではない。
+   ============================================================ */
+const PAPER_DENTURES=[
+  {id:'dn1',cov:'INSURANCE',name:'総義歯（片顎）',price:38000,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false},{code:'BITE',name:'咬合採得（ロー堤・ベースプレート付き）',metal:false},
+    {code:'WAX',name:'蝋義歯試適',metal:false},{code:'FIN',name:'完成（重合・研磨）',metal:false}]},
+  {id:'dn2',cov:'INSURANCE',name:'局部床義歯（レジン床）',price:32000,stages:[
+    {code:'BITE',name:'咬合採得・設計',metal:false},{code:'WAX',name:'蝋義歯試適',metal:false},
+    {code:'FIN',name:'完成（重合・研磨）',metal:false}]},
+  {id:'dn2b',cov:'INSURANCE',name:'局部床義歯（金属クラスプ）',price:36000,stages:[
+    {code:'BITE',name:'咬合採得・設計',metal:false},{code:'FRAME',name:'クラスプ製作・試適',metal:true},
+    {code:'WAX',name:'蝋義歯試適',metal:false},{code:'FIN',name:'完成（重合・研磨）',metal:false}]},
+  {id:'dn3',cov:'INSURANCE',name:'義歯の修理',price:8000,stages:[{code:'FIN',name:'修理',metal:false}]},
+  {id:'dn4',cov:'INSURANCE',name:'リベース（床裏装）',price:12000,stages:[{code:'FIN',name:'リベース',metal:false}]},
+  {id:'dn8',cov:'INSURANCE',name:'個人トレー（単独）',price:3500,single:true,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false}]},
+  {id:'dn9',cov:'INSURANCE',name:'ロー堤（ベースプレート付き・単独）',price:5000,single:true,stages:[
+    {code:'BITE',name:'ロー堤製作（ベースプレート付き）',metal:false}]},
+  {id:'dn10',cov:'INSURANCE',name:'ロー堤（ワックスのみ・単独）',price:3800,single:true,stages:[
+    {code:'BITE',name:'ロー堤製作（ワックス）',metal:false}]},
+  {id:'dn5',cov:'PRIVATE',name:'総義歯（金属床）',price:280000,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false},{code:'BITE',name:'咬合採得（ロー堤・ベースプレート付き）',metal:false},
+    {code:'FRAME',name:'金属フレーム試適',metal:true},{code:'WAX',name:'蝋義歯試適',metal:false},
+    {code:'FIN',name:'完成（重合・研磨）',metal:true}]},
+  {id:'dn6',cov:'PRIVATE',name:'局部床義歯（金属床）',price:180000,stages:[
+    {code:'BITE',name:'咬合採得・設計',metal:false},{code:'FRAME',name:'金属フレーム試適',metal:true},
+    {code:'WAX',name:'蝋義歯試適',metal:false},{code:'FIN',name:'完成（重合・研磨）',metal:true}]},
+  {id:'dn7',cov:'PRIVATE',name:'ノンクラスプデンチャー',price:120000,stages:[
+    {code:'BITE',name:'咬合採得・設計',metal:false},{code:'WAX',name:'蝋義歯試適',metal:false},
+    {code:'FIN',name:'完成',metal:false}]},
+  {id:'dn11',cov:'PRIVATE',name:'個人トレー（単独）',price:6000,single:true,stages:[
+    {code:'TRAY',name:'個人トレー製作',metal:false}]},
+];
+const dentOf = id => PAPER_DENTURES.find(d=>d.id===id) || PAPER_DENTURES[0];
+/* ★ステージの日数はメタルの有無で決まる。診療区分ではない（ご回答 自由記入1） */
+const dentStageDays = st => CFG.leadBase.INSURANCE + (st.metal?CFG.leadMetalExtra:0);
+
+/* 義歯の指示項目。固定物の PAPER_TECH とは中身がまるごと違う */
+const PAPER_DENT_FIELDS=[
+  {c:'arch',      l:'対象',         opts:['上顎','下顎','上下顎']},
+  {c:'toothShade',l:'人工歯の色',   opts:['A2','A3','A3.5','A4','技工所にお任せ']},
+  {c:'toothForm', l:'人工歯の形態', opts:['標準','やや小さめ','やや大きめ','解剖学的形態']},
+  {c:'existing',  l:'既存義歯',     opts:['なし（新製）','あり（複製を希望）','あり（参考として同梱）']},
+  {c:'clasp',     l:'クラスプの指示',opts:['該当なし','技工所にお任せ','部位を指定（特記事項へ）']},
+];
+
 const paperMats = v => PAPER_MATS[v.kind==='REMOVABLE'?'REMOVABLE':v.cov] || PAPER_MATS.INSURANCE;
 const paperTech = v => PAPER_TECH[v.cov] || PAPER_TECH.INSURANCE;
 
@@ -2725,7 +2789,9 @@ function startPaper(){
   S.pp={clinic:PAPER_CLINICS[0]?.id||'', newClinic:false,
         nm:'', dr:'', tel:'', dist:'', nwIn:'SHIP', nwOut:'SHIP',
         patient:'', chart:'', pno:'', visit:'',
+        kind:'FIXED',                                  /* FIXED（固定物）／ REMOVABLE（義歯） */
         variant:VARIANTS[0].id, units:1, teeth:'46', shade:'',
+        dent:PAPER_DENTURES[0].id, stage:0,            /* ★今回がどのステージか */
         mats:{}, tech:{}, changeNotice:false,
         due:fmt(addDays(TODAY,7)), hvIn:'', hvOut:'', note:''};
   go('paper');
@@ -2825,10 +2891,48 @@ function vPaper(){
   </div></div>
 
   <div class="card mb"><div class="hd"><b>技工物</b></div><div class="bd">
-    <div class="grid g2">
+    <label class="f"><span class="lb">種類</span>
+      <div class="chips">
+        <button class="chip ${a.kind!=='REMOVABLE'?'on':''}" onclick="ppSet('kind','FIXED')">固定物（冠・ブリッジなど）</button>
+        <button class="chip ${a.kind==='REMOVABLE'?'on':''}" onclick="ppSet('kind','REMOVABLE')">義歯</button>
+      </div></label>
+
+    ${a.kind==='REMOVABLE'?(()=>{
+      const d=dentOf(a.dent), st=d.stages[Math.min(a.stage,d.stages.length-1)];
+      return `
+      <div class="alert info mb" style="margin-top:12px">
+        <b>義歯は一度で終わりません。</b>ステージごとに医院へお返しし、患者さんの口で試して、また戻ってきます。
+        <b>この依頼は「今回のステージ」を1つ登録します。</b>次のステージは、返ってきたときに改めて登録してください。
+      </div>
+      <div class="grid g2">
+        <label class="f"><span class="lb">義歯の種類</span>
+          <select onchange="ppSet('dent',this.value);ppSet('stage',0)">
+            ${PAPER_DENTURES.map(x=>`<option value="${x.id}" ${a.dent===x.id?'selected':''}>
+              ${x.cov==='INSURANCE'?'[保険]':'[自費]'} ${esc(x.name)}</option>`).join('')}</select></label>
+        <label class="f"><span class="lb">今回のステージ
+          <span class="note">★途中からでも登録できます</span></span>
+          <select onchange="ppSet('stage',+this.value)">
+            ${d.stages.map((x,i)=>`<option value="${i}" ${a.stage===i?'selected':''}>
+              ${i+1}. ${esc(x.name)}${x.metal?'（メタルあり）':''}</option>`).join('')}</select></label>
+      </div>
+      <div class="row mt" style="gap:4px;overflow-x:auto">
+        ${d.stages.map((x,i)=>`<div style="flex:1;min-width:96px;text-align:center;padding:7px 4px;border-radius:7px;font-size:11.5px;
+          background:${i<a.stage?'var(--surface-2)':(i===a.stage?'var(--primary)':'var(--surface-2)')};
+          color:${i===a.stage?'#fff':'var(--faint)'};font-weight:${i===a.stage?'700':'400'}">
+          ${i+1}. ${esc(x.name)}</div>`).join('')}
+      </div>
+      <p class="note mt">
+        ${d.single?'<b>単独のご依頼です。</b>これ1回で完了します。'
+          :`全 ${d.stages.length} ステージのうち <b>${a.stage+1} 回目</b>。
+            ${a.stage<d.stages.length-1?'このステージが終わったら医院へお返しします。':'<b>最後のステージです。</b>'}`}
+        標準の所要は <b>${dentStageDays(st)}日</b>（${st.metal?'メタルを扱うので2週':'1週'}）。
+        技工料の目安 <b>${yen(d.price)}</b>（義歯1件ぶん・ステージで分割しません）。
+      </p>`;})()
+    :`
+    <div class="grid g2" style="margin-top:12px">
       <label class="f"><span class="lb">技工物</span>
         <select onchange="ppSet('variant',this.value)">
-          ${VARIANTS.map(x=>`<option value="${x.id}" ${a.variant===x.id?'selected':''}>
+          ${VARIANTS.filter(x=>x.kind!=='REMOVABLE').map(x=>`<option value="${x.id}" ${a.variant===x.id?'selected':''}>
             ${x.cov==='INSURANCE'?'[保険]':'[自費]'} ${esc(x.type)} / ${esc(x.mat)}</option>`).join('')}</select></label>
       <label class="f"><span class="lb">本数</span>
         <input type="number" min="1" value="${a.units}" oninput="S.pp.units=Math.max(1,+this.value||1)"></label>
@@ -2840,7 +2944,7 @@ function vPaper(){
     <p class="note mt">
       技工料の目安 <b>${yen(v.price*a.units)}</b>（${esc(v.type)}／${esc(v.mat)} × ${a.units}本）。
       標準の所要は ${v.days}日です。
-    </p>
+    </p>`}
   </div></div>
 
   <div class="card mb"><div class="hd"><b>同梱物</b>
@@ -2850,7 +2954,7 @@ function vPaper(){
       欠品があったときに「何が入っていたか」が判断の材料になります。
     </p>
     <div class="grid g2">
-      ${paperMats(v).map(m=>`
+      ${(a.kind==='REMOVABLE'?PAPER_MATS.REMOVABLE:paperMats(v)).map(m=>`
         <label class="ck row" style="gap:8px;align-items:center;cursor:pointer">
           <input type="checkbox" style="width:16px;height:16px" ${a.mats[m.k]?'checked':''}
             onchange="ppMat('${m.k}',this.checked)">
@@ -2861,7 +2965,7 @@ function vPaper(){
   <div class="card mb"><div class="hd"><b>技工指示</b>
     <span class="sp"></span><span class="note">紙に書かれているものだけ</span></div><div class="bd">
     <div class="grid g2">
-      ${paperTech(v).map(f=>`
+      ${(a.kind==='REMOVABLE'?PAPER_DENT_FIELDS:paperTech(v)).map(f=>`
         <label class="f"><span class="lb">${esc(f.l)}</span>
           <select onchange="ppTech('${f.c}',this.value)">
             <option value="">${NOTE_NONE}</option>
@@ -2924,13 +3028,26 @@ function savePaper(){
   const hvIn =a.hvIn ||cl.inDef;
   const hvOut=a.hvOut||cl.outDef;
   const no=200+CASES.length+1;
+  /* ★義歯は「今回のステージ」を1件として登録する。
+     次のステージは、医院から返ってきたときに改めて登録する（原則44）。 */
+  const isDent=a.kind==='REMOVABLE';
+  const d=isDent?dentOf(a.dent):null;
+  const st=isDent?d.stages[Math.min(a.stage,d.stages.length-1)]:null;
 
   CASES.unshift({
     id:'kp'+Date.now(), no:'NKTN-2026-P'+String(no).padStart(3,'0'),
     clinic:cid, paper:true,                       /* ★紙由来の印 */
     patient:a.patient.trim(), chart:a.chart.trim()||'—', pno:a.pno.trim()||'—',
     visit:a.visit||null,
-    cov:v.cov,type:v.type,mat:v.mat,variant:v.id,units:a.units,
+    cov:isDent?d.cov:v.cov,
+    type:isDent?d.name:v.type,
+    mat:isDent?(st.metal?'メタルあり':'—'):v.mat,
+    variant:isDent?'v8':v.id,
+    kind:isDent?'REMOVABLE':'FIXED',
+    /* ★義歯のステージ。全体の何回目かと、そのステージ名を持つ */
+    dent:isDent?{id:d.id,name:d.name,stage:a.stage,stageName:st.name,
+                 total:d.stages.length,metal:st.metal,single:!!d.single}:null,
+    units:isDent?1:a.units,
     /* 「46,47」のような入力を配列にする */
     teeth:(()=>{const t=a.teeth.split(/[^0-9]+/).filter(Boolean).map(Number).filter(n=>n>=11&&n<=48);
              return t.length?t:[46]})(),
@@ -2941,12 +3058,15 @@ function savePaper(){
     hvIn, hvOut, hvInReason:null, hvOutReason:null,
     step:0, assign:[], items:1,
     diff:v.diff+(a.units>1?a.units*2:0)+(v.cov==='PRIVATE'?5:0),
-    tray:null, isRush:false, amount:v.price*a.units, changeNotice:!!a.changeNotice, prio:null,
+    tray:null, isRush:false, amount:isDent?d.price:v.price*a.units,
+    changeNotice:!!a.changeNotice, prio:null,
     note:a.note.trim(),
     tl:[{t:nowJ(),w:ME().name,
       x:'紙の依頼を入力しました（'+esc(cl.name)+'）'+
-        (paperTech(v).some(f=>!a.tech[f.c])
-          ? '　※紙に記載が無かった項目：'+paperTech(v).filter(f=>!a.tech[f.c]).map(f=>f.l).join('・')
+        (isDent?`　／ ${esc(d.name)}　${a.stage+1}/${d.stages.length}「${esc(st.name)}」`:'')+
+        ((isDent?PAPER_DENT_FIELDS:paperTech(v)).some(f=>!a.tech[f.c])
+          ? '　※紙に記載が無かった項目：'+
+            (isDent?PAPER_DENT_FIELDS:paperTech(v)).filter(f=>!a.tech[f.c]).map(f=>f.l).join('・')
           : ''),
       k:'hi'}]
   });
