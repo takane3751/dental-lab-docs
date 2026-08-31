@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>お申し込み — 歯科技工物 管理・受発注システム</title>
+<style>
+:root{
+  --bg:#f4f7f6; --surface:#fff; --surface-2:#fafcfb; --border:#dde5e2; --border-2:#eef3f1;
+  --text:#16241f; --muted:#61736c; --faint:#8a9a94;
+  --primary:#0f766e; --primary-dark:#115e59; --primary-soft:#e6f2f0;
+  --accent:#b45309; --accent-soft:#fdf2e3;
+  --danger:#b91c1c; --danger-soft:#fdeceb;
+  --success:#15803d; --success-soft:#e9f6ed;
+  --radius:10px; --shadow:0 1px 2px rgba(16,40,34,.06),0 4px 14px rgba(16,40,34,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  font-size:15px;line-height:1.8;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;
+  display:grid;place-items:center;font-size:13px;font-weight:700}
+.demo{background:#1a1a24;color:#fff;font-size:12px;padding:5px 0}
+.demo .wrap{display:flex;gap:12px;align-items:center}
+.demo a{color:#9ad9cf;text-decoration:none}
+
+h1{font-size:26px;margin:26px 0 6px;line-height:1.4}
+h2{font-size:19px;margin:0 0 4px}
+h3{font-size:15.5px;margin:0 0 6px}
+p.sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:16px}
+.hd{padding:13px 18px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;gap:10px}
+.bd{padding:18px}
+.note{font-size:12.5px;color:var(--muted);line-height:1.75}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+label.f .lb{font-weight:700;color:var(--text);font-size:13px}
+label.f .hint{font-weight:400;color:var(--faint);font-size:12px}
+input[type=text],input[type=email],input[type=tel],input[type=date],select,textarea{
+  font-family:inherit;font-size:14.5px;padding:9px 11px;border:1px solid var(--border);
+  border-radius:8px;background:var(--surface);color:var(--text);width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.req{color:var(--danger);font-size:10.5px;font-weight:700}
+.btn{padding:9px 17px;border-radius:8px;border:1px solid var(--border);background:var(--surface);
+  color:var(--text);font-size:14px;cursor:pointer;font-family:inherit;font-weight:600}
+.btn:hover{background:var(--surface-2)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.lg{padding:13px 26px;font-size:15.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+
+/* 入口の3枚 */
+.paths{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-bottom:8px}
+.path{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:18px;
+  cursor:pointer;text-align:left;font-family:inherit;color:var(--text)}
+.path:hover{border-color:var(--primary)}
+.path.on{border-color:var(--primary);background:var(--primary-soft)}
+.path .ic{font-size:26px;line-height:1}
+.path h3{margin:8px 0 4px;font-size:16.5px}
+.path p{margin:0;font-size:13px;color:var(--muted);line-height:1.7}
+.path .flow{margin-top:10px;font-size:12px;color:var(--primary-dark);font-weight:700}
+
+.alert{border-radius:9px;padding:12px 15px;font-size:13.5px;line-height:1.8;margin-bottom:14px}
+.alert.info{background:var(--primary-soft);color:var(--primary-dark)}
+.alert.warn{background:var(--accent-soft);color:var(--accent)}
+.alert.ok{background:var(--success-soft);color:var(--success)}
+.alert b{color:inherit}
+
+.steps{display:flex;gap:4px;margin-bottom:18px}
+.steps div{flex:1;text-align:center;padding:8px 4px;border-radius:7px;font-size:12px;
+  background:var(--surface-2);color:var(--faint)}
+.steps div.on{background:var(--primary);color:#fff;font-weight:700}
+.steps div.done{background:var(--primary-soft);color:var(--primary-dark)}
+
+.pay{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+@media (max-width:640px){ .pay{grid-template-columns:1fr} }
+.pay button{text-align:left;background:var(--surface);border:2px solid var(--border);
+  border-radius:10px;padding:14px;cursor:pointer;font-family:inherit;color:var(--text)}
+.pay button.on{border-color:var(--primary);background:var(--primary-soft)}
+.pay .t{font-weight:700;font-size:15px}
+.pay .d{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.7}
+.pay .fee{font-size:12.5px;font-weight:700;color:var(--accent);margin-top:6px}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--border-2)}
+thead th{background:var(--surface-2);font-size:12.5px;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.b{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;font-weight:700}
+.b.ok{background:var(--success-soft);color:var(--success)}
+.b.wait{background:var(--accent-soft);color:var(--accent)}
+footer{padding:30px 0 50px;color:var(--faint);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="demo"><div class="wrap">
+  <b>DEMO</b><span class="faint">お申し込みフォーム（申し込む側が見る画面）</span>
+  <span class="sp"></span>
+  <a href="clinic.html">医院側</a><a href="lab.html">技工所側</a><a href="admin.html">運営側</a>
+</div></div>
+<header><div class="wrap brand">
+  <div class="logo">歯</div>歯科技工物 管理・受発注システム
+</div></header>
+<div class="wrap"><div id="app"></div></div>
+<footer><div class="wrap">
+  株式会社G TECH JAPAN　／　このページはデモです。実際の申し込みは行われません。
+</div></footer>
+<script src="shared.js"></script>
+<script>
+/* ============================================================
+   お申し込みフォーム（FR-SU）
+   ------------------------------------------------------------
+   ★医院と運営が直接契約する方針になったので、医院は技工所を経由せずに申し込める。
+     取引先の技工所がまだ入っていなくても、医院単独で契約できる。
+
+   ★申し込みの扱いを相手によって変える。
+     医院       … 申し込み → その場でアカウント発行（設定が軽い）
+     技工所     … 申し込み → ★担当と導入面談 → 開設（設定が重い。自動契約にしない）
+     内製の医院 … 技工所として開設する。設定は技工所と同じなので面談あり
+
+   ★支払い方法は選べるが、カード決済に寄せたい。
+     請求書払いには手数料を設定できるようにしてある（運営が任意で決める）。
+   ============================================================ */
+const esc=DL.esc, yen=DL.yen;
+
+/* 運営が決める条件。★admin.html の設定と同じものを想定 */
+const TERMS={
+  clinicInit:50000, clinicMonthly:5000,
+  labInit:0, labMonthly:0,
+  invoiceFee:500,          /* ★請求書払いの手数料（運営が任意で設定）。カードなら無料 */
+  cardBrand:'Stripe',      /* 決済事業者 */
+};
+
+const PATHS=[
+  {k:'clinic', ic:'🦷', t:'歯科医院として申し込む',
+   d:'技工所へ依頼を出し、進捗と納期を管理します。取引先の技工所がまだ入っていなくても申し込めます。',
+   flow:'申し込み → その場でご利用開始'},
+  {k:'lab', ic:'🔧', t:'歯科技工所として申し込む',
+   d:'依頼の受注・工程管理・請求まで行います。工程やマスタの設定があるため、担当がご一緒します。',
+   flow:'申し込み → 導入面談 → 開設'},
+  {k:'inhouse', ic:'🏥', t:'院内技工所（内製）として申し込む',
+   d:'医院内に技工士がいて、自院の技工物をご自身で作られる場合。技工所と同じ画面で工程を管理できます。',
+   flow:'申し込み → 導入面談 → 開設'},
+];
+
+let S={path:null, step:0, sent:false,
+  f:{name:'',dr:'',tel:'',email:'',addr:'',staff:'',cases:'',pay:'CARD',note:'',
+     slot:'', inhouseClinic:''}};
+const set=(k,v)=>{S.f[k]=v; render()};
+const go=(p)=>{S.path=p; S.step=0; S.sent=false; render()};
+
+/* ---------- 入口 ---------- */
+function vTop(){
+  return `
+  <h1>お申し込み</h1>
+  <p class="sub">どちらの立場でお使いになるかをお選びください</p>
+  <div class="paths">
+    ${PATHS.map(p=>`
+      <button class="path" onclick="go('${p.k}')">
+        <div class="ic">${p.ic}</div>
+        <h3>${esc(p.t)}</h3>
+        <p>${esc(p.d)}</p>
+        <div class="flow">${esc(p.flow)}</div>
+      </button>`).join('')}
+  </div>
+
+  <div class="card"><div class="bd">
+    <h3>医院と技工所、どちらか一方だけでも始められます</h3>
+    <p class="note">
+      このシステムは<b>医院と技工所の両方が入って初めて依頼のやり取りができます</b>が、
+      <b>お申し込みは片方だけでも可能です。</b>
+      医院として申し込んでおいて、取引先の技工所に後からお声がけいただく、という順序で構いません。
+      逆も同じです。
+    </p>
+    <p class="note" style="margin-top:10px">
+      ★<b>院内技工所（内製）の場合は3つめをお選びください。</b>
+      医院として申し込むと依頼を出す側の画面になり、<b>ご自身で作る工程を管理できません。</b>
+    </p>
+  </div></div>`;
+}
+
+/* ---------- 支払い方法 ---------- */
+function payBlock(){
+  const f=S.f;
+  return `
+  <label class="f" style="margin-bottom:10px"><span class="lb">お支払い方法</span></label>
+  <div class="pay">
+    <button class="${f.pay==='CARD'?'on':''}" onclick="set('pay','CARD')">
+      <div class="t">クレジットカード</div>
+      <div class="d">毎月の自動決済です。お手続きは初回のみで、以降は何もしていただく必要がありません。</div>
+      <div class="fee" style="color:var(--success)">手数料なし</div>
+    </button>
+    <button class="${f.pay==='INVOICE'?'on':''}" onclick="set('pay','INVOICE')">
+      <div class="t">請求書でのお支払い</div>
+      <div class="d">毎月、請求書をお送りします。お振込のお手続きが毎月発生します。</div>
+      <div class="fee">${TERMS.invoiceFee?`請求書発行手数料 ${yen(TERMS.invoiceFee)}／月`:'手数料なし'}</div>
+    </button>
+  </div>
+  ${f.pay==='CARD'?`
+    <div class="alert info" style="margin-top:12px">
+      カード情報は<b>${esc(TERMS.cardBrand)}の画面で直接ご入力いただきます。</b>
+      当サービスのサーバーを通過しませんので、カード番号を当社が保持することはありません。
+    </div>`
+  :`<div class="alert warn" style="margin-top:12px">
+      請求書でのお支払いには<b>月 ${yen(TERMS.invoiceFee)} の発行手数料</b>がかかります。
+      <b>カード決済に変更すればいつでも無料になります。</b>
+    </div>`}`;
+}
+
+/* ---------- 医院：申し込み → その場で開設 ---------- */
+function vClinic(){
+  const f=S.f;
+  if(S.sent)return doneClinic();
+  return `
+  <div class="row" style="margin:22px 0 0"><button class="btn" onclick="go(null)">← 戻る</button></div>
+  <h1>歯科医院としてのお申し込み</h1>
+  <p class="sub">ご入力いただいたその場でご利用を開始できます</p>
+  <div class="steps">
+    <div class="${S.step===0?'on':'done'}">医院の情報</div>
+    <div class="${S.step===1?'on':(S.step>1?'done':'')}">お支払い</div>
+    <div class="${S.step===2?'on':''}">ご確認</div>
+  </div>
+
+  ${S.step===0?`
+  <div class="card"><div class="hd"><b>医院の情報</b></div><div class="bd">
+    <div class="grid g2">
+      <label class="f"><span class="lb">医院名 <span class="req">必須</span></span>
+        <input type="text" value="${esc(f.name)}" oninput="S.f.name=this.value" placeholder="さくら歯科クリニック"></label>
+      <label class="f"><span class="lb">院長名 <span class="req">必須</span></span>
+        <input type="text" value="${esc(f.dr)}" oninput="S.f.dr=this.value" placeholder="山田 太郎"></label>
+      <label class="f"><span class="lb">電話番号 <span class="req">必須</span></span>
+        <input type="tel" value="${esc(f.tel)}" oninput="S.f.tel=this.value" placeholder="06-6666-1111"></label>
+      <label class="f"><span class="lb">メールアドレス <span class="req">必須</span>
+        <span class="hint">ログインの案内をお送りします</span></span>
+        <input type="email" value="${esc(f.email)}" oninput="S.f.email=this.value" placeholder="reception@example.jp"></label>
+    </div>
+    <label class="f" style="margin-top:14px"><span class="lb">所在地</span>
+      <input type="text" value="${esc(f.addr)}" oninput="S.f.addr=this.value" placeholder="大阪市中央区○○ 1-2-3"></label>
+    <div class="alert info" style="margin-top:14px">
+      <b>お取引のある技工所がまだご利用でなくても、お申し込みいただけます。</b>
+      医院コードを発行しますので、技工所へお伝えいただければお取引を開始できます。
+    </div>
+    <div class="row" style="margin-top:16px"><span class="sp"></span>
+      <button class="btn pri lg" onclick="next()">次へ</button></div>
+  </div></div>`:''}
+
+  ${S.step===1?`
+  <div class="card"><div class="hd"><b>お支払い</b></div><div class="bd">
+    <table style="margin-bottom:16px"><tbody>
+      <tr><td>初期費用</td><td class="num">${yen(TERMS.clinicInit)}</td></tr>
+      <tr><td>月額</td><td class="num">${yen(TERMS.clinicMonthly)}</td></tr>
+      ${f.pay==='INVOICE'&&TERMS.invoiceFee?`<tr><td>請求書発行手数料</td>
+        <td class="num" style="color:var(--accent)">＋${yen(TERMS.invoiceFee)}／月</td></tr>`:''}
+      <tr><td><b>初回のご請求</b></td><td class="num"><b>${yen(TERMS.clinicInit+TERMS.clinicMonthly+(f.pay==='INVOICE'?TERMS.invoiceFee:0))}</b></td></tr>
+    </tbody></table>
+    ${payBlock()}
+    <div class="row" style="margin-top:16px">
+      <button class="btn" onclick="S.step=0;render()">戻る</button><span class="sp"></span>
+      <button class="btn pri lg" onclick="next()">次へ</button></div>
+  </div></div>`:''}
+
+  ${S.step===2?`
+  <div class="card"><div class="hd"><b>ご確認</b></div><div class="bd">
+    <table style="margin-bottom:16px"><tbody>
+      <tr><td>医院名</td><td>${esc(f.name)}</td></tr>
+      <tr><td>院長名</td><td>${esc(f.dr)}</td></tr>
+      <tr><td>お電話</td><td>${esc(f.tel)}</td></tr>
+      <tr><td>メール</td><td>${esc(f.email)}</td></tr>
+      <tr><td>お支払い</td><td>${f.pay==='CARD'?'クレジットカード（毎月自動）':'請求書'}</td></tr>
+      <tr><td>初回のご請求</td><td class="num">${yen(TERMS.clinicInit+TERMS.clinicMonthly+(f.pay==='INVOICE'?TERMS.invoiceFee:0))}</td></tr>
+    </tbody></table>
+    <div class="alert ok">
+      <b>お申し込み後、すぐにご利用いただけます。</b>
+      ${f.pay==='CARD'?`次の画面で ${esc(TERMS.cardBrand)} のカード登録に進みます。`:'請求書は月末締めでお送りします。'}
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" onclick="S.step=1;render()">戻る</button><span class="sp"></span>
+      <button class="btn pri lg" onclick="submit()">
+        ${f.pay==='CARD'?'カード登録へ進む':'この内容で申し込む'}</button></div>
+  </div></div>`:''}`;
+}
+function doneClinic(){
+  return `
+  <h1>お申し込みを受け付けました</h1>
+  <p class="sub">${esc(S.f.email)} 宛にログインの案内をお送りしました</p>
+  <div class="card"><div class="bd">
+    <div class="alert ok"><b>すぐにご利用いただけます。</b>メールのリンクからログインしてください。</div>
+    <h3 style="margin-top:16px">医院コード</h3>
+    <p style="font-family:ui-monospace,monospace;font-size:20px;font-weight:700;margin:4px 0">CL-2026-00512</p>
+    <p class="note">
+      ★<b>この番号をお取引先の技工所へお伝えください。</b>技工所側から検索してお取引の申請が届きます。
+      承認いただくとご依頼のやり取りが始まります。
+    </p>
+    <p class="note" style="margin-top:12px">
+      技工所がまだご利用でない場合は、<b>技工所にもこのページをご案内ください。</b>
+    </p>
+    <div class="row" style="margin-top:16px"><button class="btn" onclick="go(null)">最初に戻る</button></div>
+  </div></div>`;
+}
+
+/* ---------- 技工所・内製：申し込み → ★導入面談 → 開設 ---------- */
+const SLOTS=['9月2日（火）10:00','9月2日（火）14:00','9月3日（水）10:00',
+             '9月4日（木）14:00','9月5日（金）10:00','9月5日（金）16:00'];
+
+function vLab(inhouse){
+  const f=S.f;
+  if(S.sent)return doneLab(inhouse);
+  const title=inhouse?'院内技工所（内製）としてのお申し込み':'歯科技工所としてのお申し込み';
+  return `
+  <div class="row" style="margin:22px 0 0"><button class="btn" onclick="go(null)">← 戻る</button></div>
+  <h1>${esc(title)}</h1>
+  <p class="sub">ご入力のあと、担当がご連絡して導入のご相談をいたします</p>
+  <div class="steps">
+    <div class="${S.step===0?'on':'done'}">${inhouse?'医院・技工の情報':'技工所の情報'}</div>
+    <div class="${S.step===1?'on':(S.step>1?'done':'')}">面談のご希望</div>
+    <div class="${S.step===2?'on':''}">ご確認</div>
+  </div>
+
+  <div class="alert warn">
+    ★<b>お申し込みだけではご利用開始になりません。</b>
+    ${inhouse?'院内技工所':'技工所'}は<b>工程・技工物・材料・スタッフの設定</b>があり、
+    ここが合っていないと現場で使えません。
+    <b>担当がご一緒に設定してから開設します。</b>
+  </div>
+
+  ${inhouse?`
+  <div class="alert info">
+    <b>院内技工所として開設します。</b>依頼を出す側ではなく、<b>作る側の画面</b>になります。<br>
+    自院を「お取引先の医院」として登録し、<b>院内の依頼をそのまま工程で管理</b>できます。
+    外部の技工所へ出される分がある場合は、<b>医院としてのご利用も併せて可能です。</b>
+  </div>`:''}
+
+  ${S.step===0?`
+  <div class="card"><div class="hd"><b>${inhouse?'医院の情報':'技工所の情報'}</b></div><div class="bd">
+    <div class="grid g2">
+      <label class="f"><span class="lb">${inhouse?'医院名':'技工所名'} <span class="req">必須</span></span>
+        <input type="text" value="${esc(f.name)}" oninput="S.f.name=this.value"
+          placeholder="${inhouse?'さくら歯科クリニック':'なかたに技工所'}"></label>
+      <label class="f"><span class="lb">ご担当者名 <span class="req">必須</span></span>
+        <input type="text" value="${esc(f.dr)}" oninput="S.f.dr=this.value" placeholder="山田 太郎"></label>
+      <label class="f"><span class="lb">電話番号 <span class="req">必須</span></span>
+        <input type="tel" value="${esc(f.tel)}" oninput="S.f.tel=this.value" placeholder="06-6666-1111"></label>
+      <label class="f"><span class="lb">メールアドレス <span class="req">必須</span></span>
+        <input type="email" value="${esc(f.email)}" oninput="S.f.email=this.value" placeholder="info@example.jp"></label>
+      <label class="f"><span class="lb">技工士の人数 <span class="hint">おおよそで構いません</span></span>
+        <input type="text" value="${esc(f.staff)}" oninput="S.f.staff=this.value" placeholder="6"></label>
+      <label class="f"><span class="lb">月間の技工物の件数 <span class="hint">おおよそで構いません</span></span>
+        <input type="text" value="${esc(f.cases)}" oninput="S.f.cases=this.value" placeholder="200"></label>
+    </div>
+    ${inhouse?`
+    <div class="alert info" style="margin-top:14px">
+      ★<b>外部の技工所にも出されていますか？</b>
+      出されている場合、<b>医院としてのご利用も併せてご案内します</b>（外部への依頼を管理するため）。
+      面談のときにご相談ください。
+    </div>`:''}
+    <div class="row" style="margin-top:16px"><span class="sp"></span>
+      <button class="btn pri lg" onclick="next()">次へ</button></div>
+  </div></div>`:''}
+
+  ${S.step===1?`
+  <div class="card"><div class="hd"><b>導入面談のご希望</b></div><div class="bd">
+    <p class="note" style="margin-bottom:14px">
+      オンラインで <b>60分ほど</b>お時間をいただきます。現在の工程の流れ、扱っておられる技工物、
+      材料の仕入れ先などを伺い、<b>そのまま初期設定まで進めます。</b>
+    </p>
+    <div class="grid g3">
+      ${SLOTS.map(s=>`
+        <button class="btn ${f.slot===s?'pri':''}" style="text-align:left" onclick="set('slot','${esc(s)}')">
+          ${esc(s)}</button>`).join('')}
+    </div>
+    <label class="f" style="margin-top:16px"><span class="lb">ご相談されたいこと
+      <span class="hint">面談の前に把握しておきたいことがあれば</span></span>
+      <textarea rows="3" oninput="S.f.note=this.value"
+        placeholder="例：RFIDの導入も検討している／紙で来る依頼が多い">${esc(f.note)}</textarea></label>
+    <div class="alert info" style="margin-top:14px">
+      <b>お支払い方法は面談のときにお決めいただきます。</b>
+      カード決済と請求書のどちらもお選びいただけます
+      ${TERMS.invoiceFee?`（請求書は発行手数料 ${yen(TERMS.invoiceFee)}／月）`:''}。
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" onclick="S.step=0;render()">戻る</button><span class="sp"></span>
+      <button class="btn pri lg" onclick="next()">次へ</button></div>
+  </div></div>`:''}
+
+  ${S.step===2?`
+  <div class="card"><div class="hd"><b>ご確認</b></div><div class="bd">
+    <table style="margin-bottom:16px"><tbody>
+      <tr><td>${inhouse?'医院名':'技工所名'}</td><td>${esc(f.name)}</td></tr>
+      <tr><td>ご担当者</td><td>${esc(f.dr)}</td></tr>
+      <tr><td>お電話</td><td>${esc(f.tel)}</td></tr>
+      <tr><td>メール</td><td>${esc(f.email)}</td></tr>
+      <tr><td>技工士の人数</td><td>${esc(f.staff||'—')}</td></tr>
+      <tr><td>月間の件数</td><td>${esc(f.cases||'—')}</td></tr>
+      <tr><td>面談のご希望</td><td>${esc(f.slot||'—')}</td></tr>
+      ${inhouse?'<tr><td>お申し込みの種別</td><td><b>院内技工所（内製）</b></td></tr>':''}
+    </tbody></table>
+    <div class="row"><button class="btn" onclick="S.step=1;render()">戻る</button><span class="sp"></span>
+      <button class="btn pri lg" onclick="submit()">この内容で申し込む</button></div>
+  </div></div>`:''}`;
+}
+function doneLab(inhouse){
+  return `
+  <h1>お申し込みを受け付けました</h1>
+  <p class="sub">${esc(S.f.email)} 宛に確認のメールをお送りしました</p>
+  <div class="card"><div class="bd">
+    <div class="alert ok">
+      <b>${esc(S.f.slot||'ご希望の日時')}</b> に担当がご連絡いたします。
+    </div>
+    <h3 style="margin-top:16px">面談までにご用意いただけると助かるもの</h3>
+    <ul class="note" style="padding-left:1.3em;line-height:2">
+      <li><b>技工物と材料の一覧</b>（メニュー表・価格表があればそのままで構いません）</li>
+      <li><b>工程の流れ</b>（作業台の並び、どの順で回るか）</li>
+      <li>スタッフの一覧と、それぞれが対応できる工程</li>
+      <li>材料の仕入れ先と価格（ディーラーの見積があれば）</li>
+      ${inhouse?'<li>★<b>外部の技工所へ出されている分があるか</b>（医院としてのご利用も併せてご案内します）</li>':''}
+    </ul>
+    <p class="note" style="margin-top:12px">
+      ★<b>揃っていなくても面談は進められます。</b>ご用意いただけた分だけ、その場で設定します。
+    </p>
+    <div class="row" style="margin-top:16px"><button class="btn" onclick="go(null)">最初に戻る</button></div>
+  </div></div>`;
+}
+
+/* ---------- 遷移 ---------- */
+function next(){
+  const f=S.f;
+  if(S.step===0){
+    if(!f.name.trim()||!f.dr.trim()||!f.tel.trim()||!f.email.trim()){
+      alert('必須の項目をご入力ください');return;
+    }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())){
+      alert('メールアドレスの形式をご確認ください');return;
+    }
+  }
+  if(S.step===1&&S.path!=='clinic'&&!f.slot){ alert('面談のご希望をお選びください');return; }
+  S.step++; render();
+}
+function submit(){ S.sent=true; window.scrollTo(0,0); render(); }
+
+function render(){
+  document.getElementById('app').innerHTML =
+    !S.path ? vTop()
+    : S.path==='clinic' ? vClinic()
+    : vLab(S.path==='inhouse');
+}
+render();
+</script>
+</body>
+</html>

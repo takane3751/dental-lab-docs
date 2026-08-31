@@ -215,6 +215,27 @@ const SVC_USERS=[
 /* ---------- 料金プラン ----------
    rules は上から評価し、最初に一致したものを使う。
    一致しなければプランの既定（mode/percent/flat）にフォールバックする。 */
+/* ============================================================
+   決済の設定（v0.9.2 で追加）
+   ------------------------------------------------------------
+   ★医院と運営が直接契約する方針になったので、契約先が一気に増える。
+     請求書を毎月送る運用は、医院側の事務も運営側の事務も持たない。
+     → **カード決済を標準にしたい。**
+
+   ★ただし強制はしない。請求書払いも選べるようにして、
+     そのかわり**発行手数料を設定できる**ようにする。
+     手数料は運営が任意で決める（0 にすれば無料）。
+
+   ★カード情報は当サービスを通過させない（原則8）。
+     決済事業者の画面で直接入力させ、PCI DSS のスコープを持ち込まない。
+   ============================================================ */
+let PAYCFG={
+  provider:'Stripe',
+  cardRate:3.6,        /* カード決済の手数料率（％）。運営が負担する */
+  invoiceFee:500,      /* 請求書発行手数料（円／月）。★相手に請求する */
+  invoiceCost:120,     /* 請求書1通あたりの実費（印刷・郵送・消込の手間） */
+};
+
 let PLANS=[
   {id:'pl_std',name:'標準（レベニューシェア）',initialFee:150000,
    mode:'PERCENT',percent:8,minFee:200,maxFee:5000,
@@ -231,6 +252,15 @@ let PLANS=[
   {id:'pl_intro',name:'導入促進（初年度）',initialFee:0,
    mode:'PERCENT',percent:4,minFee:100,maxFee:2000,
    desc:'初期費用なし・案件額の4%。初年度限定',
+   rules:[]},
+  /* ★内製（院内技工）向け。★重要：レベニューシェアが成立しない。
+     内製の技工室は自院にしか納品しないので「医院への請求」が発生せず、
+     案件額を起点にすると利用料が必ず0円になる（BR-44 が空回りする）。
+     だから内製だけは案件数で取る。医院側の契約（BR-95）から利用料をいただく */
+  {id:'pl_inhouse',name:'内製（院内技工）',initialFee:0,
+   mode:'FLAT',flat:0,minFee:null,maxFee:null,
+   desc:'技工所側は0円。利用料は医院側の契約から案件数でいただく',
+   inhouse:true,
    rules:[]}
 ];
 const planById=id=>PLANS.find(p=>p.id===id)||PLANS[0];
@@ -262,7 +292,17 @@ let LABS=[
    planId:'pl_flat',overrides:[],
    billingDay:'月末',terms:'翌月末',pay:'BANK',card:null,
    initialFee:{amount:100000,status:'UNPAID',invoicedOn:'2025-02-25'},
-   clinics:0,staff:1}
+   clinics:0,staff:1},
+  /* ★内製（院内技工）。医院が技工士を雇い、自院の技工物を自分で作る形。
+     技工所テナントを1つ持ち、取引先が自分の医院1つだけになる（BR-96）。
+     ここを別システムにしない。工程・指示書・納期は外注とまったく同じものが要る */
+  {id:'t5',name:'D歯科・矯正歯科 技工室',code:'LAB-0231',status:'ACTIVE',since:'2026-08-24',
+   pref:'大阪府',tel:'06-6xxx-xxxx',contact:'D歯科 技工室',
+   inhouse:'c7',
+   planId:'pl_inhouse',overrides:[],
+   billingDay:'月末',terms:'翌月末',pay:'CARD',card:{brand:'Visa',last4:'0242',exp:'09/29'},
+   initialFee:{amount:0,status:'NONE',invoicedOn:null},
+   clinics:1,staff:1}
 ];
 const labById=id=>LABS.find(l=>l.id===id)||{name:'—',code:'—'};
 const LAB_STATUS={ACTIVE:{l:'稼働中',c:'done'},TRIAL:{l:'トライアル',c:'prog'},
@@ -270,19 +310,28 @@ const LAB_STATUS={ACTIVE:{l:'稼働中',c:'done'},TRIAL:{l:'トライアル',c:'
 
 /* ---------- 医院（グローバル・医院コードで一意） ---------- */
 let CLINICS=[
+  /* ★医院は運営と直接契約する（BR-95）。pay は医院自身が選ぶ。
+     labs が空でも契約は成立する。技工所を探している段階の医院がこれにあたる */
   {id:'c1',code:'CL-2026-00417',name:'さくら歯科クリニック',pref:'大阪府',tel:'0666661111',
-   labs:['t1','t2'],cases:38,since:'2024-04-01'},
+   labs:['t1','t2'],cases:38,since:'2024-04-01',pay:'CARD'},
   {id:'c2',code:'CL-2026-00418',name:'A歯科医院',pref:'大阪府',tel:'0666662222',
-   labs:['t1'],cases:47,since:'2025-04-01'},
+   labs:['t1'],cases:47,since:'2025-04-01',pay:'CARD'},
   {id:'c3',code:'CL-2026-00419',name:'B歯科クリニック',pref:'大阪府',tel:'0666663333',
-   labs:['t1'],cases:34,since:'2025-09-12'},
+   labs:['t1'],cases:34,since:'2025-09-12',pay:'BANK'},
   {id:'c4',code:'CL-2026-00420',name:'みどり台デンタル',pref:'兵庫県',tel:'0788881111',
-   labs:['t1','t3'],cases:29,since:'2025-06-20'},
+   labs:['t1','t3'],cases:29,since:'2025-06-20',pay:'CARD'},
   {id:'c5',code:'CL-2026-00421',name:'C歯科',pref:'大阪府',tel:'0666664444',
-   labs:['t2'],cases:6,since:'2026-07-30'},
+   labs:['t2'],cases:6,since:'2026-07-30',pay:'CARD'},
   /* ★重複の疑い：電話番号が c2 と一致。運営が統合を判断する対象 */
   {id:'c6',code:'CL-2026-00433',name:'Ａ歯科医院',pref:'大阪府',tel:'0666662222',
-   labs:['t2'],cases:3,since:'2026-08-02'}
+   labs:['t2'],cases:3,since:'2026-08-02',pay:'CARD'},
+  /* ★内製（院内技工）の医院。取引先が「自院の技工室」だけになる。
+     labs に自分の技工所テナントが入る。外注もするなら他社と並ぶ */
+  {id:'c7',code:'CL-2026-00436',name:'D歯科・矯正歯科',pref:'大阪府',tel:'0666665555',
+   labs:['t5'],inhouseLab:'t5',cases:512,since:'2026-08-24',pay:'CARD'},
+  /* ★技工所が1社もない医院。旧 BR-43 のままだと契約すら存在できなかった */
+  {id:'c8',code:'CL-2026-00441',name:'E歯科クリニック',pref:'大阪府',tel:'0666666666',
+   labs:[],cases:0,since:'2026-08-29',pay:'CARD'}
 ];
 
 /* ---------- 案件（手数料の算定対象） ----------
@@ -304,15 +353,19 @@ let CASES=[];
     const cov=rnd()<0.62?'INSURANCE':'PRIVATE';
     const type=cov==='INSURANCE'?pick(['クラウン','インレー','ブリッジ','前装冠','局部床義歯'])
                                 :pick(['クラウン','インレー','ブリッジ','ラミネートベニア']);
-    const amount=cov==='INSURANCE'?ri(5,19)*1000:ri(16,90)*1000;
+    /* ★内製（院内技工）は院内で完結するので、医院→技工所の支払いが発生しない。
+       金額を0にしておかないと「払っていない請求」が延々と溜まって見える。
+       ここが「案件額を起点にした利用料が0円になる」の正体でもある */
+    const inhouse=!!lab.inhouse;
+    const amount=inhouse?0:(cov==='INSURANCE'?ri(5,19)*1000:ri(16,90)*1000);
     /* billStatus … BILLED=医院への請求が確定（利用料の対象）／CANCELED=技工所が請求を取り下げた（対象外）
        PAID/UNPAID は「医院が払ったか」。★払っていなくても利用料は立つ（キャンセルされない限り） */
-    const canceled=rnd()<0.035;
+    const canceled=!inhouse && rnd()<0.035;
     CASES.push({id:'k'+i,no:lab.code.replace('LAB-','')+'-'+(1000+i),
-      tenantId:lab.id,clinicId:cl.id,cov,type,amount,
+      tenantId:lab.id,clinicId:cl.id,cov,type,amount,inhouse,
       billStatus:canceled?'CANCELED':'BILLED',
       cancelReason:canceled?pick(['再製作のため技工所判断で請求取下げ','医院との協議により減額・取下げ']):null,
-      clinicPaid:canceled?false:rnd()>0.12,
+      clinicPaid:inhouse?true:(canceled?false:rnd()>0.12),
       settledOn:'2026-0'+(rnd()<0.5?7:8)+'-'+String(ri(1,28)).padStart(2,'0')});
   }
 })();
@@ -426,7 +479,14 @@ const totalRevenue=()=>LABS.reduce((s,l)=>s+labRevenue(l.id),0);
 const BILLABLE=()=>billable(CASES);
 const unpaidTotal=()=>INVOICES.filter(i=>['ISSUED','OVERDUE'].includes(i.status))
   .reduce((s,i)=>s+invTotal(i),0);
-function invSubtotal(i){return i.lines.reduce((s,l)=>s+l.qty*l.unit,0)}
+/* ★請求書払いを選んだ相手には発行手数料を明細として足す。
+   「請求額から差し引く」形にしない。何にいくら払ったかが相手から見えなくなる（BR-41） */
+function invLines(i){
+  const l=labById(i.tenantId);
+  if(!l||l.pay==='CARD'||!PAYCFG.invoiceFee)return i.lines;
+  return i.lines.concat([{name:'請求書発行手数料',qty:1,unit:PAYCFG.invoiceFee,fee:true}]);
+}
+function invSubtotal(i){return invLines(i).reduce((s,l)=>s+l.qty*l.unit,0)}
 function invTax(i){return Math.round(invSubtotal(i)*0.1)}
 function invTotal(i){return invSubtotal(i)+invTax(i)}
 
@@ -481,7 +541,8 @@ function vDashboard(){
         <tbody>${LABS.map(l=>{
           const cs=labCases(l.id),rev=labRevenue(l.id),fee=labFeeTotal(l.id);
           return `<tr class="clk" onclick="go('lab','${l.id}')">
-            <td><b>${esc(l.name)}</b><div class="note"><code>${esc(l.code)}</code></div></td>
+            <td><b>${esc(l.name)}</b>${l.inhouse?' <span class="b prog">内製</span>':''}
+        <div class="note"><code>${esc(l.code)}</code></div></td>
             <td><span class="b ${LAB_STATUS[l.status].c}">${LAB_STATUS[l.status].l}</span></td>
             <td>${esc(planById(l.planId).name)}
               ${l.overrides.length?`<span class="b wait">個別${l.overrides.length}</span>`:''}</td>
@@ -540,7 +601,8 @@ function vLabs(){
     <thead><tr><th>技工所</th><th>所在</th><th>状態</th><th>開始日</th><th>料金プラン</th>
       <th class="num">取引医院</th><th class="num">スタッフ</th><th>初期費用</th><th>支払方法</th><th></th></tr></thead>
     <tbody>${LABS.map(l=>`<tr class="clk" onclick="go('lab','${l.id}')">
-      <td><b>${esc(l.name)}</b><div class="note"><code>${esc(l.code)}</code> ・ ${esc(l.contact)}</div></td>
+      <td><b>${esc(l.name)}</b>${l.inhouse?' <span class="b prog">内製</span>':''}
+        <div class="note"><code>${esc(l.code)}</code> ・ ${esc(l.contact)}</div></td>
       <td>${esc(l.pref)}</td>
       <td><span class="b ${LAB_STATUS[l.status].c}">${LAB_STATUS[l.status].l}</span></td>
       <td class="note">${esc(l.since)}</td>
@@ -578,6 +640,43 @@ function vLab(){
       <button class="btn" onclick="openBrand('lab:${l.id}','${esc(l.name)}')">表示設定</button>`:''}
     <button class="btn" onclick="openImpersonate('lab','${l.id}')">代理ログイン</button>
   </div>
+  ${l.inhouse?`<div class="card mb" style="border-color:#b9c9e8">
+    <div class="hdr" style="background:var(--info-soft,#eef3fb);border-radius:10px 10px 0 0">
+      <h2>内製（院内技工）</h2><span class="b prog">技工所テナント ＋ 自院1つだけ</span></div>
+    <div class="bd">
+      <p style="margin-top:0">
+        <b>${esc((CLINICS.find(c=>c.id===l.inhouse)||{name:'—'}).name)}</b> が技工士を院内に置き、
+        自院の技工物を自分で作っています。<b>外注の技工所とまったく同じ画面を使います。</b>
+        工程・指示書・納期・RFID／QR は共通で、違うのは
+        <b>取引先が自分の医院1つしかない</b>ことだけです。
+      </p>
+      <div class="tw"><table>
+        <thead><tr><th>論点</th><th>外注の技工所</th><th>内製の技工室</th></tr></thead>
+        <tbody>
+          <tr><td>取引の開始</td><td>技工所が申請 → 医院が承認（BR-33）</td>
+            <td><b>同一の法人なので自動で結ぶ</b>。承認画面は出さない</td></tr>
+          <tr><td>ラリー（仕様の提案）</td><td>技工所が提案 → 医院が承認</td>
+            <td><b>省略できる</b>。ただし記録は同じ形で残す</td></tr>
+          <tr><td>技工料の請求</td><td>医院 → 技工所へ直接</td>
+            <td><b>発生しない。</b>院内で完結する</td></tr>
+          <tr class="dupe"><td><b>運営の利用料</b></td><td>技工所へ請求（案件額の◯%）</td>
+            <td>★<b>案件額を起点にすると必ず0円になる。</b><br>
+              医院側の契約（BR-95）から<b>案件数で</b>いただく</td></tr>
+          <tr><td>スコアリング</td><td>取引先企業の従業員の評価にあたる</td>
+            <td><b>自社の従業員なので論点が消える</b></td></tr>
+        </tbody></table></div>
+      <div class="alert warn mt" style="font-size:12.5px">
+        ★<b>ここが今回いちばん効いた発見です。</b>
+        「運営が契約するのは技工所だけ・利用料は医院への請求が確定した時点で立てる」
+        （旧 BR-43・BR-44）のままだと、<b>内製の技工室からは永久に1円も入りません。</b>
+        医院への請求そのものが起きないからです。<br>
+        <b>医院と直接契約する形（BR-95）にしたことで、内製がはじめて成立します。</b>
+        逆に言えば、内製に対応したいなら BR-95 は必須でした。
+      </div>
+      <div class="row mt">
+        <button class="btn" onclick="go('clinic','${l.inhouse}')">この医院の契約を見る ›</button>
+      </div>
+    </div></div>`:''}
 
   <div class="grid g4 mb">
     <div class="card stat"><div class="n">${cs.length}</div><div class="l">当月の確定案件</div></div>
@@ -1029,20 +1128,23 @@ function vClinics(){
 
   <div class="card"><div class="tw"><table>
     <thead><tr><th>医院コード</th><th>医院名</th><th>所在</th><th>電話</th>
-      <th class="num">取引技工所</th><th class="num">案件</th><th>登録日</th><th></th></tr></thead>
+      <th class="num">取引技工所</th><th class="num">案件</th><th>支払方法</th><th>登録日</th><th></th></tr></thead>
     <tbody>${CLINICS.map(c=>`<tr class="clk ${dupeIds.has(c.id)?'dupe':''}" onclick="go('clinic','${c.id}')">
       <td><code>${esc(c.code)}</code></td>
       <td><b>${esc(c.name)}</b>${dupeIds.has(c.id)?' <span class="b wait">重複疑い</span>':''}</td>
       <td>${esc(c.pref)}</td><td class="note">${esc(c.tel)}</td>
-      <td class="num">${c.labs.length}</td><td class="num">${c.cases}</td>
+      <td class="num">${c.labs.length?c.labs.length:'<span class="note">0</span>'}</td><td class="num">${c.cases}</td>
+      <td>${c.pay==='CARD'?'<span class="b mny">カード</span>':'<span class="note">請求書払い</span>'}</td>
       <td class="note">${esc(c.since)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();go('clinic','${c.id}')">詳細</button></td>
     </tr>`).join('')}</tbody>
   </table></div></div>
 
   <div class="alert info mt" style="font-size:12.5px">
-    運営は医院を新規登録しません。医院の登録は技工所が行い、既存医院への紐付けは医院側の承認を経ます。
-    運営の役割は<b>重複の検出と統合の判断</b>です。</div>`;
+    医院は<b>申し込みフォームから自分で登録する</b>ほか、技工所が代理で登録することもできます。
+    どちらの経路でも既存医院への紐付けは医院側の承認を経ます（BR-33）。
+    運営の役割は<b>重複の検出と統合の判断</b>です。
+    <br>★<b>医院は運営と直接契約します</b>（BR-95）。取引技工所が 0 社でも契約は成立します。</div>`;
 }
 
 function vClinic(){
@@ -1062,10 +1164,13 @@ function vClinic(){
   <div class="grid g4 mb">
     <div class="card stat"><div class="n">${c.labs.length}</div><div class="l">取引技工所</div></div>
     <div class="card stat"><div class="n">${cCases.length}</div><div class="l">当月の案件</div></div>
-    <div class="card stat"><div class="n">${yen(cCases.reduce((s,x)=>s+x.amount,0))}</div>
-      <div class="l">当月の支払額</div><div class="d">技工所へ直接支払い</div></div>
+    <div class="card stat"><div class="n">${c.inhouseLab
+        ?'<span style="font-size:17px">院内で完結</span>':yen(cCases.reduce((s,x)=>s+x.amount,0))}</div>
+      <div class="l">当月の支払額</div>
+      <div class="d">${c.inhouseLab?'自院の技工室なので支払いが起きない':'技工所へ直接支払い'}</div></div>
     <div class="card stat"><div class="n">${cCases.filter(x=>!x.clinicPaid&&x.billStatus==='BILLED').length}</div>
-      <div class="l">未入金の案件</div><div class="d">技工所と医院の間の話</div></div>
+      <div class="l">未入金の案件</div>
+      <div class="d">${c.inhouseLab?'—':'技工所と医院の間の話'}</div></div>
   </div>
   <div class="grid g2">
     <div class="card"><div class="hdr"><h3>基本情報</h3></div><div class="bd">
@@ -1079,14 +1184,70 @@ function vClinic(){
       ${c.labs.map(id=>`<div class="row rowlink" style="padding:6px 0;border-bottom:1px solid var(--border-2)"
         onclick="go('lab','${id}')">
         <div style="flex:1">${esc(labById(id).name)}
+          ${id===c.inhouseLab?'<span class="b prog">自院の技工室</span>':''}
           <div class="note"><code>${esc(labById(id).code)}</code></div></div>
-        <span style="color:var(--faint)">›</span></div>`).join('')||'<div class="empty">取引なし</div>'}
+        <span style="color:var(--faint)">›</span></div>`).join('')
+        ||`<div class="empty">取引している技工所はまだありません</div>
+           <div class="alert info mt" style="font-size:12px">
+             ★<b>技工所が0社でも契約は続きます</b>（BR-95）。
+             探している段階の医院と、技工士を院内に置いている医院がここに入ります。</div>`}
       <p class="note mt">1つの医院が複数の技工所と取引します。医院はログインを1つしか持ちません。</p>
       <div class="alert info mt" style="font-size:12px">
-        <b>運営はこの医院と契約していません。</b>契約するのは技工所です。
-        運営はこの医院へ請求も送金もしません。</div>
+        <b>技工物の代金は医院から技工所へ直接支払われます。</b>
+        運営はこの代金を預かりません（BR-38）。運営がこの医院に請求するのは
+        <b>サービスの利用料だけ</b>です。</div>
     </div></div>
-  </div>`;
+  </div>
+
+  <div class="card mt"><div class="hdr"><h3>運営との契約</h3>
+    <span class="b ${c.pay==='CARD'?'mny':''}">${c.pay==='CARD'?'カード':'請求書払い'}</span>
+    ${isOps()?`<span class="sp"></span>
+      <button class="btn sm" onclick="openClinicPay('${c.id}')">支払い方法を変更</button>`:''}</div>
+    <div class="bd">
+      <div class="alert info mb" style="font-size:12.5px">
+        ★<b>医院は運営と直接契約します</b>（BR-95・2026-08-31 改訂）。
+        以前は「運営が契約するのは技工所だけ」でしたが、
+        <b>技工所を通さずに利用料をいただく形</b>に変えました。
+        これにより<b>技工所が1社もない医院も契約できます。</b>
+      </div>
+      <dl class="kv">
+        <dt>契約開始</dt><dd>${esc(c.since)}</dd>
+        <dt>支払い方法</dt><dd>${c.pay==='CARD'
+          ? `<span class="b mny">カード</span> 毎月 自動決済
+             <div class="note">★<b>医院に請求書は送りません。</b>
+               何十院・何百院に毎月請求書を送る運用は、こちらも相手の事務も持ちません</div>`
+          : `請求書払い（振込）
+             <div class="note">発行手数料 ${yen(PAYCFG.invoiceFee)}／月 が加算されます</div>`}</dd>
+        <dt>今月の利用料</dt><dd>${yen(cCases.length*300+(c.pay==='CARD'?0:PAYCFG.invoiceFee))}
+          <div class="note">案件 ${cCases.length}件
+            ${c.pay==='CARD'?'':`＋ 請求書の発行手数料 ${yen(PAYCFG.invoiceFee)}`}</div></dd>
+      </dl>
+      ${c.pay!=='CARD'?`<div class="alert warn mt" style="font-size:12px">
+        カードに切り替えると発行手数料 ${yen(PAYCFG.invoiceFee)}／月 がかかりません。
+        <b>案内は出しますが、強制はしません。</b></div>`:''}
+    </div></div>`;
+}
+
+function openClinicPay(id){
+  const c=CLINICS.find(x=>x.id===id);
+  S.modal={title:'支払い方法を変更',body:`
+    <div class="alert info mb" style="font-size:12px">
+      ★<b>カード情報は当サービスのサーバーを通過しません</b>（原則8）。
+      ${esc(PAYCFG.provider)} の画面で医院ご自身に入力していただきます。
+      運営がここでできるのは<b>どちらで請求するかの指定だけ</b>です。</div>
+    <label class="f"><span class="lb">支払い方法</span>
+      <select id="cpPay">
+        <option value="CARD" ${c.pay==='CARD'?'selected':''}>カード（自動決済・手数料なし）</option>
+        <option value="BANK" ${c.pay!=='CARD'?'selected':''}>請求書払い（発行手数料 ${yen(PAYCFG.invoiceFee)}／月）</option>
+      </select></label>`,
+    ok:'変更する',fn:()=>{
+      const v=document.getElementById('cpPay').value;
+      if(v===c.pay){closeModal();return}
+      c.pay=v;
+      logAudit('医院の支払い方法を変更',c.name,v==='CARD'?'カード':'請求書払い');
+      closeModal();toast('支払い方法を変更しました');render();
+    }};
+  render();
 }
 
 function openMerge(a,b){
@@ -1127,6 +1288,12 @@ function openMerge(a,b){
    料金プラン
    ============================================================ */
 function vPlans(){
+  /* 支払い方法の内訳。カードと請求書払いがそれぞれ何件か */
+  const labs=LABS.filter(l=>l.status!=='PENDING');
+  const lCard=labs.filter(l=>l.pay==='CARD').length, lInv=labs.length-lCard;
+  const cCard=CLINICS.filter(c=>c.pay==='CARD').length, cInv=CLINICS.length-cCard;
+  const invN=lInv+cInv, allN=labs.length+CLINICS.length;
+  const invMargin=PAYCFG.invoiceFee-PAYCFG.invoiceCost;
   return `
   <div class="row mb" style="align-items:flex-start">
     <div style="flex:1;min-width:240px"><h1>料金プラン</h1>
@@ -1134,6 +1301,66 @@ function vPlans(){
     <button class="btn" onclick="csvPlans()">CSV出力</button>
     ${isOps()?`<button class="btn pri lg" onclick="openPlanEdit(null)">＋ プランを作成</button>`:''}
   </div>
+
+  <div class="card mb"><div class="hdr"><h3>決済の設定</h3>
+    <span class="b mny">${esc(PAYCFG.provider)}</span>
+    <span class="sp"></span><span class="note">医院・技工所とも支払い方法を選べます</span></div>
+    <div class="bd">
+      <div class="alert info mb">
+        ★<b>カード決済を標準にしたい。</b>医院と直接契約する形になると契約先が一気に増え、
+        <b>毎月請求書を送る運用は双方の事務が持ちません。</b><br>
+        強制はせず、<b>請求書払いには発行手数料を設定できる</b>ようにしてあります（0 にすれば無料）。
+      </div>
+      <div class="grid g4">
+        <label class="f"><span class="lb">決済事業者</span>
+          <select onchange="PAYCFG.provider=this.value;render()">
+            ${['Stripe','PAY.JP','GMOペイメント','Square'].map(x=>
+              `<option ${PAYCFG.provider===x?'selected':''}>${x}</option>`).join('')}</select></label>
+        <label class="f"><span class="lb">カード手数料 <span class="note">％・運営が負担</span></span>
+          <input type="number" step="0.1" value="${PAYCFG.cardRate}"
+            oninput="PAYCFG.cardRate=+this.value||0;render()"></label>
+        <label class="f"><span class="lb">請求書の発行手数料 <span class="note">円／月・相手に請求</span></span>
+          <input type="number" value="${PAYCFG.invoiceFee}"
+            oninput="PAYCFG.invoiceFee=+this.value||0;render()"></label>
+        <label class="f"><span class="lb">請求書1通の実費 <span class="note">円・印刷・郵送・消込</span></span>
+          <input type="number" value="${PAYCFG.invoiceCost}"
+            oninput="PAYCFG.invoiceCost=+this.value||0;render()"></label>
+      </div>
+
+      <div class="tw mt"><table>
+        <thead><tr><th>支払い方法</th><th class="num">技工所</th><th class="num">医院</th>
+          <th class="num">運営の月あたり収支</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td><b>カード</b><span class="note"> 自動決済</span></td>
+            <td class="num">${lCard}社</td><td class="num">${cCard}院</td>
+            <td class="num">−${pct(PAYCFG.cardRate)}<span class="note">（決済額に対して）</span></td>
+            <td class="note">運営の事務はゼロ。未収も出ない</td></tr>
+          <tr><td><b>請求書払い</b><span class="note"> 振込</span></td>
+            <td class="num">${lInv}社</td><td class="num">${cInv}院</td>
+            <td class="num ${invMargin>=0?'':'dgr'}">
+              ${invMargin>=0?'+':'−'}${yen(Math.abs(invMargin))}<span class="note">／1件</span></td>
+            <td class="note">発行手数料 ${yen(PAYCFG.invoiceFee)} − 実費 ${yen(PAYCFG.invoiceCost)}</td></tr>
+        </tbody></table></div>
+
+      <div class="grid g3 mt">
+        <div class="card stat"><div class="n">${allN?pct(invN/allN*100):'—'}</div>
+          <div class="l">請求書払いの比率</div><div class="d">${invN} / ${allN} 契約</div></div>
+        <div class="card stat"><div class="n">${yen(invN*PAYCFG.invoiceCost)}</div>
+          <div class="l">請求書の事務コスト</div><div class="d">月あたり</div></div>
+        <div class="card stat"><div class="n">${yen(invN*PAYCFG.invoiceFee)}</div>
+          <div class="l">発行手数料の収入</div><div class="d">月あたり</div></div>
+      </div>
+
+      <div class="alert ${invMargin>=0?'':'warn'} mt" style="font-size:12.5px">
+        ${invMargin>=0
+          ? `発行手数料が実費を上回っています。<b>請求書払いが増えても持ち出しにはなりません。</b>`
+          : `★<b>発行手数料が実費を下回っています。</b>請求書払いが増えるほど運営の持ち出しになります。`}
+        <br>★<b>手数料は「カードへ誘導するための差」であって、罰金ではありません。</b>
+        0 にすれば無料にできます。請求書払いしかできない相手を締め出さないための逃げ道です。
+        <br>★<b>カード情報は当サービスを通過させません</b>（原則8）。
+        ${esc(PAYCFG.provider)} の画面で直接入力していただき、PCI DSS のスコープを持ち込みません。
+      </div>
+    </div></div>
 
   <div class="alert info mb">
     <b>課金の考え方</b><br>
@@ -1392,7 +1619,8 @@ function invoiceHtml(i){
       <thead><tr><th style="width:52%">内容</th><th style="width:12%">数量</th>
         <th style="width:18%">単価</th><th style="width:18%">金額</th></tr></thead>
       <tbody>
-        ${i.lines.map(x=>`<tr><td>${esc(x.name)}</td>
+        ${invLines(i).map(x=>`<tr><td>${esc(x.name)}${x.fee
+            ?'<br><span style="font-size:10px;color:#666">カード払いに変更すると、この手数料はかかりません</span>':''}</td>
           <td style="text-align:right">${x.qty}</td>
           <td style="text-align:right">${yen(x.unit)}</td>
           <td style="text-align:right">${yen(x.qty*x.unit)}</td></tr>`).join('')}
