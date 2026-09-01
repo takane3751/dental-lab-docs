@@ -471,7 +471,9 @@ const CFG={
      ここに置いた値はすべて設定画面から変更できる。
      ============================================================ */
   /* --- 納期（ご回答 #1・#2・#3・#5） --- */
-  leadBase:{INSURANCE:7,PRIVATE:14},  /* 診療区分ごとの基準日数（暦日）。「保険1週間・自費2週間」 */
+  /* ★2026-09-01 に技工所からご提供いただいた実データへ差し替え。メニュー134品目すべてが
+     保険=5日／自費=10日 で登録されていた（それ以前は 7／14 と置いていた） */
+  leadBase:{INSURANCE:5,PRIVATE:10},  /* 診療区分ごとの基準日数（営業日）。実データ */
   leadOrigin:'VISIT',                 /* VISIT=次回来院日から逆算 / RECEIPT=受付日から起算。★技工所が選ぶ */
   leadMetalExtra:7,                   /* 義歯：メタルを扱うステージの追加日数。「メタルが絡むケースは2週間」 */
   perUnitExtra:0,                     /* 本数の追加日数。★既定0（「追加の必要なし」） */
@@ -603,7 +605,13 @@ function svcFee(c){
   return {fee,mode:m.mode,percent:m.percent,flat:m.flat,memo:hit?hit.memo:null,clamp};
 }
 
-/* 技工物 × 材料（🧑‍🔧 v0.8 改訂）
+/* 技工物 × 材料（🧑‍🔧 v0.8 改訂 ／ ★2026-09-01 実データ反映）
+
+   ★価格・日数・難易度はご提供いただいた実際のメニュー（134品目）の実値。
+     それ以前はこちらの想像で置いていた値で、★1件平均を約6倍に見積もっていた。
+   ★難易度は実データが 2〜18 の幅を持つ。★は 2 を 1 として丸めている
+     （実データの上限18が★10を超えるため。★の刻みは会議で引き直す）。
+   ★義歯はステージごとに価格が付く。ここでは「完成」の回の価格を入れている。
 
    star : ★の数（1〜10・整数）。「星の数で仕分けるのはいかがでしょうか。
           スタッフ脳死させるためには視覚的な方が有用」（ご回答 #41）
@@ -611,24 +619,24 @@ function svcFee(c){
    metal: メタルを扱うか。★義歯の納期がこれで1週／2週に分かれる（ご回答 自由記入1）
    diff : 内部の数値。画面には出さない（★に変換して表示する） */
 const VARIANTS=[
-  {id:'v1',cov:'INSURANCE',type:'クラウン',mat:'CAD/CAM冠',days:5,price:6800,diff:12,star:3,rush:true,route:'rt1',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
-  {id:'v2',cov:'INSURANCE',type:'クラウン',mat:'金パラ12%',days:5,price:7200,diff:14,star:4,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
-  {id:'v4',cov:'INSURANCE',type:'インレー',mat:'CAD/CAM冠',days:4,price:5200,diff:10,star:2,rush:true,route:'rt1',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
-  {id:'v5',cov:'INSURANCE',type:'インレー',mat:'金パラ12%',days:4,price:5600,diff:11,star:3,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
-  {id:'v6',cov:'INSURANCE',type:'ブリッジ',mat:'金パラ12%',days:8,price:18400,diff:26,star:6,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
-  {id:'v7',cov:'INSURANCE',type:'前装冠',mat:'金パラ12%',days:7,price:9800,diff:22,star:5,rush:true,route:'rt4',kind:'FIXED',matId:'m1',fin:'f_pfm',metal:true},
-  {id:'v8',cov:'INSURANCE',type:'局部床義歯',mat:'コバルトクロム',days:12,price:32000,diff:34,star:7,rush:false,route:'rt7',kind:'REMOVABLE',matId:'m8',fin:'f_denture',metal:true},
-  {id:'p1',cov:'PRIVATE',type:'クラウン',mat:'ジルコニア(高透過)',days:7,price:24000,diff:30,star:6,rush:true,route:'rt3',kind:'FIXED',matId:'m4',fin:'f_zr',metal:false},
-  {id:'p3',cov:'PRIVATE',type:'クラウン',mat:'e.max',days:7,price:26000,diff:32,star:7,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
-  {id:'p4',cov:'PRIVATE',type:'クラウン',mat:'ゴールド18K',days:8,price:38000,diff:36,star:7,rush:true,route:'rt2',kind:'FIXED',matId:'m7',fin:'f_metal',metal:true},
-  {id:'p6',cov:'PRIVATE',type:'インレー',mat:'ジルコニア(高強度)',days:6,price:16000,diff:24,star:5,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
-  {id:'p8',cov:'PRIVATE',type:'ラミネートベニア',mat:'e.max',days:10,price:42000,diff:46,star:9,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
-  {id:'p9',cov:'PRIVATE',type:'ブリッジ',mat:'ジルコニア(高強度)',days:10,price:64000,diff:44,star:9,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
+  {id:'v1',cov:'INSURANCE',type:'クラウン',mat:'CAD/CAM冠',days:5,price:12000,diff:4,star:2,rush:true,route:'rt1',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
+  {id:'v2',cov:'INSURANCE',type:'クラウン',mat:'金パラ12%',days:5,price:3300,diff:4,star:2,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
+  {id:'v4',cov:'INSURANCE',type:'インレー',mat:'CAD/CAM冠',days:5,price:2000,diff:2,star:1,rush:true,route:'rt1',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
+  {id:'v5',cov:'INSURANCE',type:'インレー',mat:'金パラ12%',days:5,price:2000,diff:2,star:1,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
+  {id:'v6',cov:'INSURANCE',type:'ブリッジ',mat:'金パラ12%',days:5,price:9600,diff:6,star:3,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
+  {id:'v7',cov:'INSURANCE',type:'前装冠',mat:'金パラ12%',days:5,price:8700,diff:6,star:3,rush:true,route:'rt4',kind:'FIXED',matId:'m1',fin:'f_pfm',metal:true},
+  {id:'v8',cov:'INSURANCE',type:'局部床義歯',mat:'コバルトクロム',days:5,price:4500,diff:12,star:6,rush:false,route:'rt7',kind:'REMOVABLE',matId:'m8',fin:'f_denture',metal:true},
+  {id:'p1',cov:'PRIVATE',type:'クラウン',mat:'ジルコニア(高透過)',days:10,price:19000,diff:4,star:2,rush:true,route:'rt3',kind:'FIXED',matId:'m4',fin:'f_zr',metal:false},
+  {id:'p3',cov:'PRIVATE',type:'クラウン',mat:'e.max',days:10,price:18000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
+  {id:'p4',cov:'PRIVATE',type:'クラウン',mat:'ゴールド18K',days:10,price:8000,diff:4,star:2,rush:true,route:'rt2',kind:'FIXED',matId:'m7',fin:'f_metal',metal:true},
+  {id:'p6',cov:'PRIVATE',type:'インレー',mat:'ジルコニア(高強度)',days:10,price:17000,diff:2,star:1,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
+  {id:'p8',cov:'PRIVATE',type:'ラミネートベニア',mat:'e.max',days:10,price:25000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
+  {id:'p9',cov:'PRIVATE',type:'ブリッジ',mat:'ジルコニア(高強度)',days:10,price:41000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
   /* 🧑‍🔧 v0.8：いただいた仕上げパターンをすべて使えるよう技工物を追加 */
-  {id:'p10',cov:'PRIVATE',type:'クラウン',mat:'ジルコニアレイヤリング',days:10,price:52000,diff:44,star:9,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr_layer',metal:false},
-  {id:'p11',cov:'PRIVATE',type:'クラウン',mat:'e.maxレイヤリング',days:10,price:56000,diff:46,star:10,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax_layer',metal:false},
-  {id:'p12',cov:'PRIVATE',type:'インプラント上部構造',mat:'スクリューリテイン（ジルコニア）',days:12,price:78000,diff:48,star:10,rush:false,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_impl_sr',metal:false},
-  {id:'p13',cov:'PRIVATE',type:'インプラント上部構造',mat:'セメントリテイン（ジルコニア）',days:11,price:72000,diff:44,star:9,rush:false,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_impl_cr',metal:false}
+  {id:'p10',cov:'PRIVATE',type:'クラウン',mat:'ジルコニアレイヤリング',days:10,price:30000,diff:10,star:5,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr_layer',metal:false},
+  {id:'p11',cov:'PRIVATE',type:'クラウン',mat:'e.maxレイヤリング',days:10,price:25000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax_layer',metal:false},
+  {id:'p12',cov:'PRIVATE',type:'インプラント上部構造',mat:'スクリューリテイン（ジルコニア）',days:10,price:23000,diff:12,star:6,rush:false,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_impl_sr',metal:false},
+  {id:'p13',cov:'PRIVATE',type:'インプラント上部構造',mat:'セメントリテイン（ジルコニア）',days:10,price:22000,diff:18,star:9,rush:false,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_impl_cr',metal:false}
 ];
 /* ★の表示。0.5刻みに対応する（スタッフの技能上限で使う） */
 function starHtml(n,max){
