@@ -372,14 +372,21 @@ const STAFF=[
   {id:'s5',name:'山本 恵',  role:'LAB_STAFF',label:'技工スタッフ',init:'山'},
   {id:'s6',name:'小林 由紀',role:'LAB_ACCOUNTANT',label:'経理',init:'小'}
 ];
+/* === スタッフの技能（★2026-09-01 実データ） ===
+   ★対応できる工程は実データ（本人ヒアリング済みとのこと）。
+   ★得意度と所要時間は「仮置き」と明記されていた。ここの数値はこちらの仮値。
+     『技術レベルの数値化は打ち合わせで相談させてください』（13_ご要望 #7） */
 const SKILLS={
-  s3:{CLARIFY:['EXPERT',20],SCAN:['EXPERT',25],DESIGN:['STANDARD',60],EXPORT:['EXPERT',6],
-      FINISHING:['EXPERT',45],QC:['EXPERT',15],SHIPPING:['STANDARD',10],maxStar:8.0},
-  s4:{CLARIFY:['EXPERT',18],WAXUP:['EXPERT',30],SCAN:['EXPERT',22],DESIGN:['STANDARD',70],
-      MILLING:['STANDARD',40],ADJUST:['STANDARD',18],FINISHING:['SLOW',70],maxStar:5.5},
-  s5:{DESIGN:['EXPERT',45],DESIGN_REVIEW:['EXPERT',10],NESTING:['EXPERT',8],MILLING:['EXPERT',35],
-      ADJUST:['EXPERT',14],FINISHING:['STANDARD',55],QC:['STANDARD',20],maxStar:9.5},
-  s6:{CLARIFY:['STANDARD',22],QC:['STANDARD',18],SHIPPING:['EXPERT',8],maxStar:4.0}
+  /* スタッフK（代表・全工程） の担当工程（実データ） */
+  s2:{INTAKE:['EXPERT',8],MATERIAL_QC:['EXPERT',13],MODEL:['EXPERT',34],SCAN:['EXPERT',17],DESIGN:['EXPERT',26],MILLING:['EXPERT',51],SINTER:['EXPERT',102],WAXUP:['EXPERT',34],CASTING:['EXPERT',76],PRESS:['EXPERT',76],PORCELAIN:['EXPERT',76],RESIN:['EXPERT',51],STAIN:['EXPERT',26],FIT:['EXPERT',26],POLISH:['EXPERT',26],CLASP:['EXPERT',51],TRAY:['EXPERT',34],SETUP:['EXPERT',51],CURING:['EXPERT',76],INJECT:['EXPERT',76],REPAIR:['EXPERT',51],QC:['EXPERT',13],SHIPPING:['EXPERT',8],maxStar:10.0},
+  /* スタッフE の担当工程（実データ） */
+  s3:{DESIGN:['EXPERT',27],MILLING:['EXPERT',54],SINTER:['EXPERT',108],WAXUP:['EXPERT',36],CASTING:['EXPERT',81],PRESS:['EXPERT',81],RESIN:['EXPERT',54],STAIN:['EXPERT',27],FIT:['EXPERT',27],POLISH:['EXPERT',27],QC:['EXPERT',14],maxStar:9.0},
+  /* スタッフF の担当工程（実データ） */
+  s4:{MODEL:['STANDARD',40],CASTING:['STANDARD',90],FIT:['STANDARD',30],POLISH:['STANDARD',30],CLASP:['STANDARD',60],TRAY:['STANDARD',40],SETUP:['STANDARD',60],CURING:['STANDARD',90],REPAIR:['STANDARD',60],QC:['STANDARD',15],maxStar:8.0},
+  /* スタッフG の担当工程（実データ） */
+  s5:{WAXUP:['STANDARD',42],CASTING:['STANDARD',94],RESIN:['STANDARD',63],STAIN:['STANDARD',32],FIT:['STANDARD',32],POLISH:['STANDARD',32],maxStar:6.5},
+  /* スタッフH（管理・事務） の担当工程（実データ） */
+  s6:{INTAKE:['STANDARD',10],MATERIAL_QC:['STANDARD',15],MODEL:['STANDARD',40],QC:['STANDARD',15],SHIPPING:['STANDARD',10],maxStar:4.0}
 };
 /* 実工程（🧑‍🔧 v0.8：技工所経営者のご回答で13工程に）
 
@@ -395,20 +402,37 @@ const SKILLS={
    ★v0.7 からの変更：資材検品を仕様調整に統合、模型製作を廃止（仕様調整に含む）、
      埋没・鋳造を大工程から外して仕上げの細分へ移し、
      ワックスアップ／データエクスポート／ネスティング・スライス／加工物調整を追加した。 */
+/* === 工程（★2026-09-01 実データ・23工程） ===
+
+   ★それまでの13工程はこちらの想像。実際の工程表をいただいて差し替えた。
+     min = 標準所要時間（分）／ chg = その工程で仕様変更を受け付けられるか。
+   ★chg:false が8つある（ミリング・シンタリング・鋳造・プレス・重合・射出成形・検品・発送）。
+     BR-67「仕様変更をシステムでお断りしない」の例外はここ。機械が回り始めたら物理的に無理。
+   ★ミリングとシンタリングは作業台を持たない（素通り。原則45）。 */
 const STEPS=[
-  {c:'INTAKE',        n:'受付・確認',       chg:true},
-  {c:'CLARIFY',       n:'仕様調整',         chg:true, memo:'模型調整・データ整理を含む'},
-  {c:'WAXUP',         n:'ワックスアップ',   chg:true},
-  {c:'SCAN',          n:'スキャン',         chg:true},
-  {c:'DESIGN',        n:'デザイン',         chg:true},
-  {c:'DESIGN_REVIEW', n:'デザイン確認',     chg:true},
-  {c:'EXPORT',        n:'データエクスポート',chg:false},
-  {c:'NESTING',       n:'ネスティング・スライス',chg:false},
-  {c:'MILLING',       n:'加工',             chg:false},
-  {c:'ADJUST',        n:'加工物調整',       chg:false},
-  {c:'FINISHING',     n:'仕上げ',           chg:false, sub:true},
-  {c:'QC',            n:'最終検品',         chg:false},
-  {c:'SHIPPING',      n:'梱包・発送',       chg:false}
+  {c:'INTAKE',       n:'受付・確認',        min:10, chg:true, memo:'指示書の内容確認・不明点は医院に連絡'},
+  {c:'MATERIAL_QC',  n:'資材検品',         min:15, chg:true, memo:'欠品があればここで医院に連絡'},
+  {c:'MODEL',        n:'模型製作',         min:40, chg:true},
+  {c:'SCAN',         n:'スキャン',         min:20, chg:true},
+  {c:'DESIGN',       n:'CAD設計（デザイン）',  min:30, chg:true},
+  {c:'MILLING',      n:'ミリング',         min:60, chg:false, memo:'機械稼働中のため仕様変更不可'},
+  {c:'SINTER',       n:'シンタリング（焼結）',   min:120, chg:false, memo:'ジルコニアのみ'},
+  {c:'WAXUP',        n:'ワックスアップ',      min:40, chg:true},
+  {c:'CASTING',      n:'埋没・鋳造',        min:90, chg:false, memo:'鋳造開始後は変更不可'},
+  {c:'PRESS',        n:'プレス',          min:90, chg:false, memo:'プレスセラミック（e.max等）'},
+  {c:'PORCELAIN',    n:'築盛・焼成',        min:90, chg:true, memo:'PFM・レイヤリング'},
+  {c:'RESIN',        n:'前装・レジン成形',     min:60, chg:true, memo:'硬質レジン・ハイブリッド'},
+  {c:'STAIN',        n:'ステイン・グレーズ',    min:30, chg:true, memo:'ステイニング仕上げ'},
+  {c:'FIT',          n:'適合調整・咬合調整',    min:30, chg:true},
+  {c:'POLISH',       n:'研磨・仕上げ',       min:30, chg:true, sub:true},
+  {c:'CLASP',        n:'クラスプ・フレーム製作',  min:60, chg:true, memo:'屈曲／キャスト'},
+  {c:'TRAY',         n:'トレー・咬合床製作',    min:40, chg:true, memo:'個人トレー・咬合床・バイトリム'},
+  {c:'SETUP',        n:'人工歯排列',        min:60, chg:true, memo:'義歯'},
+  {c:'CURING',       n:'重合（義歯）',       min:90, chg:false, memo:'レジン床義歯の完成'},
+  {c:'INJECT',       n:'射出成形（熱可塑）',    min:90, chg:false, memo:'ノンクラスプデンチャー'},
+  {c:'REPAIR',       n:'義歯修理・増歯',      min:60, chg:true},
+  {c:'QC',           n:'最終検品',         min:15, chg:false},
+  {c:'SHIPPING',     n:'発送',           min:10, chg:false, memo:'梱包・伝票発行'},
 ];
 const stepName=code=>(STEPS.find(s=>s.c===code)||{n:code}).n;
 const stepIdx=code=>STEPS.findIndex(s=>s.c===code);
@@ -619,24 +643,24 @@ function svcFee(c){
    metal: メタルを扱うか。★義歯の納期がこれで1週／2週に分かれる（ご回答 自由記入1）
    diff : 内部の数値。画面には出さない（★に変換して表示する） */
 const VARIANTS=[
-  {id:'v1',cov:'INSURANCE',type:'クラウン',mat:'CAD/CAM冠',days:5,price:12000,diff:4,star:2,rush:true,route:'rt1',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
-  {id:'v2',cov:'INSURANCE',type:'クラウン',mat:'金パラ12%',days:5,price:3300,diff:4,star:2,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
-  {id:'v4',cov:'INSURANCE',type:'インレー',mat:'CAD/CAM冠',days:5,price:2000,diff:2,star:1,rush:true,route:'rt1',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
-  {id:'v5',cov:'INSURANCE',type:'インレー',mat:'金パラ12%',days:5,price:2000,diff:2,star:1,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
-  {id:'v6',cov:'INSURANCE',type:'ブリッジ',mat:'金パラ12%',days:5,price:9600,diff:6,star:3,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
-  {id:'v7',cov:'INSURANCE',type:'前装冠',mat:'金パラ12%',days:5,price:8700,diff:6,star:3,rush:true,route:'rt4',kind:'FIXED',matId:'m1',fin:'f_pfm',metal:true},
-  {id:'v8',cov:'INSURANCE',type:'局部床義歯',mat:'コバルトクロム',days:5,price:4500,diff:12,star:6,rush:false,route:'rt7',kind:'REMOVABLE',matId:'m8',fin:'f_denture',metal:true},
-  {id:'p1',cov:'PRIVATE',type:'クラウン',mat:'ジルコニア(高透過)',days:10,price:19000,diff:4,star:2,rush:true,route:'rt3',kind:'FIXED',matId:'m4',fin:'f_zr',metal:false},
-  {id:'p3',cov:'PRIVATE',type:'クラウン',mat:'e.max',days:10,price:18000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
-  {id:'p4',cov:'PRIVATE',type:'クラウン',mat:'ゴールド18K',days:10,price:8000,diff:4,star:2,rush:true,route:'rt2',kind:'FIXED',matId:'m7',fin:'f_metal',metal:true},
-  {id:'p6',cov:'PRIVATE',type:'インレー',mat:'ジルコニア(高強度)',days:10,price:17000,diff:2,star:1,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
-  {id:'p8',cov:'PRIVATE',type:'ラミネートベニア',mat:'e.max',days:10,price:25000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
-  {id:'p9',cov:'PRIVATE',type:'ブリッジ',mat:'ジルコニア(高強度)',days:10,price:41000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
+  {id:'v1',cov:'INSURANCE',type:'クラウン',mat:'CAD/CAM冠',days:5,price:12000,diff:4,star:2,rush:true,route:'rt4',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
+  {id:'v2',cov:'INSURANCE',type:'クラウン',mat:'金パラ12%',days:5,price:3300,diff:4,star:2,rush:true,route:'rt1',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
+  {id:'v4',cov:'INSURANCE',type:'インレー',mat:'CAD/CAM冠',days:5,price:2000,diff:2,star:1,rush:true,route:'rt4',kind:'FIXED',matId:'m2',fin:'f_cad',metal:false},
+  {id:'v5',cov:'INSURANCE',type:'インレー',mat:'金パラ12%',days:5,price:2000,diff:2,star:1,rush:true,route:'rt1',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
+  {id:'v6',cov:'INSURANCE',type:'ブリッジ',mat:'金パラ12%',days:5,price:9600,diff:6,star:3,rush:true,route:'rt1',kind:'FIXED',matId:'m1',fin:'f_metal',metal:true},
+  {id:'v7',cov:'INSURANCE',type:'前装冠',mat:'金パラ12%',days:5,price:8700,diff:6,star:3,rush:true,route:'rt2',kind:'FIXED',matId:'m1',fin:'f_pfm',metal:true},
+  {id:'v8',cov:'INSURANCE',type:'局部床義歯',mat:'コバルトクロム',days:5,price:4500,diff:12,star:6,rush:false,route:'rt17',kind:'REMOVABLE',matId:'m8',fin:'f_denture',metal:true},
+  {id:'p1',cov:'PRIVATE',type:'クラウン',mat:'ジルコニア(高透過)',days:10,price:19000,diff:4,star:2,rush:true,route:'rt5',kind:'FIXED',matId:'m4',fin:'f_zr',metal:false},
+  {id:'p3',cov:'PRIVATE',type:'クラウン',mat:'e.max',days:10,price:18000,diff:6,star:3,rush:true,route:'rt8',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
+  {id:'p4',cov:'PRIVATE',type:'クラウン',mat:'ゴールド18K',days:10,price:8000,diff:4,star:2,rush:true,route:'rt1',kind:'FIXED',matId:'m7',fin:'f_metal',metal:true},
+  {id:'p6',cov:'PRIVATE',type:'インレー',mat:'ジルコニア(高強度)',days:10,price:17000,diff:2,star:1,rush:true,route:'rt5',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
+  {id:'p8',cov:'PRIVATE',type:'ラミネートベニア',mat:'e.max',days:10,price:25000,diff:6,star:3,rush:true,route:'rt8',kind:'FIXED',matId:'m6',fin:'f_emax',metal:false},
+  {id:'p9',cov:'PRIVATE',type:'ブリッジ',mat:'ジルコニア(高強度)',days:10,price:41000,diff:6,star:3,rush:true,route:'rt5',kind:'FIXED',matId:'m5',fin:'f_zr',metal:false},
   /* 🧑‍🔧 v0.8：いただいた仕上げパターンをすべて使えるよう技工物を追加 */
-  {id:'p10',cov:'PRIVATE',type:'クラウン',mat:'ジルコニアレイヤリング',days:10,price:30000,diff:10,star:5,rush:true,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_zr_layer',metal:false},
-  {id:'p11',cov:'PRIVATE',type:'クラウン',mat:'e.maxレイヤリング',days:10,price:25000,diff:6,star:3,rush:true,route:'rt3',kind:'FIXED',matId:'m6',fin:'f_emax_layer',metal:false},
-  {id:'p12',cov:'PRIVATE',type:'インプラント上部構造',mat:'スクリューリテイン（ジルコニア）',days:10,price:23000,diff:12,star:6,rush:false,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_impl_sr',metal:false},
-  {id:'p13',cov:'PRIVATE',type:'インプラント上部構造',mat:'セメントリテイン（ジルコニア）',days:10,price:22000,diff:18,star:9,rush:false,route:'rt3',kind:'FIXED',matId:'m5',fin:'f_impl_cr',metal:false}
+  {id:'p10',cov:'PRIVATE',type:'クラウン',mat:'ジルコニアレイヤリング',days:10,price:30000,diff:10,star:5,rush:true,route:'rt6',kind:'FIXED',matId:'m5',fin:'f_zr_layer',metal:false},
+  {id:'p11',cov:'PRIVATE',type:'クラウン',mat:'e.maxレイヤリング',days:10,price:25000,diff:6,star:3,rush:true,route:'rt8',kind:'FIXED',matId:'m6',fin:'f_emax_layer',metal:false},
+  {id:'p12',cov:'PRIVATE',type:'インプラント上部構造',mat:'スクリューリテイン（ジルコニア）',days:10,price:23000,diff:12,star:6,rush:false,route:'rt11',kind:'FIXED',matId:'m5',fin:'f_impl_sr',metal:false},
+  {id:'p13',cov:'PRIVATE',type:'インプラント上部構造',mat:'セメントリテイン（ジルコニア）',days:10,price:22000,diff:18,star:9,rush:false,route:'rt11',kind:'FIXED',matId:'m5',fin:'f_impl_cr',metal:false}
 ];
 /* ★の表示。0.5刻みに対応する（スタッフの技能上限で使う） */
 function starHtml(n,max){
@@ -659,28 +683,67 @@ const autoStar=c=>Math.min(CFG.starMax,(variantOf(c).star||1)+Math.max(0,(c.unit
    技工物ごとに1本を指定する。1依頼に複数明細があるときは、
    本実装では union して合成ルートを作る（設計メモ 7-2）。
    ============================================================ */
+/* === 工程ルート（★2026-09-01 実データ・19本） ===
+   use = このルートを使う技工物（いただいた記載のまま）。
+   ★鋳造・CAD・プレス・義歯で経路がまるごと違う。N-5（工程ルート）の裏付け。 */
 let ROUTES=[
-  {id:'rt1',code:'RT-CADCAM',name:'CAD/CAM（切削）',
-   steps:['INTAKE','CLARIFY','SCAN','DESIGN','EXPORT','NESTING','MILLING','ADJUST','FINISHING','QC','SHIPPING'],
-   memo:'ワックスアップは通らない'},
-  {id:'rt2',code:'RT-CAST',name:'鋳造（金パラ・ゴールド）',
-   steps:['INTAKE','CLARIFY','WAXUP','FINISHING','QC','SHIPPING'],
-   memo:'スキャン以降のデジタル工程を通らない。埋没・鋳造は仕上げの細分に含む'},
-  {id:'rt3',code:'RT-ZR',name:'自費（デザイン確認あり）',
-   steps:['INTAKE','CLARIFY','SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING','MILLING','ADJUST','FINISHING','QC','SHIPPING'],
-   memo:'自費はデザイン確認を挟む'},
-  {id:'rt4',code:'RT-PFM',name:'前装冠・メタルボンド',
-   steps:['INTAKE','CLARIFY','WAXUP','FINISHING','QC','SHIPPING'],
-   memo:'鋳造したフレームに前装する。前装は仕上げの細分に含む'},
-  {id:'rt5',code:'RT-DN-TRAY',name:'義歯 — 個人トレー・ロー堤',
-   steps:['INTAKE','CLARIFY','FINISHING','QC','SHIPPING'],
-   memo:'義歯の初回。模型から個人トレー・ロー堤を作って医院に返す'},
-  {id:'rt6',code:'RT-DN-FRAME',name:'義歯 — 金属フレーム',
-   steps:['INTAKE','CLARIFY','WAXUP','FINISHING','QC','SHIPPING'],
-   memo:'金属床のフレーム。★メタルを扱うため納期が1週間長くなる'},
-  {id:'rt7',code:'RT-DN-FIN',name:'義歯 — 完成',
-   steps:['INTAKE','CLARIFY','FINISHING','QC','SHIPPING'],
-   memo:'重合・研磨して納品'}
+  {id:'rt1',code:'RT-01',name:'保険クラウン（鋳造）',
+   steps:['INTAKE','MATERIAL_QC','MODEL','WAXUP','CASTING','FIT','POLISH','QC','SHIPPING'],
+   use:'金パラのクラウン・インレー・FCC・ポンティック・根面板'},
+  {id:'rt2',code:'RT-02',name:'前装冠（鋳造＋レジン前装）',
+   steps:['INTAKE','MATERIAL_QC','MODEL','WAXUP','CASTING','RESIN','FIT','POLISH','QC','SHIPPING'],
+   use:'硬質レジン前装冠・金属裏装ポンティック・レジン前装'},
+  {id:'rt3',code:'RT-03',name:'レジンジャケット冠',
+   steps:['INTAKE','MATERIAL_QC','MODEL','RESIN','FIT','POLISH','QC','SHIPPING'],
+   use:'硬質レジンジャケット冠・TEK・CRインレー',memo:'レジン単体で成形します'},
+  {id:'rt4',code:'RT-04',name:'CAD/CAM冠・ハイブリッド',
+   steps:['INTAKE','MATERIAL_QC','MODEL','SCAN','DESIGN','MILLING','FIT','POLISH','QC','SHIPPING'],
+   use:'CAD/CAM冠（前歯）・ハイブリッド系'},
+  {id:'rt5',code:'RT-05',name:'ジルコニア（ステイニング）',
+   steps:['INTAKE','MATERIAL_QC','MODEL','SCAN','DESIGN','MILLING','SINTER','STAIN','FIT','POLISH','QC','SHIPPING'],
+   use:'ジルコニアクラウン・インレー・3/4冠等'},
+  {id:'rt6',code:'RT-06',name:'ジルコニア（レイヤリング）',
+   steps:['INTAKE','MATERIAL_QC','MODEL','SCAN','DESIGN','MILLING','SINTER','PORCELAIN','FIT','POLISH','QC','SHIPPING'],
+   use:'ジルコニアクラウン レイヤリング'},
+  {id:'rt7',code:'RT-07',name:'PFM（築盛）',
+   steps:['INTAKE','MATERIAL_QC','MODEL','WAXUP','CASTING','PORCELAIN','FIT','POLISH','QC','SHIPPING'],
+   use:'PFM・P.F.Mコバルト・カラーレス・歯肉色ポーセレン'},
+  {id:'rt8',code:'RT-08',name:'プレス',
+   steps:['INTAKE','MATERIAL_QC','MODEL','WAXUP','PRESS','STAIN','FIT','POLISH','QC','SHIPPING'],
+   use:'プレス系クラウン・べニア・インレー',memo:'レイヤリングは築盛・焼成を追加'},
+  {id:'rt9',code:'RT-09',name:'コア（鋳造）',
+   steps:['INTAKE','MATERIAL_QC','MODEL','WAXUP','CASTING','FIT','POLISH','QC','SHIPPING'],
+   use:'メタルコア・コア・分割コア'},
+  {id:'rt10',code:'RT-10',name:'ファイバーコア',
+   steps:['INTAKE','MATERIAL_QC','MODEL','RESIN','FIT','POLISH','QC','SHIPPING'],
+   use:'ファイバーコア・ファイバーポスト追加・ペクトンコア',memo:'ペクトンはミリングの場合あり'},
+  {id:'rt11',code:'RT-11',name:'インプラント上部構造',
+   steps:['INTAKE','MATERIAL_QC','MODEL','SCAN','DESIGN','MILLING','FIT','POLISH','QC','SHIPPING'],
+   use:'カスタムアバットメント・インプラントブリッジ・ポンティック等',memo:'purchase部品・外注鋳接は別途'},
+  {id:'rt12',code:'RT-12',name:'模型・トレー・補助',
+   steps:['INTAKE','MATERIAL_QC','MODEL','POLISH','QC','SHIPPING'],
+   use:'作業模型・各種模型・カスタムトレー・咬合器装着・ワックスアップ・ステント・ガイド等',memo:'内容により中間工程は前後します'},
+  {id:'rt13',code:'RT-13',name:'義歯-個人トレー',
+   steps:['INTAKE','MATERIAL_QC','MODEL','TRAY','QC','SHIPPING'],
+   use:'個人トレー'},
+  {id:'rt14',code:'RT-14',name:'義歯-咬合床',
+   steps:['INTAKE','MATERIAL_QC','TRAY','QC','SHIPPING'],
+   use:'咬合床・バイトリム'},
+  {id:'rt15',code:'RT-15',name:'義歯-フレーム・咬合床',
+   steps:['INTAKE','MATERIAL_QC','CLASP','TRAY','QC','SHIPPING'],
+   use:'クラスプ・バー等の部品製作を含む回',memo:'部分床義歯の2回目'},
+  {id:'rt16',code:'RT-16',name:'義歯-排列（試適）',
+   steps:['INTAKE','MATERIAL_QC','SETUP','QC','SHIPPING'],
+   use:'排列（各サイズ）'},
+  {id:'rt17',code:'RT-17',name:'義歯-完成',
+   steps:['INTAKE','MATERIAL_QC','CURING','POLISH','QC','SHIPPING'],
+   use:'完成（各サイズ）・レジン床'},
+  {id:'rt18',code:'RT-18',name:'義歯-完成（熱可塑）',
+   steps:['INTAKE','MATERIAL_QC','INJECT','POLISH','QC','SHIPPING'],
+   use:'完成（熱可塑・各サイズ）'},
+  {id:'rt19',code:'RT-19',name:'義歯-修理',
+   steps:['INTAKE','MATERIAL_QC','REPAIR','POLISH','QC','SHIPPING'],
+   use:'義歯修理・増歯・オストロン床'},
 ];
 const variantOfId=id=>VARIANTS.find(v=>v.id===id)||{};
 const routeOf=id=>ROUTES.find(r=>r.id===id)||null;
@@ -1048,25 +1111,31 @@ const waitingClinic=()=>CASES.filter(c=>c.ext).sort((a,b)=>(b.extDays||0)-(a.ext
 /* 🧑‍🔧 v0.8：完了ゾーンを全エリアに置いた結果 23ゾーンになった。
    8ch リーダー3台（24ch）に収めるため、エリアの組み合わせを組み替えている。
    ★1台に寄せられるのはアンテナ線の長さで決まる。ゾーン数だけで割り振れない。 */
+/* === 作業台（★2026-09-01 実データ・6台） ===
+   ★モニターは「壁掛けのみ・台上は不可」。台の上に端末を置く前提は崩れた。
+   ★仕上げの台1〜3は「各スタッフの机に1台ずつ紐づく」。共有ステーションではない。
+   ★ミリングとシンタリングは作業台を持たない（機械室で素通り。原則45）。 */
 const AREAS=[
-  {id:'a1',code:'AR-01',name:'受注テーブル',        reader:'RD-01',device:'ST-01',note:'入口側。開梱・模型調整・データ整理を同じ台で行う'},
-  {id:'a2',code:'AR-02',name:'ワックステーブル',    reader:'RD-01',device:'ST-02',note:'ワックスアップ。石膏と熱を扱う'},
-  {id:'a3',code:'AR-03',name:'CADデスク',           reader:'RD-02',device:'ST-03',note:'スキャン・デザイン・確認・出力を同じデスクで行う'},
-  {id:'a4',code:'AR-04',name:'ミリング室',          reader:'RD-03',device:'ST-04',note:'別室。加工と加工物調整'},
-  {id:'a5',code:'AR-05',name:'仕上げテーブル',      reader:'RD-02',device:'ST-05',note:'★仕上げの細分（技工物ごとに7〜15手順）はここで行う'},
-  {id:'a6',code:'AR-06',name:'検品・発送テーブル',  reader:'RD-03',device:'ST-06',note:'発送待ち棚を併設'}
+  {id:'a1',code:'AR-01',name:'受注と模型の台',      reader:'RD-01',device:'ST-01',mount:'壁掛け',note:'受付・資材検品・模型製作。最終検品と発送も同じ台で行う'},
+  {id:'a2',code:'AR-02',name:'スキャンとCAD設計の台',reader:'RD-01',device:'ST-02',mount:'壁掛け',note:'スキャナーあり。模型製作もここで行うことがある'},
+  {id:'a3',code:'AR-03',name:'代表の台',            reader:'RD-02',device:'ST-03',mount:'壁掛け',note:'CAD設計に加えて、得意先への問い合わせ・パーツ注文などの管理系も担う'},
+  {id:'a4',code:'AR-04',name:'仕上げの台1',         reader:'RD-02',device:'ST-04',mount:'壁掛け',note:'★スタッフ個人の机。鋳造からステイン・研磨まで'},
+  {id:'a5',code:'AR-05',name:'仕上げの台2',         reader:'RD-03',device:'ST-05',mount:'壁掛け',note:'★スタッフ個人の机。仕上げの台1と同じ工程'},
+  {id:'a6',code:'AR-06',name:'仕上げの台3',         reader:'RD-03',device:'ST-06',mount:'壁掛け',note:'★スタッフ個人の机。仕上げの台1と同じ工程'}
 ];
 const areaOf=id=>AREAS.find(a=>a.id===id)||{name:'—'};
 
 /* エリア × 工程（多対多）。1エリアに複数の工程を割り当てられる */
+/* エリア × 工程（多対多）。★仕上げの台3つは同じ工程セットを持つ（実データ）。
+   ★MILLING・SINTER はどの台にも属さない＝素通り（実データで「主に行うエリア」が空欄） */
 let AREA_STEPS=[
-  {area:'a1',step:'INTAKE'},        {area:'a1',step:'CLARIFY'},
-  {area:'a2',step:'WAXUP'},
-  {area:'a3',step:'SCAN'},         {area:'a3',step:'DESIGN'},{area:'a3',step:'DESIGN_REVIEW'},
-  {area:'a3',step:'EXPORT'},       {area:'a3',step:'NESTING'},
-  {area:'a4',step:'MILLING'},      {area:'a4',step:'ADJUST'},
-  {area:'a5',step:'FINISHING'},
-  {area:'a6',step:'QC'},           {area:'a6',step:'SHIPPING'}
+  {area:'a1',step:'INTAKE'},{area:'a1',step:'MATERIAL_QC'},{area:'a1',step:'MODEL'},
+  {area:'a1',step:'QC'},{area:'a1',step:'SHIPPING'},
+  {area:'a2',step:'MODEL'},{area:'a2',step:'SCAN'},{area:'a2',step:'DESIGN'},
+  {area:'a3',step:'DESIGN'},
+  {area:'a4',step:'WAXUP'},{area:'a4',step:'CASTING'},{area:'a4',step:'PRESS'},{area:'a4',step:'PORCELAIN'},{area:'a4',step:'RESIN'},{area:'a4',step:'STAIN'},{area:'a4',step:'FIT'},{area:'a4',step:'POLISH'},{area:'a4',step:'CLASP'},{area:'a4',step:'TRAY'},{area:'a4',step:'SETUP'},{area:'a4',step:'CURING'},{area:'a4',step:'INJECT'},{area:'a4',step:'REPAIR'},
+  {area:'a5',step:'WAXUP'},{area:'a5',step:'CASTING'},{area:'a5',step:'PRESS'},{area:'a5',step:'PORCELAIN'},{area:'a5',step:'RESIN'},{area:'a5',step:'STAIN'},{area:'a5',step:'FIT'},{area:'a5',step:'POLISH'},{area:'a5',step:'CLASP'},{area:'a5',step:'TRAY'},{area:'a5',step:'SETUP'},{area:'a5',step:'CURING'},{area:'a5',step:'INJECT'},{area:'a5',step:'REPAIR'},
+  {area:'a6',step:'WAXUP'},{area:'a6',step:'CASTING'},{area:'a6',step:'PRESS'},{area:'a6',step:'PORCELAIN'},{area:'a6',step:'RESIN'},{area:'a6',step:'STAIN'},{area:'a6',step:'FIT'},{area:'a6',step:'POLISH'},{area:'a6',step:'CLASP'},{area:'a6',step:'TRAY'},{area:'a6',step:'SETUP'},{area:'a6',step:'CURING'},{area:'a6',step:'INJECT'},{area:'a6',step:'REPAIR'},
 ];
 const stepsOfArea=aid=>AREA_STEPS.filter(x=>x.area===aid).map(x=>x.step);
 const areaOfStep=code=>{const x=AREA_STEPS.find(y=>y.step===code);return x?areaOf(x.area):null};
@@ -1084,30 +1153,35 @@ const areaOfStep=code=>{const x=AREA_STEPS.find(y=>y.step===code);return x?areaO
    ★完了ゾーンにあるものは「次工程の人にとっての待ち」。
      次工程のエリア端末に「前の工程の完了棚にあるもの」として表示する。
    アンテナは 18本 → 24本 になる。 */
+/* === ゾーン（★2026-09-01 実データ） ===
+   ★実データは「待機置き場」と「作業ゾーン」の2つだけ。1台2ゾーン × 6台 ＝ 12ゾーン。
+   ★完了棚は実在しない。proposed:true で「こちらの提案」として持っている。
+     BR-64（実作業時間は完了棚への移動で確定）は、この棚が無いと成立しない。
+     いまのままだと「次工程が詰まっているだけの時間」が実作業時間に混ざる。
+     ★会議で「完了棚を作れるか」を伺う。作れないなら実作業時間の確定方法を変える。
+   ★待機置き場は平置きで、ケースパンが最大10個ほど重なる（実データ）。
+     Phase 0 の RFID 検証で、重ねた状態のタグ位置を必ず見ること。
+   ★1つの作業ゾーンで複数の工程を行う（steps）。とくに仕上げの台は14工程を1ゾーンで担う。
+     ゾーンからは「どの工程か」が一意に決まらない。★工程はスタッフの操作で確定させる。 */
 let ZONES=[
-  {id:'z01',area:'a1',code:'ZN-01-W', name:'待機棚',              type:'WAIT',  step:null,           ant:1, shelf:'棚（3段）'},
-  {id:'z02',area:'a1',code:'ZN-01-A1',name:'作業中（受付処理）',  type:'ACTIVE',step:'INTAKE',       ant:2, shelf:'平置き'},
-  {id:'z03',area:'a1',code:'ZN-01-A2',name:'作業中（仕様調整）',  type:'ACTIVE',step:'CLARIFY',      ant:3, shelf:'平置き'},
-  {id:'z04',area:'a1',code:'ZN-01-D', name:'完了棚',              type:'DONE',  step:null,           ant:4, shelf:'棚（2段）'},
-  {id:'z05',area:'a2',code:'ZN-02-W', name:'待機棚',              type:'WAIT',  step:null,           ant:5, shelf:'棚（2段）'},
-  {id:'z06',area:'a2',code:'ZN-02-A1',name:'作業中（ワックスアップ）',type:'ACTIVE',step:'WAXUP',    ant:6, shelf:'平置き'},
-  {id:'z07',area:'a2',code:'ZN-02-D', name:'完了棚',              type:'DONE',  step:null,           ant:7, shelf:'棚（2段）'},
-  {id:'z08',area:'a3',code:'ZN-03-W', name:'待機棚',              type:'WAIT',  step:null,           ant:8, shelf:'棚（3段）'},
-  {id:'z09',area:'a3',code:'ZN-03-A1',name:'作業中（スキャン）',  type:'ACTIVE',step:'SCAN',         ant:9, shelf:'平置き'},
-  {id:'z10',area:'a3',code:'ZN-03-A2',name:'作業中（デザイン）',  type:'ACTIVE',step:'DESIGN',       ant:10,shelf:'平置き'},
-  {id:'z11',area:'a3',code:'ZN-03-A3',name:'作業中（確認・出力）',type:'ACTIVE',step:'DESIGN_REVIEW',ant:11,shelf:'平置き'},
-  {id:'z12',area:'a3',code:'ZN-03-D', name:'完了棚',              type:'DONE',  step:null,           ant:12,shelf:'棚（2段）'},
-  {id:'z13',area:'a4',code:'ZN-04-W', name:'待機棚',              type:'WAIT',  step:null,           ant:13,shelf:'棚（2段）'},
-  {id:'z14',area:'a4',code:'ZN-04-A1',name:'作業中（加工）',      type:'ACTIVE',step:'MILLING',      ant:14,shelf:'平置き'},
-  {id:'z15',area:'a4',code:'ZN-04-A2',name:'作業中（加工物調整）',type:'ACTIVE',step:'ADJUST',       ant:15,shelf:'平置き'},
-  {id:'z16',area:'a4',code:'ZN-04-D', name:'完了棚',              type:'DONE',  step:null,           ant:16,shelf:'棚（2段）'},
-  {id:'z17',area:'a5',code:'ZN-05-W', name:'待機棚',              type:'WAIT',  step:null,           ant:17,shelf:'棚（3段）'},
-  {id:'z18',area:'a5',code:'ZN-05-A1',name:'作業中（仕上げ）',    type:'ACTIVE',step:'FINISHING',    ant:18,shelf:'平置き'},
-  {id:'z19',area:'a5',code:'ZN-05-D', name:'完了棚',              type:'DONE',  step:null,           ant:19,shelf:'棚（2段）'},
-  {id:'z20',area:'a6',code:'ZN-06-W', name:'待機棚',              type:'WAIT',  step:null,           ant:20,shelf:'棚（3段）'},
-  {id:'z21',area:'a6',code:'ZN-06-A1',name:'作業中（最終検品）',  type:'ACTIVE',step:'QC',           ant:21,shelf:'平置き'},
-  {id:'z22',area:'a6',code:'ZN-06-A2',name:'作業中（梱包）',      type:'ACTIVE',step:'SHIPPING',     ant:22,shelf:'平置き'},
-  {id:'z23',area:'a6',code:'ZN-06-D', name:'発送待ち棚',          type:'DONE',  step:null,           ant:23,shelf:'棚（1段）'}
+  {id:'z01',area:'a1',code:'ZN-01-W',name:'待機置き場',type:'WAIT',step:null,ant:1,shelf:'平置き（ケースパンが最大10個重なる）'},
+  {id:'z02',area:'a1',code:'ZN-01-A',name:'作業ゾーン',type:'ACTIVE',step:'INTAKE',ant:2,shelf:'2段棚または平置き',steps:['INTAKE','MATERIAL_QC','MODEL','QC','SHIPPING']},
+  {id:'z03',area:'a1',code:'ZN-01-D',name:'完了棚',type:'DONE',step:null,ant:3,shelf:'（未設置）',proposed:true},
+  {id:'z04',area:'a2',code:'ZN-02-W',name:'待機置き場',type:'WAIT',step:null,ant:4,shelf:'平置き（ケースパンが最大10個重なる）'},
+  {id:'z05',area:'a2',code:'ZN-02-A',name:'作業ゾーン',type:'ACTIVE',step:'MODEL',ant:5,shelf:'2段棚または平置き',steps:['MODEL','SCAN','DESIGN']},
+  {id:'z06',area:'a2',code:'ZN-02-D',name:'完了棚',type:'DONE',step:null,ant:6,shelf:'（未設置）',proposed:true},
+  {id:'z07',area:'a3',code:'ZN-03-W',name:'待機置き場',type:'WAIT',step:null,ant:7,shelf:'平置き（ケースパンが最大10個重なる）'},
+  {id:'z08',area:'a3',code:'ZN-03-A',name:'作業ゾーン',type:'ACTIVE',step:'DESIGN',ant:8,shelf:'2段棚または平置き',steps:['DESIGN']},
+  {id:'z09',area:'a3',code:'ZN-03-D',name:'完了棚',type:'DONE',step:null,ant:9,shelf:'（未設置）',proposed:true},
+  {id:'z10',area:'a4',code:'ZN-04-W',name:'待機置き場',type:'WAIT',step:null,ant:10,shelf:'平置き（ケースパンが最大10個重なる）'},
+  {id:'z11',area:'a4',code:'ZN-04-A',name:'作業ゾーン',type:'ACTIVE',step:'WAXUP',ant:11,shelf:'2段棚または平置き',steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR']},
+  {id:'z12',area:'a4',code:'ZN-04-D',name:'完了棚',type:'DONE',step:null,ant:12,shelf:'（未設置）',proposed:true},
+  {id:'z13',area:'a5',code:'ZN-05-W',name:'待機置き場',type:'WAIT',step:null,ant:13,shelf:'平置き（ケースパンが最大10個重なる）'},
+  {id:'z14',area:'a5',code:'ZN-05-A',name:'作業ゾーン',type:'ACTIVE',step:'WAXUP',ant:14,shelf:'2段棚または平置き',steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR']},
+  {id:'z15',area:'a5',code:'ZN-05-D',name:'完了棚',type:'DONE',step:null,ant:15,shelf:'（未設置）',proposed:true},
+  {id:'z16',area:'a6',code:'ZN-06-W',name:'待機置き場',type:'WAIT',step:null,ant:16,shelf:'平置き（ケースパンが最大10個重なる）'},
+  {id:'z17',area:'a6',code:'ZN-06-A',name:'作業ゾーン',type:'ACTIVE',step:'WAXUP',ant:17,shelf:'2段棚または平置き',steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR']},
+  {id:'z18',area:'a6',code:'ZN-06-D',name:'完了棚',type:'DONE',step:null,ant:18,shelf:'（未設置）',proposed:true},
 ];
 const ZONE_TYPE={WAIT:{l:'待機',c:'gray'},ACTIVE:{l:'作業中',c:'prog'},DONE:{l:'完了',c:'done'}};
 const zonesOfArea=aid=>ZONES.filter(z=>z.area===aid);
@@ -1143,15 +1217,15 @@ const DEVICES=[
      指標から除外する。除外した件数と基準は管理者に見せる（原則21の精神）。
    ============================================================ */
 /* 工程ごとの目安（分）。実測が溜まるまでは技工物の難易度から作る */
-const STEP_BASE={INTAKE:8,CLARIFY:26,WAXUP:38,SCAN:18,DESIGN:42,DESIGN_REVIEW:11,
-  EXPORT:6,NESTING:9,MILLING:26,ADJUST:17,FINISHING:62,QC:9,SHIPPING:7};
+/* ★実作業時間の基準。実データの「標準所要時間（分）」をそのまま使う */
+const STEP_BASE={INTAKE:10,MATERIAL_QC:15,MODEL:40,SCAN:20,DESIGN:30,MILLING:60,SINTER:120,WAXUP:40,CASTING:90,PRESS:90,PORCELAIN:90,RESIN:60,STAIN:30,FIT:30,POLISH:30,CLASP:60,TRAY:40,SETUP:60,CURING:90,INJECT:90,REPAIR:60,QC:15,SHIPPING:10};
 /* 工程ごとの待ち時間の目安（分）。担当者が限られる工程・機械待ちの工程は長い */
-const QUEUE_BASE={INTAKE:14,CLARIFY:120,WAXUP:80,SCAN:38,DESIGN:180,DESIGN_REVIEW:260,
-  EXPORT:20,NESTING:35,MILLING:145,ADJUST:55,FINISHING:70,QC:18,SHIPPING:12};
+/* 待ち時間の基準（分）。標準所要時間の3倍を仮に置いている。★実測が要る */
+const QUEUE_BASE={INTAKE:30,MATERIAL_QC:45,MODEL:120,SCAN:60,DESIGN:90,MILLING:180,SINTER:360,WAXUP:120,CASTING:270,PRESS:270,PORCELAIN:270,RESIN:180,STAIN:90,FIT:90,POLISH:90,CLASP:180,TRAY:120,SETUP:180,CURING:270,INJECT:270,REPAIR:180,QC:45,SHIPPING:30};
 /* スタッフの速さの癖。1.0 が標準。工程ごとに得意不得意がある */
 const STAFF_SKEW={
-  s3:{DESIGN:0.82,SCAN:0.90,FINISHING:1.18,CASTING:1.22},
-  s4:{CASTING:0.84,FINISHING:0.88,DESIGN:1.26,SCAN:1.15},
+  s3:{DESIGN:0.82,SCAN:0.90,POLISH:1.18,CASTING:1.22},
+  s4:{CASTING:0.84,POLISH:0.88,DESIGN:1.26,SCAN:1.15},
   s5:{MODEL:0.86,QC:0.80,MILLING:0.94,DESIGN:1.05}
 };
 let WORK_SESSIONS=[];
@@ -1354,8 +1428,8 @@ const deltaHtml=dl=>{
     （${dl.pct>0?'+':''}${dl.pct}%）</span>`;
 };
 /* 他社を含めた平均との比較。本実装ではテナント横断の匿名集計（会議 4-4） */
-const BENCH={INTAKE:9,CLARIFY:28,WAXUP:40,SCAN:19,DESIGN:44,DESIGN_REVIEW:12,
-  EXPORT:7,NESTING:10,MILLING:28,ADJUST:18,FINISHING:65,QC:10,SHIPPING:8};
+/* 比較の基準値。実データの標準所要時間 */
+const BENCH={INTAKE:10,MATERIAL_QC:15,MODEL:40,SCAN:20,DESIGN:30,MILLING:60,SINTER:120,WAXUP:40,CASTING:90,PRESS:90,PORCELAIN:90,RESIN:60,STAIN:30,FIT:30,POLISH:30,CLASP:60,TRAY:40,SETUP:60,CURING:90,INJECT:90,REPAIR:60,QC:15,SHIPPING:10};
 
 const TOKENS=[
   {id:'m1',name:'高根のClaude Desktop',prefix:'mcp_live_8fK2',scopes:['read','write'],exp:'2026-11-03',last:'2026-08-11 09:12'},
@@ -5148,7 +5222,7 @@ function setRoutes(){
         <div class="note mt">通る工程：${r.steps.map(c=>esc(stepName(c))).join(' → ')}</div>
         ${r.memo?`<div class="note">※ ${esc(r.memo)}</div>`:''}
         <div class="note">使う技工物：${used.length?used.map(v=>esc(v.type+'／'+v.mat)).join('、'):'<b>なし</b>'}</div>
-        ${r.steps.includes('FINISHING')&&used.length?`<div class="note">
+        ${r.steps.includes('POLISH')&&used.length?`<div class="note">
           仕上げの細分：${[...new Set(used.map(v=>v.fin).filter(Boolean))]
             .map(id=>{const f=subOf(id);return f?esc(f.name)+`（${f.steps.length}手順）`:''}).join('、')||'未設定'}</div>`:''}
       </div>`}).join('')}
@@ -5160,7 +5234,7 @@ function openRoute(id){
      以前は廃止した MATERIAL_CHECK を既定に入れていたため、追加した直後に
      どのルートにも属さない工程ができてしまっていた */
   const d=r||{id:'rt'+Date.now(),code:'RT-',name:'',
-    steps:['INTAKE','CLARIFY','FINISHING','QC','SHIPPING'],memo:''};
+    steps:['INTAKE','MATERIAL_QC','POLISH','QC','SHIPPING'],memo:''};
   S.modal={title:r?`ルート「${r.name}」を編集`:'工程ルートを追加',wide:true,body:`
     <div class="grid g2">
       <label class="f"><span class="lb">ルート名 <span class="req">必須</span></span>

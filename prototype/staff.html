@@ -173,38 +173,49 @@ input.code{width:100%;background:var(--panel-2);border:1px solid var(--line-2);b
    ============================================================ */
 const esc = DL.esc;
 
-/* 13工程。★lab.html / station.html と同一（整合テストが突き合わせる） */
+/* ★2026-09-01 実データの23工程。lab.html / station.html と同一（整合テストが突き合わせる） */
 const STEPS=[
-  {c:'INTAKE',        n:'受付・確認'},
-  {c:'CLARIFY',       n:'仕様調整'},
-  {c:'WAXUP',         n:'ワックスアップ'},
-  {c:'SCAN',          n:'スキャン'},
-  {c:'DESIGN',        n:'デザイン'},
-  {c:'DESIGN_REVIEW', n:'デザイン確認'},
-  {c:'EXPORT',        n:'データエクスポート'},
-  {c:'NESTING',       n:'ネスティング・スライス'},
-  {c:'MILLING',       n:'加工'},
-  {c:'ADJUST',        n:'加工物調整'},
-  {c:'FINISHING',     n:'仕上げ'},
-  {c:'QC',            n:'最終検品'},
-  {c:'SHIPPING',      n:'梱包・発送'}
+  {c:'INTAKE',       n:'受付・確認'},
+  {c:'MATERIAL_QC',  n:'資材検品'},
+  {c:'MODEL',        n:'模型製作'},
+  {c:'SCAN',         n:'スキャン'},
+  {c:'DESIGN',       n:'CAD設計（デザイン）'},
+  {c:'MILLING',      n:'ミリング'},
+  {c:'SINTER',       n:'シンタリング（焼結）'},
+  {c:'WAXUP',        n:'ワックスアップ'},
+  {c:'CASTING',      n:'埋没・鋳造'},
+  {c:'PRESS',        n:'プレス'},
+  {c:'PORCELAIN',    n:'築盛・焼成'},
+  {c:'RESIN',        n:'前装・レジン成形'},
+  {c:'STAIN',        n:'ステイン・グレーズ'},
+  {c:'FIT',          n:'適合調整・咬合調整'},
+  {c:'POLISH',       n:'研磨・仕上げ'},
+  {c:'CLASP',        n:'クラスプ・フレーム製作'},
+  {c:'TRAY',         n:'トレー・咬合床製作'},
+  {c:'SETUP',        n:'人工歯排列'},
+  {c:'CURING',       n:'重合（義歯）'},
+  {c:'INJECT',       n:'射出成形（熱可塑）'},
+  {c:'REPAIR',       n:'義歯修理・増歯'},
+  {c:'QC',           n:'最終検品'},
+  {c:'SHIPPING',     n:'発送'},
 ];
 const stepName = c => (STEPS.find(s=>s.c===c)||{n:c}).n;
 const stepIdx  = c => STEPS.findIndex(s=>s.c===c);
 
 /* ★作業中ゾーンを持たない工程＝素通り（原則45）。
    ここを「飛ばした」と扱うと切削の案件が全部アラートになる。 */
-const PASS_THROUGH = ['EXPORT','NESTING'];
+/* ★実データで「主に行うエリア」が空欄だった2工程。作業台を持たない＝素通り */
+const PASS_THROUGH = ['MILLING','SINTER'];
 const observable = c => !PASS_THROUGH.includes(c);
 
 /* エリアごとの記録方式。★技工所が選ぶ。段階導入（主要工程だけRFID）も表現できる */
 const AREAS=[
-  {id:'a1',name:'受注テーブル',      steps:['INTAKE','CLARIFY'],            mode:'QR'},
-  {id:'a2',name:'ワックステーブル',  steps:['WAXUP'],                       mode:'QR'},
-  {id:'a3',name:'CADデスク',         steps:['SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING'], mode:'QR'},
-  {id:'a4',name:'ミリング室',        steps:['MILLING','ADJUST'],            mode:'RFID'},
-  {id:'a5',name:'仕上げテーブル',    steps:['FINISHING'],                   mode:'RFID'},
-  {id:'a6',name:'検品・発送テーブル',steps:['QC','SHIPPING'],               mode:'QR'},
+  {id:'a1',name:'受注と模型の台',steps:['INTAKE','MATERIAL_QC','MODEL','QC','SHIPPING'], mode:'QR'},
+  {id:'a2',name:'スキャンとCAD設計の台',steps:['MODEL','SCAN','DESIGN'], mode:'QR'},
+  {id:'a3',name:'代表の台',steps:['DESIGN'], mode:'TAP'},
+  {id:'a4',name:'仕上げの台1',steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR'], mode:'RFID'},
+  {id:'a5',name:'仕上げの台2',steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR'], mode:'RFID'},
+  {id:'a6',name:'仕上げの台3',steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR'], mode:'RFID'},
 ];
 const areaOf = c => AREAS.find(a=>a.steps.includes(c)) || AREAS[0];
 const MODE_JA = {TAP:'タップ', QR:'QR', RFID:'RFID'};
@@ -212,7 +223,7 @@ const MODE_JA = {TAP:'タップ', QR:'QR', RFID:'RFID'};
 /* スタッフ。★対応できる工程＝技能。自分の担当をメインに出すための軸 */
 const STAFF=[
   {id:'s1',name:'高根 弘二',init:'高',can:STEPS.map(s=>s.c)},
-  {id:'s2',name:'中谷 誠',  init:'中',can:['INTAKE','CLARIFY','QC','SHIPPING']},
+  {id:'s2',name:'中谷 誠',  init:'中',can:['INTAKE','MATERIAL_QC','MODEL','QC','SHIPPING']},
   {id:'s3',name:'佐藤 圭',  init:'佐',can:['SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING','MILLING','ADJUST']},
   {id:'s4',name:'山本 千夏',init:'山',can:['FINISHING','ADJUST','QC']},
 ];

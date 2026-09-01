@@ -392,12 +392,8 @@ header .date{font-size:12.5px;color:var(--muted);text-align:right}
      現物が正しい場所に戻るまで出したままにする。
    ★管理者は発送予定日を変更できる（ご回答 #35・BR-26 の部分的な緩和）。
    ============================================================ */
-const STEPNAMES={INTAKE:'受付・確認',CLARIFY:'仕様調整',WAXUP:'ワックスアップ',SCAN:'スキャン',
-  DESIGN:'デザイン',DESIGN_REVIEW:'デザイン確認',EXPORT:'データエクスポート',
-  NESTING:'ネスティング・スライス',MILLING:'加工',ADJUST:'加工物調整',
-  FINISHING:'仕上げ',QC:'最終検品',SHIPPING:'梱包・発送'};
-const ORDER=['INTAKE','CLARIFY','WAXUP','SCAN','DESIGN','DESIGN_REVIEW','EXPORT',
-  'NESTING','MILLING','ADJUST','FINISHING','QC','SHIPPING'];
+const STEPNAMES={INTAKE:'受付・確認',MATERIAL_QC:'資材検品',MODEL:'模型製作',SCAN:'スキャン',DESIGN:'CAD設計（デザイン）',MILLING:'ミリング',SINTER:'シンタリング（焼結）',WAXUP:'ワックスアップ',CASTING:'埋没・鋳造',PRESS:'プレス',PORCELAIN:'築盛・焼成',RESIN:'前装・レジン成形',STAIN:'ステイン・グレーズ',FIT:'適合調整・咬合調整',POLISH:'研磨・仕上げ',CLASP:'クラスプ・フレーム製作',TRAY:'トレー・咬合床製作',SETUP:'人工歯排列',CURING:'重合（義歯）',INJECT:'射出成形（熱可塑）',REPAIR:'義歯修理・増歯',QC:'最終検品',SHIPPING:'発送'};
+const ORDER=['INTAKE','MATERIAL_QC','MODEL','SCAN','DESIGN','MILLING','SINTER','WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR','QC','SHIPPING'];
 
 /* 仕上げの細分（lab.html の SUB_STEPS と同じもの）。
    ★端末には手順の名前と数を出すだけ。細分ごとの読取は起こさない（ご回答 #34）。
@@ -409,36 +405,34 @@ const FIN_STEPS={
 
 /* lab.html の AREAS / ZONES と同じ構成（23ゾーン）。
    ★リーダーの割り当ても lab.html に合わせている（8ch×3台に 23ゾーンを収める） */
+/* lab.html の AREAS / ZONES と同じ構成（★2026-09-01 実データ）。
+   ★実在するのは 待機置き場 と 作業ゾーン の2つだけ。完了棚は proposed:true でこちらの提案。
+   ★1つの作業ゾーンで複数の工程を行う。とくに仕上げの台は14工程を1ゾーンで担う。 */
 const AREAS=[
-  {id:'a1',name:'受注テーブル',dev:'ST-01',rd:'RD-01',zones:[
-    {id:'z01',name:'待機棚',type:'WAIT',step:null,ant:1},
-    {id:'z02',name:'作業中（受付処理）',type:'ACTIVE',step:'INTAKE',ant:2},
-    {id:'z03',name:'作業中（仕様調整）',type:'ACTIVE',step:'CLARIFY',ant:3},
-    {id:'z04',name:'完了棚',type:'DONE',step:null,ant:4}]},
-  {id:'a2',name:'ワックステーブル',dev:'ST-02',rd:'RD-01',zones:[
-    {id:'z05',name:'待機棚',type:'WAIT',step:null,ant:5},
-    {id:'z06',name:'作業中（ワックスアップ）',type:'ACTIVE',step:'WAXUP',ant:6},
-    {id:'z07',name:'完了棚',type:'DONE',step:null,ant:7}]},
-  {id:'a3',name:'CADデスク',dev:'ST-03',rd:'RD-02',zones:[
-    {id:'z08',name:'待機棚',type:'WAIT',step:null,ant:8},
-    {id:'z09',name:'作業中（スキャン）',type:'ACTIVE',step:'SCAN',ant:9},
-    {id:'z10',name:'作業中（デザイン）',type:'ACTIVE',step:'DESIGN',ant:10},
-    {id:'z11',name:'作業中（確認・出力）',type:'ACTIVE',step:'DESIGN_REVIEW',ant:11},
-    {id:'z12',name:'完了棚',type:'DONE',step:null,ant:12}]},
-  {id:'a4',name:'ミリング室',dev:'ST-04',rd:'RD-03',zones:[
-    {id:'z13',name:'待機棚',type:'WAIT',step:null,ant:13},
-    {id:'z14',name:'作業中（加工）',type:'ACTIVE',step:'MILLING',ant:14},
-    {id:'z15',name:'作業中（加工物調整）',type:'ACTIVE',step:'ADJUST',ant:15},
-    {id:'z16',name:'完了棚',type:'DONE',step:null,ant:16}]},
-  {id:'a5',name:'仕上げテーブル',dev:'ST-05',rd:'RD-02',zones:[
-    {id:'z17',name:'待機棚',type:'WAIT',step:null,ant:17},
-    {id:'z18',name:'作業中（仕上げ）',type:'ACTIVE',step:'FINISHING',ant:18},
-    {id:'z19',name:'完了棚',type:'DONE',step:null,ant:19}]},
-  {id:'a6',name:'検品・発送テーブル',dev:'ST-06',rd:'RD-03',zones:[
-    {id:'z20',name:'待機棚',type:'WAIT',step:null,ant:20},
-    {id:'z21',name:'作業中（最終検品）',type:'ACTIVE',step:'QC',ant:21},
-    {id:'z22',name:'作業中（梱包）',type:'ACTIVE',step:'SHIPPING',ant:22},
-    {id:'z23',name:'発送待ち棚',type:'DONE',step:null,ant:23}]}
+  {id:'a1',name:'受注と模型の台',dev:'ST-01',rd:'RD-01',zones:[
+    {id:'z01',name:'待機置き場',type:'WAIT',step:null,ant:1},
+    {id:'z02',name:'作業ゾーン',type:'ACTIVE',step:'INTAKE',ant:2,steps:['INTAKE','MATERIAL_QC','MODEL','QC','SHIPPING']},
+    {id:'z03',name:'完了棚',type:'DONE',step:null,ant:3,proposed:true}]},
+  {id:'a2',name:'スキャンとCAD設計の台',dev:'ST-02',rd:'RD-01',zones:[
+    {id:'z04',name:'待機置き場',type:'WAIT',step:null,ant:4},
+    {id:'z05',name:'作業ゾーン',type:'ACTIVE',step:'MODEL',ant:5,steps:['MODEL','SCAN','DESIGN']},
+    {id:'z06',name:'完了棚',type:'DONE',step:null,ant:6,proposed:true}]},
+  {id:'a3',name:'代表の台',dev:'ST-03',rd:'RD-02',zones:[
+    {id:'z07',name:'待機置き場',type:'WAIT',step:null,ant:7},
+    {id:'z08',name:'作業ゾーン',type:'ACTIVE',step:'DESIGN',ant:8,steps:['DESIGN']},
+    {id:'z09',name:'完了棚',type:'DONE',step:null,ant:9,proposed:true}]},
+  {id:'a4',name:'仕上げの台1',dev:'ST-04',rd:'RD-02',zones:[
+    {id:'z10',name:'待機置き場',type:'WAIT',step:null,ant:10},
+    {id:'z11',name:'作業ゾーン',type:'ACTIVE',step:'WAXUP',ant:11,steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR']},
+    {id:'z12',name:'完了棚',type:'DONE',step:null,ant:12,proposed:true}]},
+  {id:'a5',name:'仕上げの台2',dev:'ST-05',rd:'RD-03',zones:[
+    {id:'z13',name:'待機置き場',type:'WAIT',step:null,ant:13},
+    {id:'z14',name:'作業ゾーン',type:'ACTIVE',step:'WAXUP',ant:14,steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR']},
+    {id:'z15',name:'完了棚',type:'DONE',step:null,ant:15,proposed:true}]},
+  {id:'a6',name:'仕上げの台3',dev:'ST-06',rd:'RD-03',zones:[
+    {id:'z16',name:'待機置き場',type:'WAIT',step:null,ant:16},
+    {id:'z17',name:'作業ゾーン',type:'ACTIVE',step:'WAXUP',ant:17,steps:['WAXUP','CASTING','PRESS','PORCELAIN','RESIN','STAIN','FIT','POLISH','CLASP','TRAY','SETUP','CURING','INJECT','REPAIR']},
+    {id:'z18',name:'完了棚',type:'DONE',step:null,ant:18,proposed:true}]},
 ];
 /* ゾーンの索引。★エリアをまたいで引けるようにする（前の工程の完了棚を見せるため） */
 const ZIDX={};
@@ -672,7 +666,7 @@ function itemHtml(c,z){
      3段目の医院名・発送日は切れてよい。全文は title で読める。 */
   const work=`${c.type} ${c.teeth}${c.units>1?' ×'+c.units:''} ／ ${c.mat}`;
   /* 仕上げのエリアでは細分の手順数を出す。★読取は起こさない。手順表として出すだけ */
-  const finN=(z&&z.step==='FINISHING'&&FIN_STEPS[c.fin])||0;
+  const finN=(z&&z.step==='POLISH'&&FIN_STEPS[c.fin])||0;
   return `<div class="item ${t}${mis?' mis':''}">
     <div class="who">${esc(c.who)}</div>
     <div class="main">
