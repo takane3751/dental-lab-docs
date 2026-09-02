@@ -129,6 +129,30 @@ input.code{width:100%;background:var(--panel-2);border:1px solid var(--line-2);b
 .fs.done{background:#0e2c22;color:var(--ok)}
 .fs.now{background:var(--primary);color:#04211d;font-weight:700}
 .fs.miss{background:#3a2f10;color:var(--warn);font-weight:700}
+
+  /* ★ラボ全体（2026-09-01 会議・スタッフにPCを見せない運用のため新設） */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 6px;text-align:center}
+  .kpi .n{font-size:20px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+  .kpi .n.bad{color:var(--danger)}
+  .kpi .l{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .steps{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+  .stepline{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--line-2);cursor:pointer}
+  .stepline:last-child{border-bottom:none}
+  .sname{font-size:13px;flex:0 0 40%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sname.on{font-weight:700;color:var(--primary)}
+  .sbar{flex:1;height:7px;background:var(--line-2);border-radius:4px;overflow:hidden}
+  .sbar span{display:block;height:100%;background:var(--primary);border-radius:4px}
+  .scount{flex:0 0 auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+  .row2{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+        border-radius:11px;padding:11px 12px;margin-top:7px;cursor:pointer}
+  .row2 .ttl{font-size:14px;font-weight:700}
+  .row2 .sub2{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .row2 .sub2 .bad{color:var(--danger);font-weight:700}
+  .chev{color:var(--faint);flex:none}
+  .search{width:100%;padding:11px 12px;font-size:15px;border:1px solid var(--line);
+          border-radius:11px;background:var(--panel);color:var(--text)}
+  .note.small{font-size:11.5px;padding:8px 11px}
 </style>
 </head>
 <body>
@@ -224,8 +248,8 @@ const MODE_JA = {TAP:'タップ', QR:'QR', RFID:'RFID'};
 const STAFF=[
   {id:'s1',name:'高根 弘二',init:'高',can:STEPS.map(s=>s.c)},
   {id:'s2',name:'中谷 誠',  init:'中',can:['INTAKE','MATERIAL_QC','MODEL','QC','SHIPPING']},
-  {id:'s3',name:'佐藤 圭',  init:'佐',can:['SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING','MILLING','ADJUST']},
-  {id:'s4',name:'山本 千夏',init:'山',can:['FINISHING','ADJUST','QC']},
+  {id:'s3',name:'佐藤 圭',  init:'佐',can:['SCAN','DESIGN','MILLING','SINTER','STAIN','FIT']},
+  {id:'s4',name:'山本 千夏',init:'山',can:['WAXUP','CASTING','POLISH','FIT','QC']},
 ];
 let ME = 's3';
 const me = () => STAFF.find(s=>s.id===ME) || STAFF[0];
@@ -264,8 +288,9 @@ const MATS={'クラウン':['フルジルコニア','e.max','金銀パラジウ�
 function routeOf(mat){
   const cast = ['金銀パラジウム','前装鋳造冠','コバルトクロム'].includes(mat);
   return cast
-    ? ['INTAKE','CLARIFY','WAXUP','FINISHING','QC','SHIPPING']
-    : ['INTAKE','CLARIFY','SCAN','DESIGN','DESIGN_REVIEW','EXPORT','NESTING','MILLING','ADJUST','FINISHING','QC','SHIPPING'];
+    /* ★2026-09-01：実データの23工程・19ルートに合わせた（lab.html の ROUTES と同じ） */
+    ? ['INTAKE','MATERIAL_QC','MODEL','WAXUP','CASTING','FIT','POLISH','QC','SHIPPING']
+    : ['INTAKE','MATERIAL_QC','MODEL','SCAN','DESIGN','MILLING','SINTER','STAIN','FIT','POLISH','QC','SHIPPING'];
 }
 
 let CASES=[];
@@ -355,6 +380,37 @@ const myActive = () => CASES.filter(c => c.state==='ACTIVE' && c.owner===ME);
 const myNext   = () => CASES.filter(c =>
   c.state==='WAIT' && me().can.includes(c.cur) && (c.owner===ME || c.owner===null));
 const allWait  = () => CASES.filter(c => c.state==='WAIT');
+
+/* ============================================================
+   ★ラボ全体を見るための関数（2026-09-01 会議で追加）
+   ------------------------------------------------------------
+   > 「基本的には PC の画面は管理者しか入らなくて、
+   >   これと同じような状況をスマホの方で確認できるような仕組みに落とし込む」
+   > 「自分のタスクとラボ全体のタスクぐらい見れたらそれでいい」（宮腰さま）
+
+   ★スタッフには PC を見せない運用にする。
+     だから「全体の案件」と「まもなく自分に来るもの」は、この画面に無いと届かない。
+   ★ただし BR-29 は守る。個人の生産性・順位は出さない。件数までにとどめる。
+   ============================================================ */
+/* まもなく自分に来るもの＝前の工程で作業中／完了していて、次が自分の担当工程 */
+const comingToMe = () => CASES.filter(c => {
+  if(c.state!=='WAIT' && c.state!=='ACTIVE') return false;
+  const at = c.route.indexOf(c.cur);
+  if(at < 0 || at+1 >= c.route.length) return false;
+  /* 次の工程（素通りは飛ばす）が自分の技能に入っているか */
+  let n = at+1;
+  while(n < c.route.length && !observable(c.route[n])) n++;
+  if(n >= c.route.length) return false;
+  return me().can.includes(c.route[n]) && !me().can.includes(c.cur);
+});
+/* 工程ごとの滞留件数 */
+const byStep = () => STEPS.map(st => ({
+  st, n: CASES.filter(c => c.cur===st.c).length,
+  act: CASES.filter(c => c.cur===st.c && c.state==='ACTIVE').length,
+})).filter(x => x.n>0);
+/* 納期の区分 */
+const dueBucket = c => c.dueDays<=0 ? 'OVER' : c.dueDays<=1 ? 'TODAY' : c.dueDays<=3 ? 'SOON' : 'OK';
+const DUE_JA = {OVER:'超過', TODAY:'本日', SOON:'3日以内', OK:'余裕あり'};
 
 let TAB='now', TOAST=null, SHEET=null, DETAIL=null;
 
@@ -508,6 +564,74 @@ function vAll(){
   }).join('') : '<div class="empty">待ちはありません。</div>'}`;
 }
 
+/* ★ラボ全体。スタッフに PC を見せない運用のため、この画面に集約する */
+function vLab(){
+  const steps=byStep(), coming=comingToMe();
+  const over=CASES.filter(c=>dueBucket(c)==='OVER'), today=CASES.filter(c=>dueBucket(c)==='TODAY');
+  const act=CASES.filter(c=>c.state==='ACTIVE').length;
+  const miss=CASES.filter(c=>missingSteps(c).length).length;
+  const q=(LABQ||'').trim();
+  const hit=!q?[]:CASES.filter(c=>
+    (c.no+c.pno+c.type+c.mat+clinicOf(c.clinicId).name).toLowerCase().includes(q.toLowerCase()));
+  return `
+  <div class="note">ラボ全体の状況です。<b>PCを開かなくても、ここで全部見えます。</b><br>
+    ★<b>個人の成績は出しません。</b>件数だけです。</div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">${CASES.length}</div><div class="l">進行中</div></div>
+    <div class="kpi"><div class="n ${over.length?'bad':''}">${over.length}</div><div class="l">納期超過</div></div>
+    <div class="kpi"><div class="n">${today.length}</div><div class="l">本日納期</div></div>
+    <div class="kpi"><div class="n">${act}</div><div class="l">作業中</div></div>
+  </div>
+
+  <h2 style="margin-top:18px">まもなく自分に来るもの <span class="muted small">${coming.length}件</span></h2>
+  <div class="note small">前の工程にあって、<b>次があなたの担当工程</b>のものです。段取りの準備に使ってください。</div>
+  ${coming.length ? coming.slice(0,8).map(c=>{
+      const at=c.route.indexOf(c.cur);
+      let n=at+1; while(n<c.route.length && !observable(c.route[n])) n++;
+      return `<div class="row2" onclick="DETAIL='${c.id}';render()">
+        <div style="flex:1;min-width:0">
+          <div class="ttl">${esc(c.type)} <span class="muted">${esc(c.mat)}</span></div>
+          <div class="sub2">${esc(c.no)} ・ ${esc(clinicOf(c.clinicId).name)} ・ 納期 ${esc(c.due)}</div>
+          <div class="sub2">いま <b>${esc(stepName(c.cur))}</b>${c.state==='ACTIVE'?'（作業中）':'（待ち）'}
+            → 次 <b>${esc(stepName(c.route[n]))}</b></div>
+        </div><span class="chev">›</span></div>`;}).join('')
+    : '<div class="empty">まもなく来るものはありません。</div>'}
+
+  <h2 style="margin-top:20px">工程ごとの滞留</h2>
+  <div class="steps">
+    ${steps.map(x=>`<div class="stepline" onclick="LABSTEP=LABSTEP==='${x.st.c}'?null:'${x.st.c}';render()">
+      <div class="sname ${LABSTEP===x.st.c?'on':''}">${esc(x.st.n)}</div>
+      <div class="sbar"><span style="width:${Math.min(100,x.n/Math.max(1,CASES.length)*400)}%"></span></div>
+      <div class="scount">${x.n}<span class="muted small">${x.act?` / 作${x.act}`:''}</span></div>
+    </div>`).join('')}
+  </div>
+  ${LABSTEP ? `<h2 style="margin-top:18px">${esc(stepName(LABSTEP))} の案件
+      <span class="muted small">${CASES.filter(c=>c.cur===LABSTEP).length}件</span></h2>
+    ${CASES.filter(c=>c.cur===LABSTEP).map(c=>miniRow(c)).join('')}` : ''}
+
+  <h2 style="margin-top:20px">案件をさがす</h2>
+  <input class="search" type="search" placeholder="ケース番号・患者コード・技工物・医院名"
+    value="${esc(q)}" oninput="LABQ=this.value;render()">
+  ${q ? (hit.length ? hit.slice(0,20).map(c=>miniRow(c)).join('')
+        : '<div class="empty">見つかりませんでした。</div>') : ''}
+
+  ${miss ? `<div class="note warn" style="margin-top:18px">
+    ★<b>記録が抜けている案件が ${miss}件あります。</b>
+    分析からは外れますが、案件は止まりません（BR-90・BR-91）。</div>`:''}`;
+}
+function miniRow(c){
+  const b=dueBucket(c);
+  return `<div class="row2" onclick="DETAIL='${c.id}';render()">
+    <div style="flex:1;min-width:0">
+      <div class="ttl">${esc(c.type)} <span class="muted">${esc(c.mat)}</span></div>
+      <div class="sub2">${esc(c.no)} ・ ${esc(clinicOf(c.clinicId).name)}</div>
+      <div class="sub2">${esc(stepName(c.cur))}${c.state==='ACTIVE'?'（作業中）':''}
+        ・ <span class="${b==='OVER'?'bad':''}">納期 ${esc(c.due)}${b==='OVER'?' 超過':''}</span>
+        ${c.owner?` ・ 担当 ${esc((STAFF.find(x=>x.id===c.owner)||{}).name||'')}`:' ・ <b>未割当</b>'}</div>
+    </div><span class="chev">›</span></div>`;
+}
+
 function vDetail(){
   const c=caseById(DETAIL); if(!c) return vNow();
   const cl=clinicOf(c.clinicId), miss=missingSteps(c);
@@ -631,7 +755,8 @@ function sheetScan(){
 }
 
 /* ---------- 全体の描画 ---------- */
-const TABS=[['now','自分の作業'],['all','全体の待ち']];
+let LABSTEP=null, LABQ='';
+const TABS=[['now','自分の作業'],['all','全体の待ち'],['lab','ラボ全体']];
 function render(){
   const m=me();
   document.getElementById('avatar').textContent=m.init;
@@ -646,13 +771,14 @@ function render(){
   document.getElementById('modeLine').textContent=`記録方式：${modes}（エリアごとに設定）`;
 
   document.getElementById('tabs').innerHTML=TABS.map(([k,l])=>{
-    const n = k==='now' ? myActive().length+myNext().length : allWait().length;
+    const n = k==='now' ? myActive().length+myNext().length
+            : k==='all' ? allWait().length : CASES.length;
     return `<button class="${TAB===k&&!DETAIL?'on':''}" onclick="TAB='${k}';DETAIL=null;render()">
       ${l}<span class="n">${n}</span></button>`;
   }).join('');
 
   document.getElementById('app').innerHTML =
-    DETAIL ? vDetail() : (TAB==='now' ? vNow() : vAll());
+    DETAIL ? vDetail() : (TAB==='now' ? vNow() : TAB==='lab' ? vLab() : vAll());
 
   let ov='';
   if(SHEET){
